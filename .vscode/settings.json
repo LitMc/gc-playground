@@ -1,0 +1,24 @@
+{
+    "C_Cpp.clang_format_style": "file",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools",
+        "editor.formatOnSave": true
+    },
+    "[c]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools",
+        "editor.formatOnSave": true
+    },
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.generator": "Unix Makefiles",
+
+    "cmake.environment": {
+        "PICO_SDK_PATH": "/Users/jgoto/pico/pico-sdk",
+        "PATH": "/Applications/ARM/bin:${env:PATH}"
+    },
+
+    "cmake.configureOnOpen": true,
+    "cmake.configureArgs": [
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ]
+}
