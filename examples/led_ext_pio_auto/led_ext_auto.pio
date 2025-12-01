@@ -1,0 +1,24 @@
+.program led_ext_auto
+; PIOだけでLEDをON/OFFし続けるLチカ
+
+.wrap_target
+    set pins, 1     ; LED ON
+
+    set x, 31       ; 外側カウンタ
+delay_on_outer:
+    set y, 31       ; 内側カウンタ
+delay_on_inner:
+    nop[31]         ; 遅延
+    jmp y-- delay_on_inner
+    jmp x-- delay_on_outer
+
+    set pins, 0     ; LED OFF
+
+    set x, 31       ; 外側カウンタ
+delay_off_outer:
+    set y, 31       ; 内側カウンタ
+delay_off_inner:
+    nop[31]         ; 遅延
+    jmp y-- delay_off_inner
+    jmp x-- delay_off_outer
+.wrap

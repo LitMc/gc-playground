@@ -1,0 +1,6 @@
+.program led_ext
+; 1ビットだけ受け取ってその値をピンに出力
+
+.wrap_target
+    pull block  ; CPU側から32ビット受け取る（OSRに入る）
+    out pins, 1 ; OSRのLSBをpinsへ出力（0か1）
