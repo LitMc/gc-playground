@@ -1,0 +1,7 @@
+.program button_pio_in
+; 回路上のボタンの状態を読み取りISRに入れRX FIFOへ送る
+
+.wrap_target
+    in pins, 1  ; ボタンの状態を読み取る
+    push block  ; RX FIFOへ送る
+.wrap
