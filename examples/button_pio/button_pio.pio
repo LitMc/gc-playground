@@ -1,0 +1,13 @@
+.program button_pio
+; 回路上のボタンの状態を読み取りLEDを点灯、消灯させる
+
+.wrap_target
+loop:
+    jmp pin button_high  ; BTNピンが1ならbutton_highへ
+    set pins, 1          ; BTNが0なのでLEDを点灯
+    jmp loop
+
+button_high:
+    set pins, 0          ; BTNが1なのでLEDを消灯
+    jmp loop
+.wrap
