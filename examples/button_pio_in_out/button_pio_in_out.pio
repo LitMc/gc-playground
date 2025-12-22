@@ -1,0 +1,10 @@
+.program button_pio_in_out
+; ボタンの状態を読み取りCPUに伝えつつCPUからの指示でLEDを点灯、消灯させる
+
+.wrap_target
+    in pins, 1  ; ボタンの状態をISRに入れる
+    push block  ; ISRの内容をRX FIFOに送る
+
+    pull block  ; CPUからの指示をTX FIFOから受け取りOSRに入れる
+    out pins, 1 ; 指示どおりLEDを点灯または消灯
+.wrap

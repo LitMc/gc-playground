@@ -1,0 +1,19 @@
+.program button_duration
+; ボタンを押した長さをカウントする
+
+.wrap_target
+wait_for_press:
+    ; 押されるのを待つ
+    wait 0 pin, 0  ; ボタンが押されるまで待つ wait for 0
+    set pins, 1    ; LED ON
+    in pins, 1     ; 状態を1bitサンプル
+    push block     ; 「押された」イベントをCPUに通知
+
+    ; 離されるのを待つ
+    wait 1 pin, 0  ; ボタンが離されるまで待つ wait for 1
+    set pins, 0    ; LED OFF
+    in pins, 1     ; 状態を1bitサンプル
+    push block     ; 「離された」イベントをCPUに通知
+
+    jmp wait_for_press
+.wrap
