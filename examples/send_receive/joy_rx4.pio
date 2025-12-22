@@ -1,0 +1,16 @@
+; joy_4x4.pio (4MHz想定)
+.program joy_rx4
+; JoyBusプロトコルでデータを受信する
+
+.wrap_target
+    wait 1 pin 0    ; アイドルHigh待ち（初回だけ）
+    set x, 7        ; 8ビット分
+bitloop:
+    wait 0 pin 0    ; 立ち下がり（ビット開始）
+    nop [7]         ; 2us待機（8cy）
+    in pins, 1      ; 中点サンプル
+    wait 1 pin 0    ; 立ち上がり
+    jmp x-- bitloop ; 8ビット繰り返す
+    set x, 7        ; 次のバイトのためにリセット
+    jmp bitloop     ; 続けて受信
+.wrap
