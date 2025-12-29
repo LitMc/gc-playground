@@ -11,8 +11,6 @@ init:
     set pindirs, 0                          ; Hi-Z (idle High)
 
 frame:
-    wait 1 irq 0                            ; RXから「いまから送信していい」の合図を待つ
-    irq clear 0                             ; 合図をクリア
     mov osr, isr                            ; OSRを0xAAxxxxxxに戻す
     set x, 7                                ; 8bit
 

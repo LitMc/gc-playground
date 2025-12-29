@@ -13,7 +13,6 @@ start:
                                             ; irq clear 1                             ; 合図をクリア
     pull block                              ; CPUから期待するバイト数を受け取る
     mov y, osr                              ; 残りバイト数をyに保存
-    irq set 0                               ; 受信開始通知をTXへ伝える
     wait 1 pin 0                            ; 受信開始前にアイドルHigh待ち
 byteloop:
     set x, 7                                ; 8ビット分
