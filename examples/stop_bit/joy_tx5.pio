@@ -38,6 +38,9 @@ stop_bit:
                                             ; stop = 1bit '1'
     set pindirs, 1 [4]
     set pindirs, 0 [14]                     ; stopのHighをきっちり15cy確保（次のframe処理で少し伸びてもRXはwait基準なのでOK）
-    nop [19]                                ; 余裕を持って待つ
+    set x, 31
+long_idle:
+    nop [31]
+    jmp x-- long_idle                       ; RXの受信ペースを超えないようゆっくり待つ
     jmp frame                               ; 次フレームへ
 .wrap
