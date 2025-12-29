@@ -1,0 +1,45 @@
+; joy_tx5.pio  (1bit=5us, SM clk=4MHz)
+.program joy_tx5
+
+.wrap_target
+                                            ; 1回だけ: 送るバイトを上位8bitに入れて渡す (例: 0xAA000000)
+    pull block
+    mov isr, osr                            ; ISRに保存（フレームごとにOSRへ戻す）
+
+init:
+    set pins, 0
+    set pindirs, 0                          ; Hi-Z (idle High)
+
+frame:
+    wait 1 irq 0                            ; RXから「いまから送信していい」の合図を待つ
+    irq clear 0                             ; 合図をクリア
+    mov osr, isr                            ; OSRを0xAAxxxxxxに戻す
+    set x, 7                                ; 8bit
+
+bitloop:
+    out y, 1
+    jmp !y send0
+
+send1:
+                                            ; 1 = Low 5cy + High 15cy
+    set pindirs, 1 [4]
+    set pindirs, 0 [10]
+    jmp cont
+
+send0:
+                                            ; 0 = Low 15cy + High 5cy
+    set pindirs, 1 [14]
+    set pindirs, 0 [0]
+    jmp cont
+
+cont:
+    jmp x-- bitloop
+    nop [1]                                 ; あなたの「8bit境界の調整」をそのまま残す
+
+stop_bit:
+                                            ; stop = 1bit '1'
+    set pindirs, 1 [4]
+    set pindirs, 0 [14]                     ; stopのHighをきっちり15cy確保（次のframe処理で少し伸びてもRXはwait基準なのでOK）
+    nop [19]                                ; 余裕を持って待つ
+    jmp frame                               ; 次フレームへ
+.wrap
