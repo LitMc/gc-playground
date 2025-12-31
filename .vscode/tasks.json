@@ -1,0 +1,12 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "format pio",
+            "type": "shell",
+            "command": "python3",
+            "args": ["-S", "${workspaceFolder}/tools/format_pio.py", "${file}"],
+            "problemMatcher": []
+        }
+    ]
+}

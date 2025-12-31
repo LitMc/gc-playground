@@ -9,6 +9,9 @@
         "editor.defaultFormatter": "ms-vscode.cpptools",
         "editor.formatOnSave": true
     },
+    "triggerTaskOnSave.tasks": {
+        "format pio": ["**/*.pio"]
+    },
     "cmake.buildDirectory": "${workspaceFolder}/build",
     "cmake.generator": "Unix Makefiles",
 
