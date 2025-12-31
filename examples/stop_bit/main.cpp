@@ -2,12 +2,33 @@
 #include "hardware/pio.h"
 #include "joy_rx5.pio.h"
 #include "joy_tx5.pio.h"
+#include "pico/bootrom.h"
 #include "pico/stdlib.h"
 #include <stdio.h>
 
+// BOOTSELに入るためのボタン入力
+static constexpr uint BOOT_BTN_PIN = 26; // GP26
+static constexpr uint DEBOUNCE_MS = 300;
+
 constexpr uint ONBOARD_LED_PIN = PICO_DEFAULT_LED_PIN;
-constexpr uint TX_PIN = 16; // GP16
-constexpr uint RX_PIN = 17; // GP17
+constexpr uint TX_PIN = 15; // GP15
+constexpr uint RX_PIN = 16; // GP16
+
+static void boot_btn_irq(uint gpio, uint32_t events) {
+    // ちょいデバウンス（押しっぱなし連打対策）
+    busy_wait_ms(100);
+    if (gpio_get(BOOT_BTN_PIN) == 0) {
+        printf("BOOTSEL button pressed. Entering USB boot mode...\n");
+        reset_usb_boot(0, 0);
+    }
+}
+
+static void bootsel_button_init() {
+    gpio_init(BOOT_BTN_PIN);
+    gpio_set_dir(BOOT_BTN_PIN, GPIO_IN);
+    gpio_pull_up(BOOT_BTN_PIN);
+    gpio_set_irq_enabled_with_callback(BOOT_BTN_PIN, GPIO_IRQ_EDGE_FALL, true, &boot_btn_irq);
+}
 
 static void init_bus_pins_safe() {
     // バスへ接続するピンをHi-Zに設定
@@ -79,6 +100,7 @@ static inline void tx_send_frame(PIO pio, uint sm, uint off, const pio_sm_config
 
 int main() {
     stdio_init_all();
+    bootsel_button_init();
 
     // 動作開始の確認用にオンボードLEDを光らせる
     init_led();
@@ -195,6 +217,6 @@ int main() {
                 printf("No data received.\n");
             }
         }
-        sleep_ms(5000);
+        sleep_ms(2000);
     }
 }
