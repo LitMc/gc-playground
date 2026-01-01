@@ -5,6 +5,10 @@
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
 #include <stdio.h>
+#include <vector>
+
+// TX FIFOに積める最大バイト数
+static constexpr size_t DEFAULT_MAX_FIFO_BYTES = 4 * 8;
 
 // BOOTSELに入るためのボタン入力
 static constexpr uint BOOT_BTN_PIN = 26; // GP26
@@ -65,37 +69,74 @@ static inline uint8_t decode_3sample_msbfirst(uint32_t w) {
     return out;
 }
 
-static void joybus_tx_send(PIO pio, uint sm, const uint8_t *data, size_t n) {
-    if (n == 0) {
+static bool joybus_rx_read_bytes(PIO pio, uint sm, uint8_t *out, size_t nbytes, int timeout_us) {
+    absolute_time_t start = get_absolute_time();
+
+    for (size_t i = 0; i < nbytes; ++i) {
+        while (pio_sm_is_rx_fifo_empty(pio, sm)) {
+            if (absolute_time_diff_us(start, get_absolute_time()) > timeout_us) {
+                return false;
+            }
+            tight_loop_contents();
+        }
+        uint32_t raw = pio_sm_get_blocking(pio, sm);
+        uint32_t lo24 = raw & 0x00FFFFFFu;
+        out[i] = decode_3sample_msbfirst(lo24);
+    }
+    return true;
+}
+
+static void joybus_tx_send(PIO pio, uint sm, const uint8_t *data, size_t nbytes) {
+    if (nbytes == 0) {
+        return;
+    }
+    // TX FIFOに積みきれるバイト数の上限を超えたらエラー
+    // JoyBusは最大10バイト程度なので超えないはず
+    if (nbytes > DEFAULT_MAX_FIFO_BYTES) {
+        printf("Error: joybus_tx_send: nbytes=%zu exceeds max=%zu\n", nbytes,
+               DEFAULT_MAX_FIFO_BYTES);
         return;
     }
 
+    printf("Starting to send ");
+    for (size_t i = 0; i < nbytes; ++i) {
+        printf("0x%02X ", data[i]);
+    }
+    printf("(%zu bytes)\n", nbytes);
+
+    printf("Waiting for previous TX complete...\n");
+    // 万が一同期が崩れてもautopullされないように前の送信が完了しないうちはFIFOに積まない
+    while (!pio_interrupt_get(pio, 1)) {
+        // 送信が完了するのを待つ
+        tight_loop_contents();
+    }
+    printf("Previous TX complete.\n");
+    pio_interrupt_clear(pio, 1);
+
     // 期待する送信ビット数-1
-    uint32_t bits_to_send_minus1 = (uint32_t)(n * 8 - 1);
+    uint32_t bits_to_send_minus1 = (uint32_t)(nbytes * 8 - 1);
     pio_sm_put_blocking(pio, sm, bits_to_send_minus1);
-    // 送信データを1バイトずつ送信
-    for (size_t i = 0; i < n; ++i) {
-        pio_sm_put_blocking(pio, sm, ((uint32_t)data[i]) << 24); // MSB-firstなので上位8ビットに配置
+    // PIOには1ワードずつ渡す
+    // 1ワードは32ビット(4バイト)なので、4バイトずつ処理
+    // 送るデータをMSB-firstにするため、先頭のデータを上位バイトに詰める
+    // b0, b1, b2, b3 -> word = b0<<24 | b1<<16 | b2<<8 | b3
+    // 不足分は0埋め
+    const size_t words_to_send = (nbytes + 3) / 4;
+    printf("Sending %zu words to TX FIFO...\n", words_to_send);
+    for (size_t w = 0; w < words_to_send; ++w) {
+        uint32_t word = 0;
+        for (size_t b = 0; b < 4; ++b) {
+            size_t byte_index = w * 4 + b;
+            uint8_t byte = (byte_index < nbytes) ? data[byte_index] : 0;
+            word |= ((uint32_t)byte) << (8 * (3 - b));
+            printf("  Added byte 0x%02X to word %08lX\n", byte, (unsigned long)word);
+        }
+        pio_sm_put_blocking(pio, sm, word); // TODO: あとでもどす
+        printf("  Sent word %zu: 0x%08lX\n", w, (unsigned long)word);
     }
-}
-
-static inline void tx_send_frame(PIO pio, uint sm, uint off, const pio_sm_config *cfg,
-                                 const uint8_t *data, size_t n) {
-    pio_sm_set_enabled(pio, sm, false);
-    pio_sm_restart(pio, sm);
-    pio_sm_clear_fifos(pio, sm);
-    pio_sm_init(pio, sm, off, cfg); // PCも先頭へ戻る
-
-    // ★このフレームの分だけ積む
-    pio_sm_put_blocking(pio, sm, (uint32_t)(n * 8 - 1));
-    for (size_t i = 0; i < n; ++i) {
-        pio_sm_put_blocking(pio, sm, ((uint32_t)data[i]) << 24);
-    }
-
-    pio_sm_set_enabled(pio, sm, true);
-
-    // 必要なら止めておく（次フレームも同様に送るならこのままでもOK）
-    pio_sm_set_enabled(pio, sm, false);
+    // IRQ0を1にして送信開始を通知
+    pio->irq_force = (1u << 0);
+    printf("TX start notified.\n");
 }
 
 int main() {
@@ -131,7 +172,7 @@ int main() {
     // 何バイト送るかを動的に決めるためTXのPIOは1バイトずつ勝手にpullして送信する
     sm_config_set_out_shift(&c_tx,
                             /*shift_right=*/false,
-                            /*autopull=*/false,
+                            /*autopull=*/true,
                             /*pull_thresh=*/32);
 
     // --- RXステートマシン設定 ---
@@ -170,53 +211,43 @@ int main() {
     pio_sm_set_enabled(pio_rx, sm_rx, true);
     sleep_ms(200);                           // 安全のため少し待つ
     pio_sm_set_enabled(pio_tx, sm_tx, true); // RXが受信待ち状態になってからTXを起動
-    pio_sm_put_blocking(pio_tx, sm_tx, 0xAA << 24);
-
     printf("Loopback test ready.\n");
 
-    const uint8_t test_data[] = {0x00, 0xFF, 0x55, 0xAA, 0xA5, 0x3C, 0xC3};
+    const std::vector<std::vector<uint8_t>> test_frames = {
+        {0xA5},
+        {0xFF},
+        {0x00},
+        {0xA5, 0x5A},                   // 2バイト
+        {0x78, 0x56, 0x34, 0x12},       // 4バイト
+        {0x12, 0x34, 0x56, 0x78},       // 4バイト
+        {0x89, 0xAB, 0xCD, 0xEF},       // 4バイト
+        {0x12, 0x34, 0x56, 0x78, 0x9A}, // 5バイト（RX FIFOがあふれる！）
+    };
 
     while (true) {
-        for (uint8_t tx_byte : test_data) {
-            const uint32_t expected_rx_bytes = 1;
-            const uint32_t expected_tx_bytes = 1;
-
-            pio_sm_put_blocking(pio_rx, sm_rx, expected_rx_bytes - 1);
-            // TXへ送信データを渡す
-
-            // 受信データを取得
-            absolute_time_t start_time = get_absolute_time();
-            while (pio_sm_is_rx_fifo_empty(pio_rx, sm_rx)) {
-                // タイムアウト
-                if (absolute_time_diff_us(start_time, get_absolute_time()) > 200000) {
-                    uint pc_tx_abs = pio_sm_get_pc(pio_tx, sm_tx);
-                    uint pc_rx_abs = pio_sm_get_pc(pio_rx, sm_rx);
-                    printf("off_tx=%u off_rx=%u pc_tx_abs=%u pc_rx_abs=%u RXpin=%d\n", off_tx,
-                           off_rx, pc_tx_abs, pc_rx_abs, gpio_get(RX_PIN));
-                    printf("RX timeout!\n");
-                    break;
-                }
+        for (const auto &frame : test_frames) {
+            const uint32_t expected_bytes = (uint32_t)frame.size();
+            if (expected_bytes == 0) {
+                continue;
             }
-
-            if (!pio_sm_is_rx_fifo_empty(pio_rx, sm_rx)) {
-                // uint32_t rx_sampled = pio_sm_get_blocking(pio_rx, sm_rx);
-                // uint8_t rx_byte = decode_3sample_msbfirst(rx_sampled & 0x00FFFFFFu);
-                // printf("TX: 0x%02X -> RX: 0x%02X\n", tx_byte, rx_byte);
-                uint32_t raw = pio_sm_get_blocking(pio_rx, sm_rx);
-
-                uint32_t lo24 = raw & 0x00FFFFFFu;
-                uint32_t hi24 = (raw >> 8) & 0x00FFFFFFu;
-
-                uint8_t d_lo = decode_3sample_msbfirst(lo24);
-                uint8_t d_hi = decode_3sample_msbfirst(hi24);
-
-                printf("TX:%02X raw:%08lX lo24:%06lX d_lo:%02X hi24:%06lX d_hi:%02X\n", tx_byte,
-                       (unsigned long)raw, (unsigned long)lo24, d_lo, (unsigned long)hi24, d_hi);
-
-            } else {
-                printf("No data received.\n");
+            const uint32_t bits_to_receive_minus1 = expected_bytes * 8 - 1;
+            pio_sm_put_blocking(pio_rx, sm_rx, bits_to_receive_minus1);
+            joybus_tx_send(pio_tx, sm_tx, frame.data(), expected_bytes);
+            std::vector<uint8_t> rx_buffer(expected_bytes, 0);
+            if (!joybus_rx_read_bytes(pio_rx, sm_rx, rx_buffer.data(), expected_bytes, 200000)) {
+                printf("RX timeout (expected %lu bytes)\n", (unsigned long)expected_bytes);
+                continue;
             }
+            printf("TX(%lu bytes): ", (unsigned long)expected_bytes);
+            for (size_t i = 0; i < expected_bytes; ++i) {
+                printf(" 0x%02X ", frame[i]);
+            }
+            printf(" => RX(%lu bytes): ", (unsigned long)expected_bytes);
+            for (size_t i = 0; i < expected_bytes; ++i) {
+                printf(" 0x%02X ", rx_buffer[i]);
+            }
+            printf("\n");
         }
-        sleep_ms(2000);
+        sleep_ms(5000);
     }
 }

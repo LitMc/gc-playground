@@ -1,46 +1,42 @@
 ; joy_tx5.pio  (1bit=5us, SM clk=4MHz)
 .program joy_tx5
+; 可変長のデータをJoyBusプロトコルで送信する
+; 1bitあたり5usで送信
+; ストップビットも送信する
+; ストップビットはコマンドや応答の最後に'1'を付加
+; word0: 送信するデータビット数-1
+; word1~: 送信するデータバイト列（MSB-first）
+; すべてのデータを送信したのちストップビットを送りirq0で送信完了を通知
 
 .wrap_target
-                                            ; 1回だけ: 送るバイトを上位8bitに入れて渡す (例: 0xAA000000)
-    pull block
-    mov isr, osr                            ; ISRに保存（フレームごとにOSRへ戻す）
+start:
+    irq set 1                               ; 送信完了（受信開始可能）をRXとCPUに通知
+                                            ; 以降 pull block で待つ間もHi-Zのまま
+    wait 1 irq 0                            ; CPUからの送信開始指示を待つ
+    irq clear 0
+    pull block                              ; 1) CPUから 送るデータビット数-1 を受け取る
+    out x, 32                               ; x = 送信するビット数-1 をセット
 
-init:
-    set pins, 0
-    set pindirs, 0                          ; Hi-Z (idle High)
+    pull block                              ; 2) 送信する最初の1バイトをOSRに入れる（以降はautopullで供給）
 
-frame:
-    mov osr, isr                            ; OSRを0xAAxxxxxxに戻す
-    set x, 7                                ; 8bit
-
+                                            ; 3) 出力ピンの初期化
+    set pins, 0                             ; 念のため出力ラッチを0に（1だとpindirs=1でHigh駆動になりオープンドレインにならない）
+    set pindirs, 0                          ; 入力モードに設定しアイドルHighにする
 bitloop:
-    out y, 1
-    jmp !y send0
-
+    out y, 1                                ; 1ビット取り出す
+    jmp !y send0                            ; 0ビットの場合
 send1:
-                                            ; 1 = Low 5cy + High 15cy
-    set pindirs, 1 [4]
-    set pindirs, 0 [10]
+    set pindirs, 1 [4]                      ; 1 = Low 1.25us(5cy)
+    set pindirs, 0 [10]                     ;     + High 3.75us(15cy)
     jmp cont
-
 send0:
-                                            ; 0 = Low 15cy + High 5cy
-    set pindirs, 1 [14]
-    set pindirs, 0 [0]
+    set pindirs, 1 [14]                     ; 0 = Low 3.75us(15cy)
+    set pindirs, 0 [0]                      ;     + High 1.25us(5cy)
     jmp cont
-
 cont:
-    jmp x-- bitloop
-    nop [1]                                 ; あなたの「8bit境界の調整」をそのまま残す
-
+    jmp x-- bitloop                         ; 期待する送信ビット数だけ繰り返す
+    nop [1]                                 ; Highの長さ調整
 stop_bit:
-                                            ; stop = 1bit '1'
-    set pindirs, 1 [4]
-    set pindirs, 0 [14]                     ; stopのHighをきっちり15cy確保（次のframe処理で少し伸びてもRXはwait基準なのでOK）
-    set x, 31
-long_idle:
-    nop [31]
-    jmp x-- long_idle                       ; RXの受信ペースを超えないようゆっくり待つ
-    jmp frame                               ; 次フレームへ
+    set pindirs, 1 [4]                      ; ストップビット 1 = Low 1.25us(5cy)
+    set pindirs, 0 [14]                     ;          + High 3.75us(15cy)
 .wrap
