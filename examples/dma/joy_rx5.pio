@@ -1,0 +1,45 @@
+; joy_rx5.pio (1ビットあたり5us、サイクルの周波数は4MHz想定)
+.program joy_rx5
+; JoyBusプロトコルでデータを受信する
+; 3箇所でサンプルをとりCPUで多数決をとる
+; 各ビットについて
+;   立ち下がりを検出した時点をcycle0とする
+;   2.0us, 2.5us, 3.0us後にサンプリング
+;   5usぴったり経過するように待つ
+
+.wrap_target
+start:
+                                            ; wait 1 irq 1                            ; TXから「いまから受信していい」の合図を待つ
+                                            ; irq clear 1                             ; 合図をクリア
+    pull block                              ; CPUから期待するビット数 - 1を受け取る
+    out x, 32                               ; 残りビット数をxに保存
+    wait 1 pin 0                            ; 受信開始前にアイドルHigh待ち
+                                            ; 1ビットあたり5us = 20 cyclesかける
+bitloop:
+    wait 0 pin 0                            ; cycle0 Low待ち（Highを経由しているので実質立ち下がり）
+
+    nop [6]                                 ; cycle1-7
+    in pins, 1                              ; cycle8 2.0us時点が含まれる区間[2.0us, 2.25us)のどこかでサンプリング
+
+    nop                                     ; cycle9
+    in pins, 1                              ; cycle10 2.5us時点が含まれる区間[2.5us, 2.75us)のどこかでサンプリング
+
+    nop                                     ; cycle11
+    in pins, 1                              ; cycle12 3.0us時点が含まれる区間[3.0us, 3.25us)のどこかでサンプリング
+
+    nop [5]                                 ; cycle13-18
+
+    jmp x-- bitloop                         ; cycle19 8ビット繰り返す
+                                            ; C言語側でautopush=24としておいてここでプッシュ
+                                            ; 規定のバイト数を読み終えたらストップビットの1が来るはず
+stop_check:
+    wait 0 pin 0                            ; cycle0 Low待ち（cycle13-18でHighを経由している前提。立ち下がり）
+    nop [8]                                 ; cycle1-9 中点まで待つ
+    jmp pin stop_ok                         ; cycle10 2.5us時点でHighなら1が送られてきているのでOK
+    irq set 2                               ; cycle11 ストップビットが来ていなかったらエラー通知
+    nop [6]                                 ; cycle12-18 このビットのHighをアイドルのHighと取り違えないようビット終端まで待つ
+    jmp start                               ; cycle19 次のフレームを読みに行く
+stop_ok:
+    nop [8]                                 ; cycle11-19 ストップビットのHighをアイドルのHighと取り違えないようストップビットの終端まで待つ
+                                            ; .wrapによるジャンプは0サイクルで行われるので19サイクル目（ビット終端のサイクル）まで待ってOK
+.wrap
