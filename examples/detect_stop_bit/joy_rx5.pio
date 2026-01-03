@@ -1,0 +1,38 @@
+; joy_rx5.pio (1ビットあたり5us、サイクルの周波数は4MHz想定)
+
+; 波形からストップビットを検出して受信する
+; 1ビットは20サイクル
+; Lが最低6サイクル以上続いたら'0'
+; cycle5がLowなら'0'かも
+; LとHの区別できる区間の真ん中をとってcycle9がLowなら'0'
+; cycle15はHigh
+.program joy_rx5
+
+.wrap_target
+done:
+    irq set 0 rel
+start:
+    wait 1 pin 0                            ; アイドルHigh待ち
+    wait 0 pin 0                            ; cycle0 Low待ち（立ち下がり）
+                                            ; Lowが1usより長く続いたら'0'
+fall_edge:
+    set x, 1                                ; cycle1
+    set y, 1                                ; cycle2
+low:
+    jmp pin high                            ; 3 + 2x, 6 + 2x + 2k
+    jmp x-- low                             ; 4 + 2x
+zero_detected:
+    set y, 0                                ; 5 + 2x
+    jmp low                                 ; 6 + 2x
+high:
+    in y, 1                                 ; 4 + 2x, 11 + 2x
+    set x, 9                                ; 5 + 2x, 12 + 2x
+wait_low:
+    jmp pin wait_timeout                    ; 6 + 2x + 2x', 13 + 2x + 2x'
+    jmp fall_edge
+wait_timeout:
+    jmp x-- wait_low                        ; 7 + 2x + 2x', 14 + 2x + 2x'
+timeout:
+    push noblock
+    jmp done
+.wrap
