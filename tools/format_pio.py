@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 INDENT = ' ' * 4
-LABEL_REGEX = re.compile(r'^\s*[A-Za-z_][\w.]*:\s*$')
+LABEL_REGEX = re.compile(r'^\s*(?:public\s+)?[A-Za-z_][\w.]*:\s*$')
 COMMENT_COLUMN = 44 # コメントを揃える列
 
 is_inside_wrapped_block = False
