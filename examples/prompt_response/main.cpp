@@ -73,17 +73,20 @@ void dump_if_rx(ConvertGcInput::JoybusPioSm &device, const char *name) {
     printf("\n");
 }
 
-std::size_t console_callback(void *user, const uint8_t *rx, std::size_t rx_len, uint8_t *tx,
-                             std::size_t tx_max) {
-    const std::size_t n = std::min(rx_len, tx_max);
-    std::copy_n(rx, n, tx);
+std::size_t __time_critical_func(console_callback)(void *user, const uint8_t *rx,
+                                                   std::size_t rx_len, uint8_t *tx,
+                                                   std::size_t tx_max) {
+    const std::size_t n = (rx_len < tx_max) ? rx_len : tx_max;
+    for (std::size_t i = 0; i < n; ++i)
+        tx[i] = rx[i];
     return n;
 }
 
-std::size_t pad_callback(void *user, const uint8_t *rx, std::size_t rx_len, uint8_t *tx,
-                         std::size_t tx_max) {
-    const std::size_t n = std::min(rx_len, tx_max);
-    std::copy_n(rx, n, tx);
+std::size_t __time_critical_func(pad_callback)(void *user, const uint8_t *rx, std::size_t rx_len,
+                                               uint8_t *tx, std::size_t tx_max) {
+    const std::size_t n = (rx_len < tx_max) ? rx_len : tx_max;
+    for (std::size_t i = 0; i < n; ++i)
+        tx[i] = rx[i];
     return n;
 }
 
@@ -141,7 +144,9 @@ int main() {
     printf("pad    : PIO%d SM%u pin GP%u\n", pio_get_index(pad_config.pio),
            pad_config.state_machine, PAD_PIN);
 
-    const std::vector<std::vector<uint8_t>> test_frames = {{0xA5, 0x5A}};
+    const std::vector<std::vector<uint8_t>> test_frames = {
+        {0xA5, 0x5A},
+    };
 
     for (const auto &frame : test_frames) {
         printf("[console] TX (%lu):", (unsigned long)frame.size());

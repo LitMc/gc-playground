@@ -5,8 +5,6 @@
     )
 
     # .pioからヘッダ生成
-    pico_generate_pio_header(unified_tx_rx ${CMAKE_CURRENT_LIST_DIR}/joy_tx5.pio)
-    pico_generate_pio_header(unified_tx_rx ${CMAKE_CURRENT_LIST_DIR}/joy_rx5.pio)
     pico_generate_pio_header(unified_tx_rx ${CMAKE_CURRENT_LIST_DIR}/joybus_console.pio)
     pico_generate_pio_header(unified_tx_rx ${CMAKE_CURRENT_LIST_DIR}/joybus_pad.pio)
 
