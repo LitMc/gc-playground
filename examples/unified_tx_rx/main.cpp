@@ -75,17 +75,15 @@ void dump_if_rx(ConvertGcInput::JoybusPioSm &device, const char *name) {
 
 std::size_t console_callback(void *user, const uint8_t *rx, std::size_t rx_len, uint8_t *tx,
                              std::size_t tx_max) {
-    return 0;
+    const std::size_t n = std::min(rx_len, tx_max);
+    std::copy_n(rx, n, tx);
+    return n;
 }
 
-// +1して返す
 std::size_t pad_callback(void *user, const uint8_t *rx, std::size_t rx_len, uint8_t *tx,
                          std::size_t tx_max) {
-    (void)user;
     const std::size_t n = std::min(rx_len, tx_max);
-    for (std::size_t i = 0; i < n; ++i) {
-        tx[i] = rx[i] + 1;
-    }
+    std::copy_n(rx, n, tx);
     return n;
 }
 
@@ -143,13 +141,7 @@ int main() {
     printf("pad    : PIO%d SM%u pin GP%u\n", pio_get_index(pad_config.pio),
            pad_config.state_machine, PAD_PIN);
 
-    const std::vector<std::vector<uint8_t>> test_frames = {
-        {0xA5, 0x5A},
-        {0xA5},
-        {0x78, 0x56, 0x34, 0x12},
-        {0x01, 0x12, 0x23, 0x34, 0x45},
-        {0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78},
-    };
+    const std::vector<std::vector<uint8_t>> test_frames = {{0xA5, 0x5A}};
 
     for (const auto &frame : test_frames) {
         printf("[console] TX (%lu):", (unsigned long)frame.size());
