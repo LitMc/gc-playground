@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
+set(CMAKE_CXX_STANDARD 20)
 
 include(pico_sdk_import.cmake)
 
@@ -22,3 +23,4 @@ add_subdirectory(examples/dma)
 add_subdirectory(examples/detect_stop_bit)
 add_subdirectory(examples/unified_tx_rx)
 add_subdirectory(examples/prompt_response)
+add_subdirectory(examples/monitor)
