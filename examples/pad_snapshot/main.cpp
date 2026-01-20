@@ -132,11 +132,14 @@ std::size_t __time_critical_func(to_pad_callback)(void *user, const uint8_t *rx,
     return 0;
 }
 
-static bool g_has_id = false;
-static bool g_has_origin = false;
-static bool g_has_status = false;
-static bool g_has_recalibrate = false;
-static bool g_has_reset = false;
+static std::atomic<uint32_t> g_seen_mask{0};
+enum : uint32_t {
+    SEEN_ID = 1u << 0,
+    SEEN_ORG = 1u << 1,
+    SEEN_STA = 1u << 2,
+    SEEN_REC = 1u << 3,
+    SEEN_RST = 1u << 4,
+};
 
 std::size_t __time_critical_func(to_console_callback)(void *user, const uint8_t *rx,
                                                       std::size_t rx_len, uint8_t *tx,
@@ -160,31 +163,31 @@ std::size_t __time_critical_func(to_console_callback)(void *user, const uint8_t 
         if (!snapshot.has_status) {
             return 0;
         }
-        g_has_status = true;
+        g_seen_mask.fetch_or(SEEN_STA, std::memory_order_relaxed);
         return copy(snapshot.status);
     case jb::Command::Id:
         if (!snapshot.has_id) {
             return 0;
         }
-        g_has_id = true;
+        g_seen_mask.fetch_or(SEEN_ID, std::memory_order_relaxed);
         return copy(snapshot.id);
     case jb::Command::Origin:
         if (!snapshot.has_origin) {
             return 0;
         }
-        g_has_origin = true;
+        g_seen_mask.fetch_or(SEEN_ORG, std::memory_order_relaxed);
         return copy(snapshot.origin);
     case jb::Command::Recalibrate:
         if (!snapshot.has_recalibrate) {
             return 0;
         }
-        g_has_recalibrate = true;
+        g_seen_mask.fetch_or(SEEN_REC, std::memory_order_relaxed);
         return copy(snapshot.recalibrate);
     case jb::Command::Reset:
         if (!snapshot.has_reset) {
             return 0;
         }
-        g_has_reset = true;
+        g_seen_mask.fetch_or(SEEN_RST, std::memory_order_relaxed);
         return copy(snapshot.reset);
     default:
         return 0;
@@ -283,8 +286,12 @@ int main() {
                             jb::Status(jb::PollMode::Default, jb::RumbleMode::Off), false);
         sleep_us(500);
         if (time_us_64() >= next_print_time) {
-            printf("Pad snapshot status - ID:%d ORG:%d STA:%d REC:%d RST:%d\n", g_has_id,
-                   g_has_origin, g_has_status, g_has_recalibrate, g_has_reset);
+            printf("Pad snapshot status - ID:%d ORG:%d STA:%d REC:%d RST:%d\n",
+                   (g_seen_mask.load(std::memory_order_relaxed) & SEEN_ID) ? 1 : 0,
+                   (g_seen_mask.load(std::memory_order_relaxed) & SEEN_ORG) ? 1 : 0,
+                   (g_seen_mask.load(std::memory_order_relaxed) & SEEN_STA) ? 1 : 0,
+                   (g_seen_mask.load(std::memory_order_relaxed) & SEEN_REC) ? 1 : 0,
+                   (g_seen_mask.load(std::memory_order_relaxed) & SEEN_RST) ? 1 : 0);
             next_print_time += print_interval_us;
         }
     }
