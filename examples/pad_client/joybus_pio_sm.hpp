@@ -5,6 +5,7 @@
 #include "pico/stdlib.h"
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
@@ -39,7 +40,7 @@ class JoybusPioSm {
     // 返信生成用コールバック
     // 戻り値: 返信(tx)のバイト数（0なら返信なし）
     using PacketCallback = std::size_t (*)(void *user, const uint8_t *rx, std::size_t rx_len,
-                                           uint8_t *tx, std::size_t tx_max);
+                                           uint8_t *tx, std::size_t tx_max, uint32_t context);
 
     explicit JoybusPioSm(const Config &config);
     ~JoybusPioSm();
@@ -64,7 +65,7 @@ class JoybusPioSm {
     }
 
     // テスト用: 手動で1フレーム送信
-    bool __time_critical_func(send_now)(const uint8_t *data, std::size_t nbytes);
+    bool __time_critical_func(send_now)(const uint8_t *data, std::size_t nbytes, uint32_t context);
 
     void set_callback(PacketCallback callback, void *user) {
         callback_ = callback;
@@ -106,6 +107,11 @@ class JoybusPioSm {
 
     PacketCallback callback_ = nullptr;
     void *callback_user_ = nullptr;
+
+    // 受信したフレームを捨てるべきことを伝える値
+    static constexpr uint32_t UNKNOWN_CONTEXT_ = 0xBBBBBBBBu;
+    // 応答受信完了コールバックに「何のコマンドの応答か」を伝える
+    volatile uint32_t pending_tx_context_ = UNKNOWN_CONTEXT_;
 };
 
 } // namespace ConvertGcInput

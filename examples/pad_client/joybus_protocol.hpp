@@ -13,6 +13,19 @@ enum class Command : uint8_t {
     Reset = 0xFF
 };
 
+static inline constexpr bool is_valid_command(uint8_t cmd) {
+    switch (cmd) {
+    case static_cast<uint8_t>(Command::Id):
+    case static_cast<uint8_t>(Command::Status):
+    case static_cast<uint8_t>(Command::Origin):
+    case static_cast<uint8_t>(Command::Recalibrate):
+    case static_cast<uint8_t>(Command::Reset):
+        return true;
+    default:
+        return false;
+    }
+}
+
 enum class PollMode : uint8_t {
     Mode0 = 0x00,
     Mode1 = 0x01,

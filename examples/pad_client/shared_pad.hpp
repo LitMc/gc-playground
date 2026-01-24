@@ -8,6 +8,7 @@
 namespace ConvertGcInput {
 struct PadSnapshot {
     uint32_t publish_count = 0;
+    Joybus::Command last_rx_command = Joybus::Command::Id;
     std::array<uint8_t, Joybus::kIdResponseSize> id{0x09, 0x00, 0x00};
     bool has_id = false;
     std::array<uint8_t, Joybus::kOriginResponseSize> origin{};
@@ -22,11 +23,13 @@ struct PadSnapshot {
 
 class SharedPad {
   public:
+    // パッドの最新スナップショットを得る
     PadSnapshot load() const { return db_.load(); }
 
-    void on_response_isr(Joybus::Command cmd, std::span<const uint8_t> rx) {
+    // パッドからの応答を記録
+    void on_response_isr(Joybus::Command command, std::span<const uint8_t> rx) {
         bool updated = false;
-        switch (cmd) {
+        switch (command) {
         case Joybus::Command::Id:
             updated = write_fixed(shadow_.id, shadow_.has_id, rx);
             break;
@@ -47,6 +50,7 @@ class SharedPad {
         }
 
         if (updated) {
+            shadow_.last_rx_command = command;
             shadow_.publish_count++;
             db_.publish(shadow_);
         }

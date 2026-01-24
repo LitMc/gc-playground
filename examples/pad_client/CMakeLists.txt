@@ -3,6 +3,7 @@
     add_executable(${PROJECT_NAME}
     main.cpp
     joybus_pio_sm.cpp
+    pad_client.cpp
     )
 
     # .pioからヘッダ生成
