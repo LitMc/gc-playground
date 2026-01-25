@@ -56,7 +56,7 @@ class PadClient {
         await_publish_count_ = before_publish_count; // このカウントからずれたら応答あり
         response_deadline_us_ = now_us + timeout_us; // この時刻までに応答が来なければタイムアウト
         await_command_.store(static_cast<uint8_t>(request.command()),
-                             std::memory_order_relaxed); // このコマンドを待つ
+                             std::memory_order_release); // このコマンドを待つ
 
         const auto bytes = request.bytes();
         bool send_ok = host_to_pad_.send_now(bytes.data(), bytes.size());
@@ -125,7 +125,7 @@ class PadClient {
 
     // 応答を待っているコマンド
     Joybus::Command awaiting_command_() const {
-        return static_cast<Joybus::Command>(await_command_.load(std::memory_order_relaxed));
+        return static_cast<Joybus::Command>(await_command_.load(std::memory_order_acquire));
     }
 
     // 応答待ちか否か
