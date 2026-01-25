@@ -13,7 +13,7 @@ std::size_t PadClient::callback(void *user, const uint8_t *rx, std::size_t rx_le
                                 std::size_t tx_max) {
     auto *self = static_cast<PadClient *>(user);
     const auto command =
-        static_cast<Joybus::Command>(self->await_command_.load(std::memory_order_relaxed));
+        static_cast<Joybus::Command>(self->await_command_.load(std::memory_order_acquire));
     if (!Joybus::is_valid_command(command)) {
         // 取り扱うべきでないコマンド
         return 0;
@@ -30,7 +30,7 @@ void PadClient::enter_state_(State next) {
 }
 
 void PadClient::abort_wait_() {
-    await_command_.store(static_cast<uint8_t>(Joybus::Command::Invalid), std::memory_order_relaxed);
+    await_command_.store(static_cast<uint8_t>(Joybus::Command::Invalid), std::memory_order_release);
     response_deadline_us_ = 0;
 }
 
