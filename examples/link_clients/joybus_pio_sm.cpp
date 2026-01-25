@@ -253,11 +253,18 @@ void JoybusPioSm::on_pio_irq() {
 }
 
 bool JoybusPioSm::send_now(const uint8_t *data, std::size_t nbytes) {
-    if (tx_busy_ || nbytes == 0 || nbytes > TX_BUFFER_SIZE) {
+    if (nbytes == 0 || nbytes > TX_BUFFER_SIZE) {
         return false;
     }
 
     uint32_t s = save_and_disable_interrupts();
+    
+    // Check tx_busy_ inside critical section to prevent TOCTOU race
+    if (tx_busy_) {
+        restore_interrupts(s);
+        return false;
+    }
+    
     std::copy_n(data, nbytes, tx_buffer_.begin());
     dma_channel_abort(dma_channel_);
 

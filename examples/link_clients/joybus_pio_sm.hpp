@@ -90,7 +90,7 @@ class JoybusPioSm {
     dma_channel_config dma_rx_config_{};
     dma_channel_config dma_tx_config_{};
 
-    volatile bool tx_busy_ = false;
+    std::atomic<bool> tx_busy_{false};
 
     std::array<uint8_t, RX_BUFFER_SIZE> rx_work_buffer_{};
     std::array<uint8_t, RX_BUFFER_SIZE> received_frame_{};
