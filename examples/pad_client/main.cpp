@@ -51,7 +51,7 @@ static ConvertGcInput::SharedConsole g_shared_console{};
 
 std::size_t __time_critical_func(to_console_callback)(void *user, const uint8_t *rx,
                                                       std::size_t rx_len, uint8_t *tx,
-                                                      std::size_t tx_max, uint32_t context) {
+                                                      std::size_t tx_max) {
     if (rx_len < 1) {
         return 0;
     }

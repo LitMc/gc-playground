@@ -28,7 +28,7 @@ class PadClient {
 
     // パッドからの応答を受信したときに呼ぶコールバック
     static std::size_t callback(void *user, const uint8_t *rx, std::size_t rx_len, uint8_t *tx,
-                                std::size_t tx_max, uint32_t context);
+                                std::size_t tx_max);
 
     // パッドの状態
     enum class State : uint8_t {
@@ -44,7 +44,7 @@ class PadClient {
   private:
     template <std::size_t N>
     bool send_request_(const Joybus::Request<N> &request, uint32_t now_us, uint32_t timeout_us) {
-        if (waiting_response_) {
+        if (waiting_response_()) {
             return false;
         }
         if (request.bytes().empty()) {
@@ -53,16 +53,19 @@ class PadClient {
 
         const auto before_publish_count = shared_pad_.load().publish_count;
 
+        // 送信前に待ち条件を確定
+        await_publish_count_ = before_publish_count; // このカウントからずれたら応答あり
+        response_deadline_us_ = now_us + timeout_us; // この時刻までに応答が来なければタイムアウト
+        await_command_.store(static_cast<uint8_t>(request.command()),
+                             std::memory_order_relaxed); // このコマンドを待つ
+
         const auto bytes = request.bytes();
-        bool send_ok = host_to_pad_.send_now(bytes.data(), bytes.size(),
-                                             static_cast<uint32_t>(request.command()));
+        bool send_ok = host_to_pad_.send_now(bytes.data(), bytes.size());
         if (!send_ok) {
+            abort_wait_();
             return false;
         }
 
-        await_publish_count_ = before_publish_count;
-        waiting_response_ = true;
-        response_deadline_us_ = now_us + timeout_us;
         return true;
     }
 
@@ -103,8 +106,15 @@ class PadClient {
     // 応答待ちのタイムアウト時間
     uint32_t response_deadline_us_{0};
 
+    std::atomic<uint8_t> await_command_{static_cast<uint8_t>(Joybus::Command::Invalid)};
+
     // 応答を待っているコマンド
-    Joybus::Command await_command_{Joybus::Command::Id};
+    Joybus::Command awaiting_command_() const {
+        return static_cast<Joybus::Command>(await_command_.load(std::memory_order_relaxed));
+    }
+
+    // 応答待ちか否か
+    bool waiting_response_() const { return Joybus::is_valid_command(awaiting_command_()); }
 
     // alive判定
     uint32_t last_seen_us_{0};
@@ -115,8 +125,6 @@ class PadClient {
 
     // Ready中のStatus送信間隔
     uint32_t next_status_due_us_{0};
-    // 受信待ちか否か
-    bool waiting_response_ = false;
 
     // 最後の応答からこれ以上経過するとパッド切断とみなす時間
     static constexpr uint32_t PAD_TIMEOUT_US = 100'000;

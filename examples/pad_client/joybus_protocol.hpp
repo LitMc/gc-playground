@@ -10,16 +10,17 @@ enum class Command : uint8_t {
     Status = 0x40,
     Origin = 0x41,
     Recalibrate = 0x42,
-    Reset = 0xFF
+    Reset = 0xFF,
+    Invalid = 0xAA // 取り扱うべきでないことを示す
 };
 
-static inline constexpr bool is_valid_command(uint8_t cmd) {
-    switch (cmd) {
-    case static_cast<uint8_t>(Command::Id):
-    case static_cast<uint8_t>(Command::Status):
-    case static_cast<uint8_t>(Command::Origin):
-    case static_cast<uint8_t>(Command::Recalibrate):
-    case static_cast<uint8_t>(Command::Reset):
+static inline constexpr bool is_valid_command(Command command) {
+    switch (command) {
+    case Command::Id:
+    case Command::Status:
+    case Command::Origin:
+    case Command::Recalibrate:
+    case Command::Reset:
         return true;
     default:
         return false;

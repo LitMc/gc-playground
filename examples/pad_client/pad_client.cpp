@@ -12,15 +12,14 @@ void PadClient::on_pad_response_isr(Joybus::Command command, std::span<const uin
 }
 
 std::size_t PadClient::callback(void *user, const uint8_t *rx, std::size_t rx_len, uint8_t *tx,
-                                std::size_t tx_max, uint32_t context) {
-    const uint8_t command_raw_value = static_cast<uint8_t>(context & 0xFFu);
-    if (!Joybus::is_valid_command(command_raw_value)) {
-        // 未知のコマンドなら無視
+                                std::size_t tx_max) {
+    auto *self = static_cast<PadClient *>(user);
+    const auto command =
+        static_cast<Joybus::Command>(self->await_command_.load(std::memory_order_relaxed));
+    if (!Joybus::is_valid_command(command)) {
+        // 取り扱うべきでないコマンド
         return 0;
     }
-
-    auto *self = static_cast<PadClient *>(user);
-    const auto command = static_cast<Joybus::Command>(command_raw_value);
     self->on_pad_response_isr(command, std::span<const uint8_t>(rx, rx_len));
     // Picoからコントローラへの応答は不要
     return 0;
@@ -33,7 +32,7 @@ void PadClient::enter_state_(State next) {
 }
 
 void PadClient::abort_wait_() {
-    waiting_response_ = false;
+    await_command_.store(static_cast<uint8_t>(Joybus::Command::Invalid), std::memory_order_relaxed);
     response_deadline_us_ = 0;
 }
 
@@ -65,14 +64,15 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     const bool pad_has_response = (pad_snapshot.publish_count != await_publish_count_);
     // 指定のコマンドの応答が来たか
     auto got = [&](Joybus::Command command) {
-        return waiting_response_ && pad_has_response && ((pad_snapshot.last_rx_command == command));
+        return waiting_response_() && (awaiting_command_() == command) && pad_has_response &&
+               ((pad_snapshot.last_rx_command == command));
     };
 
     switch (state_) {
     // 接続確立
     case State::Disconnected: {
         // 応答待ちでなければID取得から始める
-        if (!waiting_response_) {
+        if (!waiting_response_()) {
             send_request_(Joybus::Id, now_us, BOOT_TIMEOUT_US);
             break;
         }
@@ -87,7 +87,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     }
     // 再初期化
     case State::Resetting: {
-        if (!waiting_response_) {
+        if (!waiting_response_()) {
             send_request_(Joybus::Reset, now_us, BOOT_TIMEOUT_US);
             break;
         }
@@ -102,7 +102,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     }
     // 初回ID取得
     case State::BootId: {
-        if (!waiting_response_) {
+        if (!waiting_response_()) {
             send_request_(Joybus::Id, now_us, BOOT_TIMEOUT_US);
             break;
         }
@@ -115,7 +115,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     }
     // 初回Origin取得
     case State::BootOrigin: {
-        if (!waiting_response_) {
+        if (!waiting_response_()) {
             send_request_(Joybus::Origin, now_us, BOOT_TIMEOUT_US);
             break;
         }
@@ -128,7 +128,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     }
     // 初回Recalibrate取得
     case State::BootRecalibrate: {
-        if (!waiting_response_) {
+        if (!waiting_response_()) {
             send_request_(Joybus::Recalibrate, now_us, BOOT_TIMEOUT_US);
             break;
         }
@@ -141,7 +141,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     }
     // 初回Status取得
     case State::WarmStatus: {
-        if (!waiting_response_) {
+        if (!waiting_response_()) {
             const auto req = Joybus::Status(console.poll_mode, console.rumble_mode);
             send_request_(req, now_us, BOOT_TIMEOUT_US);
             break;
@@ -163,7 +163,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
             break;
         }
 
-        if (waiting_response_) {
+        if (waiting_response_()) {
             if (got(Joybus::Command::Status)) {
                 next_status_due_us_ = now_us + STATUS_PERIOD_US;
                 abort_wait_();
