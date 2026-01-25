@@ -231,16 +231,12 @@ void JoybusPioSm::on_pio_irq() {
     // 送信中でないなら受信完了の通知を受けた
     finish_receive_from_irq();
 
-    const uint32_t context = pending_tx_context_;
-    // 次に何を送信するか決まっていないのでJoybusにない値にしておく
-    pending_tx_context_ = UNKNOWN_CONTEXT_;
-
     // 受信結果から即座に返信を生成
     std::size_t tx_length = 0;
     if (callback_ && rx_ready_ && rx_length_ > 0) {
         tx_length =
             callback_(callback_user_, received_frame_.data(), static_cast<std::size_t>(rx_length_),
-                      tx_buffer_.data(), TX_BUFFER_SIZE, context);
+                      tx_buffer_.data(), TX_BUFFER_SIZE);
         if (tx_length > TX_BUFFER_SIZE) {
             tx_length = TX_BUFFER_SIZE;
         }
@@ -255,7 +251,7 @@ void JoybusPioSm::on_pio_irq() {
     }
 }
 
-bool JoybusPioSm::send_now(const uint8_t *data, std::size_t nbytes, uint32_t context) {
+bool JoybusPioSm::send_now(const uint8_t *data, std::size_t nbytes) {
     if (tx_busy_ || nbytes == 0 || nbytes > TX_BUFFER_SIZE) {
         return false;
     }
@@ -264,7 +260,6 @@ bool JoybusPioSm::send_now(const uint8_t *data, std::size_t nbytes, uint32_t con
     std::copy_n(data, nbytes, tx_buffer_.begin());
     dma_channel_abort(dma_channel_);
 
-    pending_tx_context_ = context;
     tx_busy_ = true;
     start_transmit_from_irq(nbytes);
     restore_interrupts(s);
