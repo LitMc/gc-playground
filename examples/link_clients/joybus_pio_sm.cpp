@@ -223,8 +223,8 @@ void JoybusPioSm::start_transmit_from_irq(std::size_t nbytes) {
 
 void JoybusPioSm::on_pio_irq() {
     // 送信中だったなら送信完了の通知を受けた
-    if (tx_busy_) {
-        tx_busy_ = false;
+    if (tx_busy_.load(std::memory_order_acquire)) {
+        tx_busy_.store(false, std::memory_order_release);
         start_receive();
         return;
     }
@@ -244,7 +244,7 @@ void JoybusPioSm::on_pio_irq() {
     }
 
     if (tx_length > 0) {
-        tx_busy_ = true;
+        tx_busy_.store(true, std::memory_order_release);
         start_transmit_from_irq(tx_length);
     } else {
         // 返信なしなら受信待ちに戻る
@@ -258,14 +258,14 @@ bool JoybusPioSm::send_now(const uint8_t *data, std::size_t nbytes) {
     }
 
     uint32_t s = save_and_disable_interrupts();
-    if (tx_busy_) {
+    if (tx_busy_.load(std::memory_order_acquire)) {
         restore_interrupts(s);
         return false;
     }
     std::copy_n(data, nbytes, tx_buffer_.begin());
     dma_channel_abort(dma_channel_);
 
-    tx_busy_ = true;
+    tx_busy_.store(true, std::memory_order_release);
     start_transmit_from_irq(nbytes);
     restore_interrupts(s);
     return true;
