@@ -50,15 +50,17 @@ class PadClient {
             return false;
         }
 
-        const auto before_publish_count = shared_pad_.load().publish_count;
-
         // 送信前に待ち条件を確定
-        await_publish_count_ = before_publish_count; // このカウントからずれたら応答あり
         response_deadline_us_ = now_us + timeout_us; // この時刻までに応答が来なければタイムアウト
         await_command_.store(static_cast<uint8_t>(request.command()),
                              std::memory_order_release); // このコマンドを待つ
 
         const auto bytes = request.bytes();
+
+        // 送信直前にpublish_countを読み取り、送信後に来た応答だけを受け付ける
+        const auto before_publish_count = shared_pad_.load().publish_count;
+        await_publish_count_ = before_publish_count; // このカウントからずれたら応答あり
+
         bool send_ok = host_to_pad_.send_now(bytes.data(), bytes.size());
         if (!send_ok) {
             abort_wait_();
