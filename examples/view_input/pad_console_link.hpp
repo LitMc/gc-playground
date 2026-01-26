@@ -1,0 +1,61 @@
+#pragma once
+#include "hardware/sync.h"
+#include "shared_console.hpp"
+#include "shared_pad.hpp"
+#include <atomic>
+
+namespace ConvertGcInput {
+
+// パッド向けクライアントとコンソール向けクライアントで共有する情報
+class PadConsoleLink {
+  public:
+    SharedPad &shared_pad() { return shared_pad_; }
+    const SharedPad &shared_pad() const { return shared_pad_; }
+    SharedConsole &shared_console() { return shared_console_; }
+    const SharedConsole &shared_console() const { return shared_console_; }
+
+    // 外から見たパッドの状態
+    enum class PadState : uint8_t {
+        Disconnected, // 接続未確立
+        Booting,      // 初期化（ID、Origin、Recalibrate取得）中
+        Ready,        // Statusポーリング開始済み
+    };
+
+    // Pad->Console: パッドの状態を公開
+    void publish_pad_state_from_main(PadState state) {
+        pad_state_.store(static_cast<uint8_t>(state), std::memory_order_release);
+    }
+
+    // Console<-Link: パッドの状態を取得
+    PadState load_pad_state() const {
+        return static_cast<PadState>(pad_state_.load(std::memory_order_acquire));
+    }
+
+    // Console<-Link: パッドとの接続が確立しているか
+    bool is_pad_ready() const { return load_pad_state() == PadState::Ready; }
+
+    // Console->Pad: パッドのResetを要求
+    void __isr publish_pad_reset_request_from_isr() {
+        reset_epoch_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    // Pad<-Link: 最後に発行されたReset要求のエポックを取得
+    uint32_t load_reset_epoch() const { return reset_epoch_.load(std::memory_order_relaxed); }
+
+    // Pad<-Link: Reset要求があればlast_reset_epochを更新しtrue、なければ更新せずfalse
+    [[nodiscard]] bool consume_pad_reset_request(uint32_t &last_reset_epoch) const {
+        const uint32_t cur = load_reset_epoch();
+        if (cur == last_reset_epoch) {
+            return false;
+        }
+        last_reset_epoch = cur;
+        return true;
+    }
+
+  private:
+    std::atomic<uint8_t> pad_state_{static_cast<uint8_t>(PadState::Disconnected)};
+    std::atomic<uint32_t> reset_epoch_{0};
+    SharedPad shared_pad_{};
+    SharedConsole shared_console_{};
+};
+} // namespace ConvertGcInput
