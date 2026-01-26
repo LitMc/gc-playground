@@ -42,6 +42,7 @@ enum class RumbleMode : uint8_t {
     Brake = 0x02,
 };
 
+constexpr std::size_t kMaxResponseSize = 10;
 constexpr std::size_t kIdResponseSize = 3;
 constexpr std::size_t kOriginResponseSize = 10;
 constexpr std::size_t kStatusResponseSize = 8;
