@@ -1,7 +1,7 @@
 #pragma once
 #include "hardware/sync.h"
 #include "shared_console.hpp"
-#include "shared_pad.hpp"
+#include "shared_pad_hub.hpp"
 #include <atomic>
 
 namespace ConvertGcInput {
@@ -9,8 +9,8 @@ namespace ConvertGcInput {
 // パッド向けクライアントとコンソール向けクライアントで共有する情報
 class PadConsoleLink {
   public:
-    SharedPad &shared_pad() { return shared_pad_; }
-    const SharedPad &shared_pad() const { return shared_pad_; }
+    SharedPadHub &shared_pad_hub() { return shared_pad_hub_; }
+    const SharedPadHub &shared_pad_hub() const { return shared_pad_hub_; }
     SharedConsole &shared_console() { return shared_console_; }
     const SharedConsole &shared_console() const { return shared_console_; }
 
@@ -55,7 +55,7 @@ class PadConsoleLink {
   private:
     std::atomic<uint8_t> pad_state_{static_cast<uint8_t>(PadState::Disconnected)};
     std::atomic<uint32_t> reset_epoch_{0};
-    SharedPad shared_pad_{};
+    SharedPadHub shared_pad_hub_{};
     SharedConsole shared_console_{};
 };
 } // namespace ConvertGcInput

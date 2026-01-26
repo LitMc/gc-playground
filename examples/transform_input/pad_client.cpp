@@ -3,10 +3,10 @@
 namespace ConvertGcInput {
 void PadClient::load_reset_epoch_() { last_reset_epoch_ = link_.load_reset_epoch(); }
 
-PadSnapshot PadClient::snapshot() const { return shared_pad_.load(); }
+PadSnapshot PadClient::snapshot() const { return shared_pad_hub_.load_raw_snapshot(); }
 
 void PadClient::on_pad_response_isr(Joybus::Command command, std::span<const uint8_t> rx) {
-    shared_pad_.on_response_isr(command, rx);
+    shared_pad_hub_.on_pad_response_isr(command, rx);
 }
 
 std::size_t PadClient::callback(void *user, const uint8_t *rx, std::size_t rx_len, uint8_t *tx,

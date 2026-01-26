@@ -3,7 +3,7 @@
 #include "joybus_protocol.hpp"
 #include "pad_console_link.hpp"
 #include "shared_console.hpp"
-#include "shared_pad.hpp"
+#include "shared_pad_hub.hpp"
 #include <atomic>
 #include <span>
 
@@ -11,7 +11,7 @@ namespace ConvertGcInput {
 class PadClient {
   public:
     explicit PadClient(JoybusPioSm::Config host_to_pad_config, PadConsoleLink &link)
-        : link_{link}, shared_pad_{link.shared_pad()},
+        : link_{link}, shared_pad_hub_{link.shared_pad_hub()},
           host_to_pad_(host_to_pad_config, &ConvertGcInput::PadClient::callback, this) {
         last_reset_epoch_ = link_.load_reset_epoch();
     };
@@ -58,7 +58,7 @@ class PadClient {
         const auto bytes = request.bytes();
 
         // 送信直前にpublish_countを読み取り、送信後に来た応答だけを受け付ける
-        const auto before_publish_count = shared_pad_.load().publish_count;
+        const auto before_publish_count = link_.shared_pad_hub().load_raw_snapshot().publish_count;
         await_publish_count_ = before_publish_count; // このカウントからずれたら応答あり
 
         bool send_ok = host_to_pad_.send_now(bytes.data(), bytes.size());
@@ -113,7 +113,7 @@ class PadClient {
 
   private:
     PadConsoleLink &link_;
-    SharedPad &shared_pad_;
+    SharedPadHub &shared_pad_hub_;
     JoybusPioSm host_to_pad_;
 
     State state_{State::Disconnected};
