@@ -2,6 +2,7 @@
 #include "hardware/sync.h"
 #include "shared_console.hpp"
 #include "shared_pad_hub.hpp"
+#include "transform_pipeline.hpp"
 #include <atomic>
 
 namespace ConvertGcInput {
@@ -52,10 +53,16 @@ class PadConsoleLink {
         return true;
     }
 
+    // コマンド応答の変換パイプライン
+    TransformPipeline &transform_pipeline() { return transform_pipeline_; }
+    // コマンド応答の変換パイプライン
+    const TransformPipeline &transform_pipeline() const { return transform_pipeline_; }
+
   private:
     std::atomic<uint8_t> pad_state_{static_cast<uint8_t>(PadState::Disconnected)};
     std::atomic<uint32_t> reset_epoch_{0};
     SharedPadHub shared_pad_hub_{};
     SharedConsole shared_console_{};
+    TransformPipeline transform_pipeline_{};
 };
 } // namespace ConvertGcInput

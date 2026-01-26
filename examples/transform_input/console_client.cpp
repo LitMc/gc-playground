@@ -61,8 +61,9 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         return 0;
     }
 
-    // 恒等変換: 変更があればここで行う
     JoybusReply modified_reply = raw_reply;
+    // パッドの応答をパイプラインで変換
+    self->link_.transform_pipeline().apply_from_isr(cmd, modified_reply);
 
     const std::size_t tx_len = write_tx(modified_reply, tx, tx_max);
     if (tx_len == 0) {
