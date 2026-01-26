@@ -2,7 +2,7 @@
 #include "hardware/sync.h"
 #include "shared_console.hpp"
 #include "shared_pad_hub.hpp"
-#include "transform_pipeline.hpp"
+#include "transforms/transform_pipeline.hpp"
 #include <atomic>
 
 namespace ConvertGcInput {

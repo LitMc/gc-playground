@@ -7,6 +7,7 @@
 #include "pad_client.hpp"
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
+#include "transforms/presets.hpp"
 #include <stdio.h>
 
 namespace {
@@ -40,8 +41,6 @@ void init_led() {
     gpio_put(ONBOARD_LED_PIN, 1);
 }
 } // namespace
-
-namespace jb = ConvertGcInput::Joybus;
 
 int main() {
     stdio_init_all();
@@ -83,6 +82,12 @@ int main() {
     };
 
     ConvertGcInput::PadConsoleLink client_link{};
+
+    // 渡したコンテキストの寿命が尽きないようstaticにしている
+    static ConvertGcInput::Builtins::JoystickLutContext joystick_context{};
+    ConvertGcInput::Presets::install_half_joystick(client_link.transform_pipeline(),
+                                                   joystick_context);
+
     ConvertGcInput::PadClient pad_client(host_to_pad_config, client_link);
     ConvertGcInput::ConsoleClient console_client(device_to_console_config, client_link);
 
