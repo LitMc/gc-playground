@@ -7,6 +7,7 @@
 #include "pad_client.hpp"
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
+#include "shared_pad_hub.hpp"
 #include "transforms/presets.hpp"
 #include <stdio.h>
 
@@ -84,9 +85,12 @@ int main() {
     ConvertGcInput::PadConsoleLink client_link{};
 
     // 渡したコンテキストの寿命が尽きないようstaticにしている
-    static ConvertGcInput::Builtins::JoystickLutContext joystick_context{};
-    ConvertGcInput::Presets::install_half_joystick(client_link.transform_pipeline(),
-                                                   joystick_context);
+    static ConvertGcInput::Builtins::JoystickLutContext joystick_lut_context{};
+    ConvertGcInput::Presets::install_identity(client_link.transform_pipeline(),
+                                              joystick_lut_context);
+
+    ConvertGcInput::Presets::install_fix_origin_and_recalibrate_to_center(
+        client_link.transform_pipeline());
 
     ConvertGcInput::PadClient pad_client(host_to_pad_config, client_link);
     ConvertGcInput::ConsoleClient console_client(device_to_console_config, client_link);
@@ -98,8 +102,35 @@ int main() {
            device_to_console_config.state_machine, PIN_TO_REAL_CONSOLE);
 
     bool is_pad_connected = false;
+    ConvertGcInput::SharedPadHub &pad_hub = client_link.shared_pad_hub();
+    uint32_t last_tx_publish_count = pad_hub.load_last_tx().publish_count;
     while (true) {
         pad_client.tick(time_us_32(), client_link.shared_console().load());
+
+        ConvertGcInput::TxPair last_tx = pad_hub.load_last_tx();
+        if (pad_hub.consume_tx_if_new(last_tx_publish_count, last_tx)) {
+            last_tx_publish_count = last_tx.publish_count;
+            const auto raw = last_tx.raw;
+            const auto modified = last_tx.modified;
+
+            if (raw.command() != modified.command()) {
+                printf("Command is not matched: raw=%02X modified=%02X\n",
+                       static_cast<uint8_t>(raw.command()),
+                       static_cast<uint8_t>(modified.command()));
+                continue;
+            }
+
+            const auto command = raw.command();
+
+            if ((command == ConvertGcInput::Joybus::Command::Origin ||
+                 command == ConvertGcInput::Joybus::Command::Recalibrate)) {
+                const auto raw_input = raw.view();
+                const auto modified_input = modified.view();
+                printf("[0x%02X] (%3u,%3u) -> (%3u,%3u)\n", static_cast<uint8_t>(command),
+                       raw_input[2], raw_input[3], modified_input[2], modified_input[3]);
+            }
+        }
+
         const bool ready = client_link.is_pad_ready();
         if (!is_pad_connected && ready) {
             printf("PadClient: console responses enabled.\n");

@@ -36,6 +36,16 @@ class SharedPadHub {
     // コンソールへ送信した変換済みパッド応答を読み取る: main, Consoleクライアント向け
     TxPair load_last_tx() const { return tx_.load(); }
 
+    bool consume_tx_if_new(uint32_t &last_publish_count, TxPair &out) const {
+        const TxPair current = tx_.load();
+        if (current.publish_count != last_publish_count) {
+            last_publish_count = current.publish_count;
+            out = current;
+            return true;
+        }
+        return false;
+    }
+
   private:
     SharedPad rx_;
     DoubleBuffer<TxPair> tx_;

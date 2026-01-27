@@ -33,6 +33,14 @@ inline Stage make_stage(Context &context, uint8_t command_selector_mask = kComma
     };
 }
 
+inline Stage make_stage(TransformFunction fn, uint8_t command_selector_mask = kCommandAll) {
+    return Stage{
+        .function_to_apply{fn},
+        .user{nullptr},
+        .command_selector_mask{command_selector_mask},
+    };
+}
+
 // ステージで変換対象とするコマンドを表すビットを得る
 static constexpr uint8_t command_bit(Joybus::Command cmd) {
     switch (cmd) {
