@@ -1,6 +1,7 @@
 {
     "C_Cpp.clang_format_style": "file",
     "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "C_Cpp.default.cppStandard": "gnu++20",
     "[cpp]": {
         "editor.defaultFormatter": "ms-vscode.cpptools",
         "editor.formatOnSave": true
