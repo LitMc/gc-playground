@@ -12,7 +12,7 @@ struct TestInputFrames {
     // 繰り返すかどうか
     bool loop{false};
     // 何フレームごとに送信するか
-    std::size_t send_interval_frames_{1};
+    std::size_t send_interval_frames{1};
 };
 
 struct InitialPadState {
