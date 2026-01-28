@@ -56,7 +56,7 @@ void create_test_pattern(ConvertGcInput::Test::TestInputFrames &pattern,
     storage.size = 0;
 
     pattern.loop = true;
-    pattern.send_interval_frames_ = 0;
+    pattern.send_interval_frames_ = 1;
 
     const uint8_t y = 128;
 
