@@ -19,13 +19,13 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
     }
 
     auto *self = static_cast<ConsoleClient *>(user);
-    self->shared_console_.on_request_isr(std::span<const uint8_t>(rx, rx_len));
+    self->link_.shared_console().on_request_isr(std::span<const uint8_t>(rx, rx_len));
 
     if (!self->link_.is_pad_ready()) {
         return 0;
     }
 
-    auto &pad_hub = self->shared_pad_hub_;
+    auto &pad_hub = self->link_.active_pad_hub();
     const auto raw_snapshot = pad_hub.load_raw_snapshot();
 
     const auto cmd = static_cast<Joybus::Command>(rx[0]);
@@ -62,8 +62,11 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
     }
 
     JoybusReply modified_reply = raw_reply;
-    // パッドの応答をパイプラインで変換
-    self->link_.transform_pipeline().apply_from_isr(cmd, modified_reply);
+    // テスト時は変換をスキップしテストパターンをそのまま送る
+    if (!self->link_.is_test_enabled()) {
+        // パッドの応答をパイプラインで変換
+        self->link_.transform_pipeline().apply_from_isr(cmd, modified_reply);
+    }
 
     const std::size_t tx_len = write_tx(modified_reply, tx, tx_max);
     if (tx_len == 0) {

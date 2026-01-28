@@ -3,10 +3,8 @@
 namespace ConvertGcInput {
 void PadClient::load_reset_epoch_() { last_reset_epoch_ = link_.load_reset_epoch(); }
 
-PadSnapshot PadClient::snapshot() const { return shared_pad_hub_.load_raw_snapshot(); }
-
 void PadClient::on_pad_response_isr(Joybus::Command command, std::span<const uint8_t> rx) {
-    shared_pad_hub_.on_pad_response_isr(command, rx);
+    link_.real_pad_hub().on_pad_response_isr(command, rx);
 }
 
 std::size_t PadClient::callback(void *user, const uint8_t *rx, std::size_t rx_len, uint8_t *tx,
@@ -35,7 +33,7 @@ void PadClient::abort_wait_() {
 }
 
 void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
-    const auto pad_snapshot = snapshot();
+    const auto pad_snapshot = link_.real_pad_hub().load_raw_snapshot();
 
     // パッドからの応答があれば最後に来た時刻を更新
     if (pad_snapshot.publish_count != last_publish_count_) {

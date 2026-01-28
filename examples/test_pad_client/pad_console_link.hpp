@@ -10,8 +10,8 @@ namespace ConvertGcInput {
 // パッド向けクライアントとコンソール向けクライアントで共有する情報
 class PadConsoleLink {
   public:
-    SharedPadHub &shared_pad_hub() { return shared_pad_hub_; }
-    const SharedPadHub &shared_pad_hub() const { return shared_pad_hub_; }
+    SharedPadHub &real_pad_hub() { return real_pad_hub_; }
+    const SharedPadHub &real_pad_hub() const { return real_pad_hub_; }
     SharedConsole &shared_console() { return shared_console_; }
     const SharedConsole &shared_console() const { return shared_console_; }
 
@@ -61,8 +61,45 @@ class PadConsoleLink {
   private:
     std::atomic<uint8_t> pad_state_{static_cast<uint8_t>(PadState::Disconnected)};
     std::atomic<uint32_t> reset_epoch_{0};
-    SharedPadHub shared_pad_hub_{};
+    SharedPadHub real_pad_hub_{};
     SharedConsole shared_console_{};
     TransformPipeline transform_pipeline_{};
+
+    // テスト用
+  public:
+    SharedPadHub &test_pad_hub() { return test_pad_hub_; }
+    const SharedPadHub &test_pad_hub() const { return test_pad_hub_; }
+    SharedPadHub &active_pad_hub() { return is_test_enabled() ? test_pad_hub_ : real_pad_hub_; }
+    const SharedPadHub &active_pad_hub() const {
+        return is_test_enabled() ? test_pad_hub_ : real_pad_hub_;
+    }
+
+    void enable_test_from_main() {
+        test_enabled_.store(1, std::memory_order_release);
+        test_epoch_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    void disable_test_from_main() {
+        test_enabled_.store(0, std::memory_order_release);
+        test_epoch_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    bool is_test_enabled() const { return test_enabled_.load(std::memory_order_acquire) != 0; }
+
+    uint32_t load_test_epoch() const { return test_epoch_.load(std::memory_order_relaxed); }
+
+    [[nodiscard]] bool consume_test_epoch(uint32_t &last) const {
+        const uint32_t cur = load_test_epoch();
+        if (cur == last) {
+            return false;
+        }
+        last = cur;
+        return true;
+    }
+
+  private:
+    SharedPadHub test_pad_hub_{};
+    std::atomic<uint8_t> test_enabled_{0};
+    std::atomic<uint32_t> test_epoch_{0};
 };
 } // namespace ConvertGcInput

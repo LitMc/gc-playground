@@ -40,7 +40,9 @@ class SharedPad {
             break;
         case Joybus::Command::Reset:
             updated = write_fixed(shadow_.reset, rx);
-            shadow_.has_reset = true;
+            if (updated) {
+                shadow_.has_reset = true;
+            }
             break;
         default:
             break;

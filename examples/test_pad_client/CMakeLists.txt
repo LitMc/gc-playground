@@ -5,6 +5,7 @@ add_executable(${PROJECT_NAME}
     joybus_pio_sm.cpp
     pad_client.cpp
     console_client.cpp
+    test_pad_client.cpp
 )
 
 # transforms/など子ディレクトリのソースが親ディレクトリのヘッダを参照できるようインクルードルートをプロジェクト直下に設定
