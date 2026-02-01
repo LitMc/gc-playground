@@ -163,8 +163,8 @@ struct PadInput {
 
 // Status, Origin, Recalibrateレスポンスの共通形式。PollModeに依存しない。
 struct PadState {
-    core::PadReport report{};
-    core::PadInput input{};
+    PadReport report{};
+    PadInput input{};
 };
 
 // ISRやダブルバッファでコピーしても安全
