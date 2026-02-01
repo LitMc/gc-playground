@@ -53,6 +53,9 @@ struct AnalogInput {
     // トリガーが離されている状態
     static constexpr uint8_t kTriggerReleased{0x00};
 
+    // （アナログ）ボタンが離されている状態
+    static constexpr uint8_t kAnalogButtonReleased{0x00};
+
     // スティック（0..255, center=128）
     uint8_t stick_x{kAxisCenter};
     uint8_t stick_y{kAxisCenter};
@@ -60,11 +63,11 @@ struct AnalogInput {
     uint8_t c_stick_y{kAxisCenter};
 
     // アナログトリガー（0..255）
-    uint8_t l_analog{0};
-    uint8_t r_analog{0};
+    uint8_t l_analog{kTriggerReleased};
+    uint8_t r_analog{kTriggerReleased};
     // アナログボタン（未使用）
-    uint8_t a_analog{0};
-    uint8_t b_analog{0};
+    uint8_t a_analog{kAnalogButtonReleased};
+    uint8_t b_analog{kAnalogButtonReleased};
 };
 
 // プロジェクト内共通のコントローラ入力表現
@@ -158,10 +161,10 @@ struct PadInput {
         analog.stick_y = AnalogInput::kAxisCenter;
         analog.c_stick_x = AnalogInput::kAxisCenter;
         analog.c_stick_y = AnalogInput::kAxisCenter;
-        analog.l_analog = 0;
-        analog.r_analog = 0;
-        analog.a_analog = 0;
-        analog.b_analog = 0;
+        analog.l_analog = AnalogInput::kTriggerReleased;
+        analog.r_analog = AnalogInput::kTriggerReleased;
+        analog.a_analog = AnalogInput::kAnalogButtonReleased;
+        analog.b_analog = AnalogInput::kAnalogButtonReleased;
     }
 };
 
