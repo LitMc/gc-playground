@@ -1,6 +1,7 @@
 #include "console_client.hpp"
 #include "codec/joybus/identity.hpp"
 #include "codec/joybus/state.hpp"
+#include "core/transform/pipeline.hpp"
 
 namespace ConvertGcInput {
 
@@ -33,19 +34,21 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
     const auto cmd = static_cast<Joybus::Command>(rx[0]);
 
     // コンソールに指定されたPollModeとRumbleModeを応答に使う
-    Joybus::PollMode host_poll_mode = self->link_.shared_console().load().poll_mode;
-    Joybus::RumbleMode host_rumble_mode = self->link_.shared_console().load().rumble_mode;
+    const auto host_console = self->link_.shared_console().load();
+    Joybus::PollMode host_poll_mode = host_console.poll_mode;
+    Joybus::RumbleMode host_rumble_mode = host_console.rumble_mode;
 
     JoybusReply original_reply;
     JoybusReply modified_reply;
 
+    const auto &pipelines = self->link_.transform_pipelines();
     switch (cmd) {
     case Joybus::Command::Status: {
         const core::PadState original_state = original_snapshot.status;
         original_reply = Joybus::state::encode_status(original_state, host_poll_mode);
-        // TODO: あとで変換パイプラインを通す
-        core::PadState modified_state = original_state;
 
+        core::PadState modified_state = original_state;
+        pipelines.status.apply_from_isr(modified_state);
         modified_reply = Joybus::state::encode_status(modified_state, host_poll_mode);
         break;
     }
@@ -53,6 +56,7 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         const core::PadState original_state = original_snapshot.origin;
         original_reply = Joybus::state::encode_origin(original_state);
         core::PadState modified_state = original_state;
+        pipelines.origin.apply_from_isr(modified_state);
         modified_reply = Joybus::state::encode_origin(modified_state);
         break;
     }
@@ -60,6 +64,7 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         const core::PadState original_state = original_snapshot.origin;
         original_reply = Joybus::state::encode_recalibrate(original_state);
         core::PadState modified_state = original_state;
+        pipelines.recalibrate.apply_from_isr(modified_state);
         modified_reply = Joybus::state::encode_recalibrate(modified_state);
         break;
     }
@@ -70,6 +75,7 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         identity.runtime.poll_mode = Joybus::common::to_core_poll_mode(host_poll_mode);
         identity.runtime.rumble_mode = Joybus::common::to_core_rumble_mode(host_rumble_mode);
         original_reply = Joybus::identity::encode_identity(identity);
+        // Identityは変換する意義が薄いのでそのまま返す
         modified_reply = original_reply;
         break;
     }
@@ -77,6 +83,7 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         // パッドへリセットを要求
         self->link_.publish_pad_reset_request_from_isr();
 
+        // Idと同じ
         core::PadIdentity identity = original_snapshot.identity;
         identity.runtime.poll_mode = Joybus::common::to_core_poll_mode(host_poll_mode);
         identity.runtime.rumble_mode = Joybus::common::to_core_rumble_mode(host_rumble_mode);

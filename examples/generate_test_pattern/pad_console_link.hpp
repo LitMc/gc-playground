@@ -1,8 +1,8 @@
 #pragma once
+#include "core/transform/pipeline.hpp"
 #include "hardware/sync.h"
 #include "shared_console.hpp"
 #include "shared_pad_hub.hpp"
-#include "transforms/transform_pipeline.hpp"
 #include <atomic>
 
 namespace ConvertGcInput {
@@ -54,16 +54,16 @@ class PadConsoleLink {
     }
 
     // コマンド応答の変換パイプライン
-    TransformPipeline &transform_pipeline() { return transform_pipeline_; }
+    core::transform::PipelineSet &transform_pipelines() { return pipelines_; }
     // コマンド応答の変換パイプライン
-    const TransformPipeline &transform_pipeline() const { return transform_pipeline_; }
+    const core::transform::PipelineSet &transform_pipelines() const { return pipelines_; }
 
   private:
     std::atomic<uint8_t> pad_state_{static_cast<uint8_t>(PadConnectionState::Disconnected)};
     std::atomic<uint32_t> reset_epoch_{0};
     SharedPadHub real_pad_hub_{};
     SharedConsole shared_console_{};
-    TransformPipeline transform_pipeline_{};
+    core::transform::PipelineSet pipelines_{};
 
     // テスト用
   public:

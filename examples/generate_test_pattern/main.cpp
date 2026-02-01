@@ -1,5 +1,7 @@
 #include "console_client.hpp"
 #include "core/state.hpp"
+#include "core/transform/builtins.hpp"
+#include "core/transform/pipeline.hpp"
 #include "hardware/pio.h"
 #include "hardware/sync.h"
 #include "joybus_console.pio.h"
@@ -10,7 +12,6 @@
 #include "pico/stdlib.h"
 #include "shared_pad_hub.hpp"
 #include "test_pad_client.hpp"
-#include "transforms/presets.hpp"
 #include <array>
 #include <span>
 #include <stdio.h>
@@ -116,9 +117,13 @@ int main() {
 
     ConvertGcInput::PadConsoleLink client_link{};
 
-    // テスト用に原点を中央に固定
-    ConvertGcInput::Presets::install_fix_origin_and_recalibrate_to_center(
-        client_link.transform_pipeline());
+    // 入力変換処理を差し込む
+    auto &pipelines = client_link.transform_pipelines();
+    const auto &fix_origin_to_neutral =
+        ConvertGcInput::core::transform::builtins::fix_origin_to_neutral;
+    pipelines.origin.add_stage(ConvertGcInput::core::transform::make_stage(&fix_origin_to_neutral));
+    pipelines.recalibrate.add_stage(
+        ConvertGcInput::core::transform::make_stage(&fix_origin_to_neutral));
 
     ConvertGcInput::PadClient pad_client(host_to_pad_config, client_link);
 
@@ -181,8 +186,25 @@ int main() {
             const auto command = raw.command();
 
             if (command == ConvertGcInput::Joybus::Command::Origin ||
-                command == ConvertGcInput::Joybus::Command::Recalibrate ||
-                command == ConvertGcInput::Joybus::Command::Status) {
+                command == ConvertGcInput::Joybus::Command::Recalibrate) {
+                const auto raw_input = raw.view();
+                const auto modified_input = modified.view();
+                printf("%s %s [0x%02X]: ", client_link.is_test_enabled() ? "[TEST]" : "[REAL]",
+                       "raw", static_cast<uint8_t>(command));
+                for (size_t i = 0; i < raw_input.size(); ++i) {
+                    printf("%02X ", raw_input[i]);
+                }
+                printf("\n");
+                printf("%s %s [0x%02X]: ", client_link.is_test_enabled() ? "[TEST]" : "[REAL]",
+                       "mod", static_cast<uint8_t>(command));
+                for (size_t i = 0; i < modified_input.size(); ++i) {
+                    printf("%02X ", modified_input[i]);
+                }
+                printf("\n");
+            }
+
+            if (command == ConvertGcInput::Joybus::Command::Origin ||
+                command == ConvertGcInput::Joybus::Command::Recalibrate) {
                 const auto raw_input = raw.view();
                 const auto modified_input = modified.view();
                 printf("%s [0x%02X] (%3u,%3u) -> (%3u,%3u)\n",
