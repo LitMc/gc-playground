@@ -50,6 +50,9 @@ struct AnalogInput {
     // スティックの中心
     static constexpr uint8_t kAxisCenter{0x80};
 
+    // トリガーが離されている状態
+    static constexpr uint8_t kTriggerReleased{0x00};
+
     // スティック（0..255, center=128）
     uint8_t stick_x{kAxisCenter};
     uint8_t stick_y{kAxisCenter};
