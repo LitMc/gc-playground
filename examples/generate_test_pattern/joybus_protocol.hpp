@@ -46,8 +46,8 @@ constexpr std::size_t kMaxResponseSize = 10;
 constexpr std::size_t kIdResponseSize = 3;
 constexpr std::size_t kOriginResponseSize = 10;
 constexpr std::size_t kStatusResponseSize = 8;
-constexpr std::size_t kRecalibrateResponseSize = 10;
-constexpr std::size_t kResetResponseSize = 3;
+constexpr std::size_t kRecalibrateResponseSize = kOriginResponseSize;
+constexpr std::size_t kResetResponseSize = kIdResponseSize;
 
 template <std::size_t N> struct Request {
     static_assert(N >= 1);
