@@ -42,10 +42,6 @@ template <TestPattern P> class TestPadClient {
         if (!pattern_.sample_and_advance(state, steps)) {
             return;
         }
-        const auto &rp = state.report;
-        const auto &in = state.input;
-        const auto &b = in.buttons;
-        const auto &a = in.analog;
 
         auto &hub = link_.test_pad_hub();
         const auto console = link_.shared_console().load();
