@@ -48,7 +48,12 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         original_reply = Joybus::state::encode_status(original_state, host_poll_mode);
 
         core::PadState modified_state = original_state;
-        pipelines.status.apply_from_isr(modified_state);
+        // 計測用
+        if (!self->link_.is_test_enabled()) {
+            // テストモードでない場合のみ変換パイプラインを通す（原点固定）
+            // テストモード時はTestPadClientが直接応答を生成しているため素通しする
+            pipelines.status.apply_from_isr(modified_state);
+        }
         modified_reply = Joybus::state::encode_status(modified_state, host_poll_mode);
         break;
     }
