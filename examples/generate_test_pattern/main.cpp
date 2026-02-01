@@ -11,7 +11,8 @@
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
 #include "shared_pad_hub.hpp"
-#include "test_pad_client.hpp"
+#include "test/patterns/stick_grid_sweep.hpp"
+#include "test/test_pad_client.hpp"
 #include <array>
 #include <span>
 #include <stdio.h>
@@ -47,34 +48,6 @@ void init_led() {
     gpio_put(ONBOARD_LED_PIN, 1);
 }
 } // namespace
-
-struct TestPatternStorage {
-    std::array<ConvertGcInput::JoybusReply, 256> buf{};
-    size_t size = 0;
-};
-
-void create_test_pattern(ConvertGcInput::Test::TestInputFrames &pattern,
-                         TestPatternStorage &storage) {
-    storage.size = 0;
-
-    pattern.loop = true;
-    pattern.send_interval_frames_ = 0;
-
-    const uint8_t y = 128;
-
-    for (int x = 0; x < 256; ++x) {
-        const uint8_t xu = static_cast<uint8_t>(x);
-
-        std::array<uint8_t, ConvertGcInput::Joybus::kStatusResponseSize> payload{
-            0x00, 0x80, xu, xu, 0x80, 0x80, 0x00, 0x00,
-        };
-
-        storage.buf[storage.size++] =
-            ConvertGcInput::JoybusReply{ConvertGcInput::Joybus::Command::Status, payload};
-    }
-
-    pattern.frames = std::span<const ConvertGcInput::JoybusReply>(storage.buf.data(), storage.size);
-}
 
 int main() {
     stdio_init_all();
@@ -124,13 +97,24 @@ int main() {
     pipelines.origin.add_stage(ConvertGcInput::core::transform::make_stage(&fix_origin_to_neutral));
     pipelines.recalibrate.add_stage(
         ConvertGcInput::core::transform::make_stage(&fix_origin_to_neutral));
+    pipelines.status.add_stage(ConvertGcInput::core::transform::make_stage(&fix_origin_to_neutral));
 
     ConvertGcInput::PadClient pad_client(host_to_pad_config, client_link);
 
-    static TestPatternStorage storage;
-    ConvertGcInput::Test::TestInputFrames pattern{};
-    create_test_pattern(pattern, storage);
-    ConvertGcInput::Test::TestPadClient test_pad_client(client_link, pattern);
+    // テストパターン送信の準備
+    ConvertGcInput::test::Schedule schedule{ConvertGcInput::test::ScheduleConfig{
+        .interval_us = 5'000'000,
+        .catch_up = false,
+    }};
+
+    ConvertGcInput::test::StickGridSweep pattern{ConvertGcInput::test::StickGridSweep::Config{
+        .x = {.begin = 0, .end = 240, .step = 16},
+        .y = {.begin = 0, .end = 240, .step = 16},
+        .loop = true,
+        .target = ConvertGcInput::test::StickGridSweep::Target::Joystick,
+    }};
+
+    ConvertGcInput::test::TestPadClient test_pad_client(client_link, schedule, pattern);
 
     ConvertGcInput::ConsoleClient console_client(device_to_console_config, client_link);
 
@@ -148,7 +132,7 @@ int main() {
 
     while (true) {
         pad_client.tick(time_us_32(), client_link.shared_console().load());
-        test_pad_client.tick(time_us_32(), client_link.shared_console().load());
+        test_pad_client.tick(time_us_32());
 
         const auto real_pad_snapshot = client_link.real_pad_hub().load_original_snapshot();
         if (real_pad_snapshot.last_rx_command == ConvertGcInput::Joybus::Command::Status) {
@@ -203,14 +187,10 @@ int main() {
                 printf("\n");
             }
 
-            if (command == ConvertGcInput::Joybus::Command::Origin ||
-                command == ConvertGcInput::Joybus::Command::Recalibrate) {
-                const auto raw_input = raw.view();
-                const auto modified_input = modified.view();
-                printf("%s [0x%02X] (%3u,%3u) -> (%3u,%3u)\n",
-                       client_link.is_test_enabled() ? "[TEST]" : "[REAL]",
-                       static_cast<uint8_t>(command), raw_input[2], raw_input[3], modified_input[2],
-                       modified_input[3]);
+            if (command == ConvertGcInput::Joybus::Command::Status &&
+                client_link.is_test_enabled()) {
+                const auto status = modified.view();
+                printf("(X, Y): (%3d, %3d)\n", (int)status[2], (int)status[3]);
             }
         }
 
