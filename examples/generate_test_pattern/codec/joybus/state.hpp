@@ -53,7 +53,7 @@ decode_buttons_from_status_word(std::span<const uint8_t, 2> byte2) {
 }
 
 // 共通形式の実行時レポートをStatus wordに変換
-inline constexpr void encode_to_status_word(const core::PadState state,
+inline constexpr void encode_to_status_word(const core::PadState &state,
                                             std::span<uint8_t, 2> status_word_bytes) {
     using namespace ConvertGcInput::core;
     uint16_t status_word = 0;
@@ -86,7 +86,11 @@ inline constexpr void encode_to_status_word(const core::PadState state,
         report.origin_sent ? 0 : static_cast<uint16_t>(report::StatusWordBits::OriginNotSent);
     status_word |=
         report.error_latched ? static_cast<uint16_t>(report::StatusWordBits::ErrorLatched) : 0;
-    status_word |= report.error_last ? static_cast<uint16_t>(report::StatusWordBits::ErrorLast) : 0;
+
+    // 2バイト目の7ビット目は常に1となる（Longo氏の資料では直近エラーの有無となっているが）
+    // ここを1にしないとコントローラが認識されない
+    status_word |= static_cast<uint16_t>(report::StatusWordBits::Always1);
+
     status_word |= report.use_controller_origin
                        ? static_cast<uint16_t>(report::StatusWordBits::UseControllerOrigin)
                        : 0;

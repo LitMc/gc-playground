@@ -12,7 +12,7 @@ namespace ConvertGcInput::Joybus::report {
 enum class StatusWordBits : uint16_t {
     OriginNotSent = (1u << 5),
     ErrorLatched = (1u << 6),
-    ErrorLast = (1u << 7),
+    Always1 = (1u << 7),
     UseControllerOrigin = (1u << 15),
 };
 
@@ -36,7 +36,7 @@ inline constexpr core::PadReport decode_report_from_status_word(std::span<const 
         (status_word & static_cast<uint16_t>(report::StatusWordBits::OriginNotSent)) == 0;
     out.error_latched =
         (status_word & static_cast<uint16_t>(report::StatusWordBits::ErrorLatched)) != 0;
-    out.error_last = (status_word & static_cast<uint16_t>(report::StatusWordBits::ErrorLast)) != 0;
+    out.error_last = (status_word & static_cast<uint16_t>(report::StatusWordBits::Always1)) != 0;
     out.use_controller_origin =
         (status_word & static_cast<uint16_t>(report::StatusWordBits::UseControllerOrigin)) != 0;
 
