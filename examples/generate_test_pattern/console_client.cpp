@@ -1,4 +1,6 @@
 #include "console_client.hpp"
+#include "codec/joybus/identity.hpp"
+#include "codec/joybus/state.hpp"
 
 namespace ConvertGcInput {
 
@@ -26,55 +28,77 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
     }
 
     auto &pad_hub = self->link_.active_pad_hub();
-    const auto raw_snapshot = pad_hub.load_raw_snapshot();
+    const auto original_snapshot = pad_hub.load_original_snapshot();
 
     const auto cmd = static_cast<Joybus::Command>(rx[0]);
 
-    // こう書くと空のオブジェクトに詰めなくてすむ
-    JoybusReply raw_reply = [&] {
-        switch (cmd) {
-        // PadがReadyの時点でReset以外は全て応答できる
-        case Joybus::Command::Status:
-            return JoybusReply{cmd, raw_snapshot.status};
-        case Joybus::Command::Id:
-            return JoybusReply{cmd, raw_snapshot.id};
-        case Joybus::Command::Origin:
-            return JoybusReply{cmd, raw_snapshot.origin};
-        case Joybus::Command::Recalibrate:
-            return JoybusReply{cmd, raw_snapshot.recalibrate};
-        case Joybus::Command::Reset:
-            // パッドにResetを伝える
-            self->link_.publish_pad_reset_request_from_isr();
+    // コンソールに指定されたPollModeとRumbleModeを応答に使う
+    Joybus::PollMode host_poll_mode = self->link_.shared_console().load().poll_mode;
+    Joybus::RumbleMode host_rumble_mode = self->link_.shared_console().load().rumble_mode;
 
-            // ResetはID相当で返す。reset応答が取れていればそれ、なければID応答を返す
-            if (raw_snapshot.has_reset) {
-                return JoybusReply{cmd, raw_snapshot.reset};
-            } else {
-                return JoybusReply{cmd, raw_snapshot.id};
-            }
-        default:
-            return JoybusReply{};
-        }
-    }();
+    JoybusReply original_reply;
+    JoybusReply modified_reply;
 
-    if (raw_reply.view().empty()) {
+    switch (cmd) {
+    case Joybus::Command::Status: {
+        const core::PadState original_state = original_snapshot.status;
+        original_reply = Joybus::state::encode_status(original_state, host_poll_mode);
+        // TODO: あとで変換パイプラインを通す
+        core::PadState modified_state = original_state;
+
+        modified_reply = Joybus::state::encode_status(modified_state, host_poll_mode);
+        break;
+    }
+    case Joybus::Command::Origin: {
+        const core::PadState original_state = original_snapshot.origin;
+        original_reply = Joybus::state::encode_origin(original_state);
+        core::PadState modified_state = original_state;
+        modified_reply = Joybus::state::encode_origin(modified_state);
+        break;
+    }
+    case Joybus::Command::Recalibrate: {
+        const core::PadState original_state = original_snapshot.origin;
+        original_reply = Joybus::state::encode_recalibrate(original_state);
+        core::PadState modified_state = original_state;
+        modified_reply = Joybus::state::encode_recalibrate(modified_state);
+        break;
+    }
+    case Joybus::Command::Id: {
+        core::PadIdentity identity = original_snapshot.identity;
+        // パッドからのID応答そのままではなく直近のコンソールから指定されたPollModeとRumbleModeを反映する
+        // パッドへのポーリングはMode3固定でコンソールへの応答はコンソールからの指示に従う仕様のため
+        identity.runtime.poll_mode = Joybus::common::to_core_poll_mode(host_poll_mode);
+        identity.runtime.rumble_mode = Joybus::common::to_core_rumble_mode(host_rumble_mode);
+        original_reply = Joybus::identity::encode_identity(identity);
+        modified_reply = original_reply;
+        break;
+    }
+    case Joybus::Command::Reset: {
+        // パッドへリセットを要求
+        self->link_.publish_pad_reset_request_from_isr();
+
+        core::PadIdentity identity = original_snapshot.identity;
+        identity.runtime.poll_mode = Joybus::common::to_core_poll_mode(host_poll_mode);
+        identity.runtime.rumble_mode = Joybus::common::to_core_rumble_mode(host_rumble_mode);
+        original_reply = Joybus::identity::encode_reset_as_id(identity);
+        modified_reply = original_reply;
+        break;
+    }
+    default:
         return 0;
     }
 
-    JoybusReply modified_reply = raw_reply;
-    // テスト時は変換をスキップしテストパターンをそのまま送る
-    if (!self->link_.is_test_enabled()) {
-        // パッドの応答をパイプラインで変換
-        self->link_.transform_pipeline().apply_from_isr(cmd, modified_reply);
+    if (original_reply.view().empty()) {
+        return 0;
     }
 
-    const std::size_t tx_len = write_tx(modified_reply, tx, tx_max);
+    const std::size_t tx_len = self->write_tx(modified_reply, tx, tx_max);
     if (tx_len == 0) {
         return 0;
     }
 
-    pad_hub.publish_tx_from_isr(raw_snapshot.publish_count, raw_reply, modified_reply);
-
+    pad_hub.publish_tx_from_isr(original_snapshot.publish_count, original_reply, modified_reply);
     return tx_len;
 }
+
 } // namespace ConvertGcInput

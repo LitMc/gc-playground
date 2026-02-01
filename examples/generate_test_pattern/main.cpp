@@ -1,4 +1,5 @@
 #include "console_client.hpp"
+#include "core/state.hpp"
 #include "hardware/pio.h"
 #include "hardware/sync.h"
 #include "joybus_console.pio.h"
@@ -144,12 +145,12 @@ int main() {
         pad_client.tick(time_us_32(), client_link.shared_console().load());
         test_pad_client.tick(time_us_32(), client_link.shared_console().load());
 
-        const auto real_pad_snapshot = client_link.real_pad_hub().load_raw_snapshot();
+        const auto real_pad_snapshot = client_link.real_pad_hub().load_original_snapshot();
         if (real_pad_snapshot.last_rx_command == ConvertGcInput::Joybus::Command::Status) {
-            const uint8_t test_enable_mask = 0x10u;  // Zボタン
-            const uint8_t test_disable_mask = 0x08u; // 十字キー上
-            const bool test_enable = (real_pad_snapshot.status[1] & test_enable_mask) != 0;
-            const bool test_disable = (real_pad_snapshot.status[1] & test_disable_mask) != 0;
+            const bool test_enable =
+                real_pad_snapshot.status.input.pressed(ConvertGcInput::core::PadButton::Z);
+            const bool test_disable =
+                real_pad_snapshot.status.input.pressed(ConvertGcInput::core::PadButton::DpadUp);
 
             if (test_enable && !client_link.is_test_enabled()) {
                 client_link.enable_test_from_main();

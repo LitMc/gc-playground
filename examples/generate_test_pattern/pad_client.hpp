@@ -55,7 +55,8 @@ class PadClient {
         const auto bytes = request.bytes();
 
         // 送信直前にpublish_countを読み取り、送信後に来た応答だけを受け付ける
-        const auto before_publish_count = link_.real_pad_hub().load_raw_snapshot().publish_count;
+        const auto before_publish_count =
+            link_.real_pad_hub().load_original_snapshot().publish_count;
         await_publish_count_ = before_publish_count; // このカウントからずれたら応答あり
 
         bool send_ok = host_to_pad_.send_now(bytes.data(), bytes.size());
@@ -92,18 +93,18 @@ class PadClient {
     void publish_pad_state_to_link() {
         switch (state_) {
         case State::Ready:
-            link_.publish_pad_state_from_main(PadConsoleLink::PadState::Ready);
+            link_.publish_pad_state_from_main(PadConsoleLink::PadConnectionState::Ready);
             break;
         case State::BootId:
         case State::BootOrigin:
         case State::BootRecalibrate:
         case State::WarmStatus:
-            link_.publish_pad_state_from_main(PadConsoleLink::PadState::Booting);
+            link_.publish_pad_state_from_main(PadConsoleLink::PadConnectionState::Booting);
             break;
         case State::Disconnected:
         case State::Resetting:
         default:
-            link_.publish_pad_state_from_main(PadConsoleLink::PadState::Disconnected);
+            link_.publish_pad_state_from_main(PadConsoleLink::PadConnectionState::Disconnected);
             break;
         }
     }

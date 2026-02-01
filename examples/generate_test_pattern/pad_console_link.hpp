@@ -16,24 +16,24 @@ class PadConsoleLink {
     const SharedConsole &shared_console() const { return shared_console_; }
 
     // 外から見たパッドの状態
-    enum class PadState : uint8_t {
+    enum class PadConnectionState : uint8_t {
         Disconnected, // 接続未確立
         Booting,      // 初期化（ID、Origin、Recalibrate取得）中
         Ready,        // Statusポーリング開始済み
     };
 
     // Pad->Console: パッドの状態を公開
-    void publish_pad_state_from_main(PadState state) {
+    void publish_pad_state_from_main(PadConnectionState state) {
         pad_state_.store(static_cast<uint8_t>(state), std::memory_order_release);
     }
 
     // Console<-Link: パッドの状態を取得
-    PadState load_pad_state() const {
-        return static_cast<PadState>(pad_state_.load(std::memory_order_acquire));
+    PadConnectionState load_pad_state() const {
+        return static_cast<PadConnectionState>(pad_state_.load(std::memory_order_acquire));
     }
 
     // Console<-Link: パッドとの接続が確立しているか
-    bool is_pad_ready() const { return load_pad_state() == PadState::Ready; }
+    bool is_pad_ready() const { return load_pad_state() == PadConnectionState::Ready; }
 
     // Console->Pad: パッドのResetを要求
     void __isr publish_pad_reset_request_from_isr() {
@@ -59,7 +59,7 @@ class PadConsoleLink {
     const TransformPipeline &transform_pipeline() const { return transform_pipeline_; }
 
   private:
-    std::atomic<uint8_t> pad_state_{static_cast<uint8_t>(PadState::Disconnected)};
+    std::atomic<uint8_t> pad_state_{static_cast<uint8_t>(PadConnectionState::Disconnected)};
     std::atomic<uint32_t> reset_epoch_{0};
     SharedPadHub real_pad_hub_{};
     SharedConsole shared_console_{};

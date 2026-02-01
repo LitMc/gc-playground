@@ -36,11 +36,25 @@ enum class PollMode : uint8_t {
     Default = 0x03,
 };
 
+inline constexpr Joybus::PollMode sanitize_poll_mode(const uint8_t v) {
+    return (v <= static_cast<uint8_t>(Joybus::PollMode::Mode4)) ? static_cast<Joybus::PollMode>(v)
+                                                                : Joybus::PollMode::Default;
+}
+
 enum class RumbleMode : uint8_t {
     Off = 0x00,
     On = 0x01,
     Brake = 0x02,
 };
+
+inline constexpr Joybus::RumbleMode sanitize_rumble_mode(const uint8_t v) {
+    return (v <= static_cast<uint8_t>(Joybus::RumbleMode::Brake))
+               ? static_cast<Joybus::RumbleMode>(v)
+               : Joybus::RumbleMode::Off;
+}
+
+inline constexpr uint8_t clamp_poll_mode(uint8_t v) { return (v <= 4) ? v : 3; }   // fallback Mode3
+inline constexpr uint8_t clamp_rumble_mode(uint8_t v) { return (v <= 2) ? v : 0; } // fallback Off
 
 constexpr std::size_t kMaxResponseSize = 10;
 constexpr std::size_t kIdResponseSize = 3;

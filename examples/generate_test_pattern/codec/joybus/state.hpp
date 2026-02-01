@@ -1,4 +1,5 @@
 #pragma once
+#include "codec/joybus/common.hpp"
 #include "codec/joybus/report.hpp"
 #include "core/report.hpp"
 #include "core/state.hpp"
@@ -6,17 +7,11 @@
 #include "joybus_reply.hpp"
 #include <array>
 #include <span>
+#include <stdio.h>
 
 // https://jefflongo.dev/posts/gc-controller-reverse-engineering-part-1/#poll-mode
 // コントローラ入力をJoybus形式に変換、復元するための処理群
 namespace ConvertGcInput::Joybus::state {
-
-// Status, Origin, Recalibrateレスポンスの共通形式。PollModeに依存しない。
-struct DecodedStatus {
-    core::PadReport report{};
-    core::PadInput input{};
-};
-
 // 下位4ビットを取り出して8ビットに拡張。PollMode0..2のレスポンスには4bit幅のアナログ値が入る
 // これを内部のアナログ値0..255に変換。中点0x8(8)が0x80(128)に対応するよう<<4する
 inline constexpr uint8_t expand4bitTo8bit(uint8_t value4bit) {
@@ -40,9 +35,7 @@ inline constexpr core::ButtonInput
 decode_buttons_from_status_word(std::span<const uint8_t, 2> byte2) {
     core::ButtonInput buttons{};
 
-    const uint16_t status_word = static_cast<uint16_t>((static_cast<uint16_t>(byte2[0]) << 8) |
-                                                       static_cast<uint16_t>(byte2[1]));
-
+    const uint16_t status_word = common::read_u16_le(byte2);
     buttons.a = (status_word & core::to_mask(core::PadButton::A)) != 0;
     buttons.b = (status_word & core::to_mask(core::PadButton::B)) != 0;
     buttons.x = (status_word & core::to_mask(core::PadButton::X)) != 0;
@@ -60,13 +53,13 @@ decode_buttons_from_status_word(std::span<const uint8_t, 2> byte2) {
 }
 
 // 共通形式の実行時レポートをStatus wordに変換
-inline constexpr void encode_to_status_word(const core::ButtonInput &buttons,
-                                            const core::PadReport &report,
+inline constexpr void encode_to_status_word(const core::PadState state,
                                             std::span<uint8_t, 2> status_word_bytes) {
     using namespace ConvertGcInput::core;
     uint16_t status_word = 0;
 
     // ボタン情報をStatus wordにセット
+    const auto &buttons = state.input.buttons;
     status_word |= (static_cast<uint16_t>(buttons.a) ? core::to_mask(core::PadButton::A) : 0u);
     status_word |= (static_cast<uint16_t>(buttons.b) ? core::to_mask(core::PadButton::B) : 0u);
     status_word |= (static_cast<uint16_t>(buttons.x) ? core::to_mask(core::PadButton::X) : 0u);
@@ -88,6 +81,7 @@ inline constexpr void encode_to_status_word(const core::ButtonInput &buttons,
 
     // レポートフラグをStatus wordにセット
     // OriginNotSentはビットが立っているとOrigin未送信を意味するので反転
+    const auto &report = state.report;
     status_word |=
         report.origin_sent ? 0 : static_cast<uint16_t>(report::StatusWordBits::OriginNotSent);
     status_word |=
@@ -97,15 +91,14 @@ inline constexpr void encode_to_status_word(const core::ButtonInput &buttons,
                        ? static_cast<uint16_t>(report::StatusWordBits::UseControllerOrigin)
                        : 0;
 
-    status_word_bytes[0] = static_cast<uint8_t>((status_word >> 8) & 0xFFu);
-    status_word_bytes[1] = static_cast<uint8_t>(status_word & 0xFFu);
+    common::write_u16_le(status_word, status_word_bytes);
 }
 
 // JoybusのStatusレスポンスを共通形式に変換
-inline constexpr DecodedStatus
+inline constexpr core::PadState
 decode_status(std::span<const uint8_t, Joybus::kStatusResponseSize> rx,
               Joybus::PollMode poll_mode) {
-    DecodedStatus out{};
+    core::PadState out{};
 
     // 先頭2バイト（Status word）を共通形式のレポートに変換
     out.report = report::decode_report_from_status_word(rx.first<2>());
@@ -162,14 +155,13 @@ decode_status(std::span<const uint8_t, Joybus::kStatusResponseSize> rx,
 }
 
 // 共通形式のStatus情報をJoybusレスポンス形式に変換
-inline JoybusReply encode_status(const core::PadInput &input, const core::PadReport &report,
-                                 Joybus::PollMode poll_mode) {
+inline JoybusReply encode_status(const core::PadState &state, Joybus::PollMode poll_mode) {
     std::array<uint8_t, Joybus::kStatusResponseSize> out{};
 
     // out[0], out[1]: Status word
-    encode_to_status_word(input.buttons, report, std::span<uint8_t, 2>{out.data(), 2});
+    encode_to_status_word(state, std::span<uint8_t, 2>{out.data(), 2});
 
-    const auto &analog_input = input.analog;
+    const auto &analog_input = state.input.analog;
 
     out[2] = analog_input.stick_x;
     out[3] = analog_input.stick_y;
@@ -219,9 +211,9 @@ inline JoybusReply encode_status(const core::PadInput &input, const core::PadRep
     return JoybusReply(Joybus::Command::Status, out);
 }
 
-inline constexpr DecodedStatus
+inline constexpr core::PadState
 decode_origin(std::span<const uint8_t, Joybus::kOriginResponseSize> rx) {
-    DecodedStatus out{};
+    core::PadState out{};
 
     out.report = report::decode_report_from_status_word(rx.first<2>());
     out.input.buttons = decode_buttons_from_status_word(rx.first<2>());
@@ -237,19 +229,18 @@ decode_origin(std::span<const uint8_t, Joybus::kOriginResponseSize> rx) {
     return out;
 }
 
-inline constexpr DecodedStatus
+inline constexpr core::PadState
 decode_recalibrate(std::span<const uint8_t, Joybus::kRecalibrateResponseSize> rx) {
     return decode_origin(rx);
 }
 
 inline constexpr std::array<uint8_t, Joybus::kOriginResponseSize>
-encode_origin_byte(const core::PadInput &input, const core::PadReport &report) {
+encode_origin_byte(const core::PadState &state) {
     std::array<uint8_t, Joybus::kOriginResponseSize> out{};
 
     // out[0], out[1]: Status word
-    encode_to_status_word(input.buttons, report, std::span<uint8_t, 2>{out.data(), 2});
-
-    const auto &analog_input = input.analog;
+    encode_to_status_word(state, std::span<uint8_t, 2>{out.data(), 2});
+    const auto &analog_input = state.input.analog;
 
     out[2] = analog_input.stick_x;
     out[3] = analog_input.stick_y;
@@ -263,12 +254,12 @@ encode_origin_byte(const core::PadInput &input, const core::PadReport &report) {
     return out;
 }
 
-inline JoybusReply encode_origin(const core::PadInput &input, const core::PadReport &report) {
-    return JoybusReply(Joybus::Command::Origin, encode_origin_byte(input, report));
+inline JoybusReply encode_origin(const core::PadState &state) {
+    return JoybusReply(Joybus::Command::Origin, encode_origin_byte(state));
 }
 
-inline JoybusReply encode_recalibrate(const core::PadInput &input, const core::PadReport &report) {
-    return JoybusReply(Joybus::Command::Recalibrate, encode_origin_byte(input, report));
+inline JoybusReply encode_recalibrate(const core::PadState &state) {
+    return JoybusReply(Joybus::Command::Recalibrate, encode_origin_byte(state));
 }
 
 static_assert(shrink8bitTo4bit(expand4bitTo8bit(0x0)) == 0x0);

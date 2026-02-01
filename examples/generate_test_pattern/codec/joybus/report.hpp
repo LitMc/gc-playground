@@ -1,4 +1,5 @@
 #pragma once
+#include "codec/joybus/common.hpp"
 #include "core/report.hpp"
 #include "core/state.hpp"
 #include <cstdint>
@@ -30,8 +31,7 @@ constexpr uint8_t to_mask(IdByte3Bits bit) { return static_cast<uint8_t>(bit); }
 inline constexpr core::PadReport decode_report_from_status_word(std::span<const uint8_t, 2> byte2) {
     core::PadReport out{};
 
-    const uint16_t status_word = static_cast<uint16_t>((static_cast<uint16_t>(byte2[0]) << 8) |
-                                                       static_cast<uint16_t>(byte2[1]));
+    const uint16_t status_word = common::read_u16_le(byte2);
     out.origin_sent =
         (status_word & static_cast<uint16_t>(report::StatusWordBits::OriginNotSent)) == 0;
     out.error_latched =
@@ -46,6 +46,7 @@ inline constexpr core::PadReport decode_report_from_status_word(std::span<const 
 // IDレスポンスの3バイト目を共通形式のレポートに変換
 // UseControllerOriginはIDレスポンスに存在しないので触らない
 inline constexpr void update_report_from_id_byte3(core::PadReport &report, uint8_t byte3) {
+    const auto prev_report = report;
     report.origin_sent = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::OriginNotSent)) == 0;
     report.error_latched = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::ErrorLatched)) != 0;
     report.error_last = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::ErrorLast)) != 0;

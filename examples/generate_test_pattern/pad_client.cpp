@@ -33,7 +33,7 @@ void PadClient::abort_wait_() {
 }
 
 void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
-    const auto pad_snapshot = link_.real_pad_hub().load_raw_snapshot();
+    const auto pad_snapshot = link_.real_pad_hub().load_original_snapshot();
 
     // パッドからの応答があれば最後に来た時刻を更新
     if (pad_snapshot.publish_count != last_publish_count_) {
@@ -137,6 +137,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     // 初回Status取得
     case State::WarmStatus: {
         if (!waiting_response_()) {
+            // TODO: ここをMode3に固定できそう
             const auto req = Joybus::Status(console.poll_mode, console.rumble_mode);
             send_request_(req, now_us, BOOT_TIMEOUT_US);
             break;

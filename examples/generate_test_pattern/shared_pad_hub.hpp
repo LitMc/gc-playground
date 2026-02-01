@@ -19,7 +19,7 @@ class SharedPadHub {
     }
 
     // 受信済みパッド応答を読み取る
-    PadSnapshot load_raw_snapshot() const { return rx_.load(); }
+    PadSnapshot load_original_snapshot() const { return rx_.load(); }
 
     // コンソールへ送信する変換済みパッド応答を書き込む: Consoleクライアント向け
     void publish_tx_from_isr(uint32_t raw_publish_count, const JoybusReply &raw,

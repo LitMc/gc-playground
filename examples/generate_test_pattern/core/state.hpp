@@ -161,6 +161,12 @@ struct PadInput {
     }
 };
 
+// Status, Origin, Recalibrateレスポンスの共通形式。PollModeに依存しない。
+struct PadState {
+    core::PadReport report{};
+    core::PadInput input{};
+};
+
 // ISRやダブルバッファでコピーしても安全
 static_assert(std::is_trivially_copyable_v<PadInput>);
 static_assert(std::is_standard_layout_v<PadInput>);

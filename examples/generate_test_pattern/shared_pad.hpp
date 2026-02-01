@@ -1,20 +1,26 @@
 #pragma once
+#include "codec/joybus/identity.hpp"
+#include "codec/joybus/report.hpp"
+#include "codec/joybus/state.hpp"
+#include "config.hpp"
+#include "core/identity.hpp"
+#include "core/report.hpp"
+#include "core/state.hpp"
 #include "double_buffer.hpp"
 #include "joybus_protocol.hpp"
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <span>
 
 namespace ConvertGcInput {
 struct PadSnapshot {
-    uint32_t publish_count = 0;
-    Joybus::Command last_rx_command = Joybus::Command::Id;
-    std::array<uint8_t, Joybus::kIdResponseSize> id{0x09, 0x00, 0x00};
-    std::array<uint8_t, Joybus::kOriginResponseSize> origin{};
-    std::array<uint8_t, Joybus::kStatusResponseSize> status{};
-    std::array<uint8_t, Joybus::kRecalibrateResponseSize> recalibrate{};
-    std::array<uint8_t, Joybus::kResetResponseSize> reset{0x09, 0x00, 0x00};
-    bool has_reset = false;
+    uint32_t publish_count{0};
+    Joybus::Command last_rx_command{Joybus::Command::Id};
+
+    core::PadIdentity identity{};
+    core::PadState status{};
+    core::PadState origin{};
 };
 
 class SharedPad {
@@ -24,33 +30,51 @@ class SharedPad {
 
     // パッドからの応答を記録
     void on_response_isr(Joybus::Command command, std::span<const uint8_t> rx) {
-        bool updated = false;
+        bool got_valid_frame = false;
         switch (command) {
-        case Joybus::Command::Id:
-            updated = write_fixed(shadow_.id, rx);
-            break;
-        case Joybus::Command::Origin:
-            updated = write_fixed(shadow_.origin, rx);
-            break;
-        case Joybus::Command::Status:
-            updated = write_fixed(shadow_.status, rx);
-            break;
-        case Joybus::Command::Recalibrate:
-            updated = write_fixed(shadow_.recalibrate, rx);
-            break;
-        case Joybus::Command::Reset:
-            updated = write_fixed(shadow_.reset, rx);
-            if (updated) {
-                shadow_.has_reset = true;
+        case Joybus::Command::Status: {
+            if (rx.size() != Joybus::kStatusResponseSize) {
+                break;
             }
+            auto view = std::span<const uint8_t, Joybus::kStatusResponseSize>(rx);
+
+            auto decoded =
+                ConvertGcInput::Joybus::state::decode_status(view, config::kPadQueryPollMode);
+            shadow_.status.report = decoded.report;
+            shadow_.status.input = decoded.input;
+            got_valid_frame = true;
             break;
+        }
+        // OriginとRecalibrateは同じフォーマット
+        case Joybus::Command::Origin:
+        case Joybus::Command::Recalibrate: {
+            if (rx.size() != Joybus::kOriginResponseSize) {
+                break;
+            }
+            auto view = std::span<const uint8_t, Joybus::kOriginResponseSize>(rx);
+            auto decoded = ConvertGcInput::Joybus::state::decode_origin(view);
+            shadow_.origin.report = decoded.report;
+            shadow_.origin.input = decoded.input;
+            got_valid_frame = true;
+            break;
+        }
+        case Joybus::Command::Id:
+        case Joybus::Command::Reset: {
+            if (rx.size() != Joybus::kIdResponseSize) {
+                break;
+            }
+            auto view = std::span<const uint8_t, Joybus::kIdResponseSize>(rx);
+            Joybus::identity::update_identity_from_id_bytes(shadow_.identity, view);
+            got_valid_frame = true;
+            break;
+        }
         default:
             break;
         }
 
-        if (updated) {
-            shadow_.last_rx_command = command;
+        if (got_valid_frame) {
             shadow_.publish_count++;
+            shadow_.last_rx_command = command;
             db_.publish(shadow_);
         }
     }
@@ -58,15 +82,6 @@ class SharedPad {
   private:
     PadSnapshot shadow_{};           // IRQでの書き込み専用
     DoubleBuffer<PadSnapshot> db_{}; // 外部から読み取る用
-
-    template <std::size_t N>
-    static bool write_fixed(std::array<uint8_t, N> &dst, std::span<const uint8_t> rx) {
-        if (rx.size() < N) {
-            return false;
-        }
-        std::copy_n(rx.data(), N, dst.begin());
-        return true;
-    }
 };
 
 } // namespace ConvertGcInput

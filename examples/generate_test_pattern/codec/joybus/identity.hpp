@@ -1,4 +1,5 @@
 #pragma once
+#include "codec/joybus/common.hpp"
 #include "codec/joybus/report.hpp"
 #include "core/identity.hpp"
 #include "core/report.hpp"
@@ -20,10 +21,8 @@ static constexpr uint16_t kWirelessStateFixed = (1u << 9);
 static constexpr uint16_t kIsStandardController = (1u << 8);
 
 // --- ID byte3 (8bit) のビット定義（Joybus固有） ---
-static constexpr uint8_t kPollMask = 0x07u;                                        // bits[2:0]
-static constexpr uint8_t kRumbleMask = 0x18u;                                      // bits[4:3]
-inline constexpr uint8_t clamp_poll_mode(uint8_t v) { return (v <= 4) ? v : 3; }   // fallback Mode3
-inline constexpr uint8_t clamp_rumble_mode(uint8_t v) { return (v <= 2) ? v : 0; } // fallback Off
+static constexpr uint8_t kPollMask = 0x07u;   // bits[2:0]
+static constexpr uint8_t kRumbleMask = 0x18u; // bits[4:3]
 
 inline constexpr std::array<uint8_t, kIdResponseSize>
 encode_identity_bytes(const core::PadIdentity &id) {
@@ -64,14 +63,16 @@ encode_identity_bytes(const core::PadIdentity &id) {
     if (!runtime.report.origin_sent) {
         runtime_flags |= report::to_mask(report::IdByte3Bits::OriginNotSent);
     }
-    const uint8_t poll_mode = clamp_poll_mode(static_cast<uint8_t>(runtime.poll_mode));
-    const uint8_t rumble_mode = clamp_rumble_mode(static_cast<uint8_t>(runtime.rumble_mode));
+    const uint8_t poll_mode = Joybus::clamp_poll_mode(static_cast<uint8_t>(runtime.poll_mode));
+    const uint8_t rumble_mode =
+        Joybus::clamp_rumble_mode(static_cast<uint8_t>(runtime.rumble_mode));
     runtime_flags |= (rumble_mode << 3) & kRumbleMask;
     runtime_flags |= poll_mode & kPollMask;
 
-    return std::array<uint8_t, kIdResponseSize>{
-        static_cast<uint8_t>((device_capabilities >> 8) & 0xFFu),
-        static_cast<uint8_t>(device_capabilities & 0xFFu), runtime_flags};
+    std::array<uint8_t, kIdResponseSize> out{};
+    common::write_u16_le(device_capabilities, std::span<uint8_t, 2>{out.data(), 2});
+    out[2] = runtime_flags;
+    return out;
 }
 
 inline JoybusReply encode_identity(const core::PadIdentity &id) {
@@ -83,11 +84,9 @@ inline JoybusReply encode_reset_as_id(const core::PadIdentity &id) {
     return JoybusReply{Command::Reset, encode_identity_bytes(id)};
 }
 
-inline core::PadIdentity decode_identity(std::span<const uint8_t, kIdResponseSize> rx) {
-    core::PadIdentity out{};
-
-    const uint16_t device_capabilities =
-        (static_cast<uint16_t>(rx[0]) << 8) | static_cast<uint16_t>(rx[1]);
+inline void update_capabilities_from_id_bytes(core::PadIdentity &out,
+                                              std::span<const uint8_t, kIdResponseSize> rx) {
+    const uint16_t device_capabilities = common::read_u16_le(rx.first<2>());
     auto &capabilities = out.capabilities;
     capabilities.is_wireless = (device_capabilities & kIsWireless) != 0;
     capabilities.supports_wireless_receive = (device_capabilities & kSupportsWirelessReceive) != 0;
@@ -96,18 +95,22 @@ inline core::PadIdentity decode_identity(std::span<const uint8_t, kIdResponseSiz
     capabilities.wireless_is_rf = (device_capabilities & kWirelessTypeRf) != 0;
     capabilities.wireless_state_fixed = (device_capabilities & kWirelessStateFixed) != 0;
     capabilities.is_standard_controller = (device_capabilities & kIsStandardController) != 0;
+}
 
+inline void update_runtime_from_id_byte3(core::PadIdentity &out, uint8_t byte3) {
     auto &runtime = out.runtime;
-    const uint8_t runtime_flags = rx[2];
-    report::update_report_from_id_byte3(runtime.report, runtime_flags);
-    runtime.poll_mode = static_cast<core::PollMode>(clamp_poll_mode(runtime_flags & kPollMask));
-    runtime.rumble_mode =
-        static_cast<core::RumbleMode>(clamp_rumble_mode((runtime_flags & kRumbleMask) >> 3));
-    return out;
+    const uint8_t runtime_flags = byte3;
+    runtime.poll_mode =
+        static_cast<core::PollMode>(Joybus::clamp_poll_mode(runtime_flags & kPollMask));
+    runtime.rumble_mode = static_cast<core::RumbleMode>(
+        Joybus::clamp_rumble_mode((runtime_flags & kRumbleMask) >> 3));
+    report::update_report_from_id_byte3(runtime.report, byte3);
 }
 
-inline core::PadIdentity decode_reset_as_identity(std::span<const uint8_t, kResetResponseSize> rx) {
-    // ResetはIDと同じ形式
-    return decode_identity(rx);
+inline void update_identity_from_id_bytes(core::PadIdentity &out,
+                                          std::span<const uint8_t, kIdResponseSize> rx) {
+    update_capabilities_from_id_bytes(out, rx);
+    update_runtime_from_id_byte3(out, rx[2]);
 }
+
 } // namespace ConvertGcInput::Joybus::identity
