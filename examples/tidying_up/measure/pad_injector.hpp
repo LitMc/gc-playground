@@ -1,5 +1,5 @@
 #pragma once
-#include "codec/joybus/state.hpp"
+#include "codec/joybus/state_wire.hpp"
 #include "measure/pattern.hpp"
 #include "measure/scheduler.hpp"
 #include "measure/seed.hpp"

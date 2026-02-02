@@ -1,6 +1,6 @@
 #pragma once
 #include "codec/joybus/common.hpp"
-#include "codec/joybus/report.hpp"
+#include "codec/joybus/report_wire.hpp"
 #include "domain/report.hpp"
 #include "domain/state.hpp"
 #include "joybus_protocol.hpp"

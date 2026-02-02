@@ -1,7 +1,7 @@
 #pragma once
-#include "codec/joybus/identity.hpp"
-#include "codec/joybus/report.hpp"
-#include "codec/joybus/state.hpp"
+#include "codec/joybus/identity_wire.hpp"
+#include "codec/joybus/report_wire.hpp"
+#include "codec/joybus/state_wire.hpp"
 #include "config.hpp"
 #include "domain/identity.hpp"
 #include "domain/report.hpp"
