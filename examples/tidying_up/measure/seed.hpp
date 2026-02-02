@@ -26,14 +26,14 @@ inline domain::PadState make_neutral_pad_state() {
 
 inline domain::PadIdentity make_default_pad_identity_from_console(const ConsoleState &console) {
     domain::PadIdentity id{};
-    id.runtime.poll_mode = Joybus::common::to_domain_poll_mode(console.poll_mode);
-    id.runtime.rumble_mode = Joybus::common::to_domain_rumble_mode(console.rumble_mode);
+    id.runtime.poll_mode = joybus::common::to_domain_poll_mode(console.poll_mode);
+    id.runtime.rumble_mode = joybus::common::to_domain_rumble_mode(console.rumble_mode);
     return id;
 }
 
 // テスト用PadHubにコントローラ応答を流す
 inline void feed_reply_to_hub(SharedPadHub &hub, const JoybusReply &reply) {
-    if (reply.command() == Joybus::Command::Invalid) {
+    if (reply.command() == joybus::Command::Invalid) {
         return;
     }
 
@@ -52,25 +52,25 @@ inline void seed_initial_responses(PadConsoleLink &link, const ConsoleState &con
     const domain::PadState neutral = make_neutral_pad_state();
 
     if (options.status) {
-        const auto reply = Joybus::state::encode_status(neutral, console.poll_mode);
+        const auto reply = joybus::state::encode_status(neutral, console.poll_mode);
         feed_reply_to_hub(hub, reply);
     }
     if (options.origin) {
-        const auto reply = Joybus::state::encode_origin(neutral);
+        const auto reply = joybus::state::encode_origin(neutral);
         feed_reply_to_hub(hub, reply);
     }
     if (options.recalibrate) {
-        const auto reply = Joybus::state::encode_recalibrate(neutral);
+        const auto reply = joybus::state::encode_recalibrate(neutral);
         feed_reply_to_hub(hub, reply);
     }
     if (options.id || options.reset) {
         const auto id = make_default_pad_identity_from_console(console);
         if (options.id) {
-            const auto reply = Joybus::identity::encode_identity(id);
+            const auto reply = joybus::identity::encode_identity(id);
             feed_reply_to_hub(hub, reply);
         }
         if (options.reset) {
-            const auto reply = Joybus::identity::encode_reset_as_id(id);
+            const auto reply = joybus::identity::encode_reset_as_id(id);
             feed_reply_to_hub(hub, reply);
         }
     }

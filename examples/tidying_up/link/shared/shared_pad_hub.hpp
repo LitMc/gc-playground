@@ -14,7 +14,7 @@ struct TxPair {
 class SharedPadHub {
   public:
     // 受信したパッド応答を書き込む: Padクライアント向け
-    void on_pad_response_isr(Joybus::Command command, std::span<const uint8_t> rx) {
+    void on_pad_response_isr(joybus::Command command, std::span<const uint8_t> rx) {
         rx_.on_response_isr(command, rx);
     }
 

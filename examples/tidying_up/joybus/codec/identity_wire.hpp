@@ -10,7 +10,7 @@
 #include <span>
 
 // コントローラのサポートする機能や実行時レポートをJoybusレスポンス形式に変換、復元するための処理群
-namespace ConvertGcInput::Joybus::identity {
+namespace ConvertGcInput::joybus::identity {
 // --- ID bytes1..2 (16bit) のビット定義（Joybus固有） ---
 static constexpr uint16_t kIsWireless = (1u << 15);
 static constexpr uint16_t kSupportsWirelessReceive = (1u << 14);
@@ -63,9 +63,9 @@ encode_identity_bytes(const domain::PadIdentity &id) {
     if (!runtime.report.origin_sent) {
         runtime_flags |= report::to_mask(report::IdByte3Bits::OriginNotSent);
     }
-    const uint8_t poll_mode = Joybus::clamp_poll_mode(static_cast<uint8_t>(runtime.poll_mode));
+    const uint8_t poll_mode = joybus::clamp_poll_mode(static_cast<uint8_t>(runtime.poll_mode));
     const uint8_t rumble_mode =
-        Joybus::clamp_rumble_mode(static_cast<uint8_t>(runtime.rumble_mode));
+        joybus::clamp_rumble_mode(static_cast<uint8_t>(runtime.rumble_mode));
     runtime_flags |= (rumble_mode << 3) & kRumbleMask;
     runtime_flags |= poll_mode & kPollMask;
 
@@ -101,9 +101,9 @@ inline void update_runtime_from_id_byte3(domain::PadIdentity &out, uint8_t byte3
     auto &runtime = out.runtime;
     const uint8_t runtime_flags = byte3;
     runtime.poll_mode =
-        static_cast<domain::PollMode>(Joybus::clamp_poll_mode(runtime_flags & kPollMask));
+        static_cast<domain::PollMode>(joybus::clamp_poll_mode(runtime_flags & kPollMask));
     runtime.rumble_mode = static_cast<domain::RumbleMode>(
-        Joybus::clamp_rumble_mode((runtime_flags & kRumbleMask) >> 3));
+        joybus::clamp_rumble_mode((runtime_flags & kRumbleMask) >> 3));
     report::update_report_from_id_byte3(runtime.report, byte3);
 }
 
@@ -113,4 +113,4 @@ inline void update_identity_from_id_bytes(domain::PadIdentity &out,
     update_runtime_from_id_byte3(out, rx[2]);
 }
 
-} // namespace ConvertGcInput::Joybus::identity
+} // namespace ConvertGcInput::joybus::identity

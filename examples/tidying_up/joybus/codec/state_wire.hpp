@@ -11,7 +11,7 @@
 
 // https://jefflongo.dev/posts/gc-controller-reverse-engineering-part-1/#poll-mode
 // コントローラ入力をJoybus形式に変換、復元するための処理群
-namespace ConvertGcInput::Joybus::state {
+namespace ConvertGcInput::joybus::state {
 // 下位4ビットを取り出して8ビットに拡張。PollMode0..2のレスポンスには4bit幅のアナログ値が入る
 // これを内部のアナログ値0..255に変換。中点0x8(8)が0x80(128)に対応するよう<<4する
 inline constexpr uint8_t expand4bitTo8bit(uint8_t value4bit) {
@@ -101,8 +101,8 @@ inline constexpr void encode_to_status_word(const domain::PadState &state,
 
 // JoybusのStatusレスポンスを共通形式に変換
 inline constexpr domain::PadState
-decode_status(std::span<const uint8_t, Joybus::kStatusResponseSize> rx,
-              Joybus::PollMode poll_mode) {
+decode_status(std::span<const uint8_t, joybus::kStatusResponseSize> rx,
+              joybus::PollMode poll_mode) {
     domain::PadState out{};
 
     // 先頭2バイト（Status word）を共通形式のレポートに変換
@@ -116,7 +116,7 @@ decode_status(std::span<const uint8_t, Joybus::kStatusResponseSize> rx,
 
     // https://jefflongo.dev/posts/gc-controller-reverse-engineering-part-1/#poll-mode
     switch (poll_mode) {
-    case Joybus::PollMode::Mode0:
+    case joybus::PollMode::Mode0:
         analog_input.c_stick_x = rx[4];
         analog_input.c_stick_y = rx[5];
         analog_input.l_analog = expand4bitTo8bit((rx[6] >> 4) & 0x0Fu);
@@ -124,7 +124,7 @@ decode_status(std::span<const uint8_t, Joybus::kStatusResponseSize> rx,
         analog_input.a_analog = expand4bitTo8bit((rx[7] >> 4) & 0x0Fu);
         analog_input.b_analog = expand4bitTo8bit(rx[7] & 0x0Fu);
         break;
-    case Joybus::PollMode::Mode1:
+    case joybus::PollMode::Mode1:
         analog_input.c_stick_x = expand4bitTo8bit((rx[4] >> 4) & 0x0Fu);
         analog_input.c_stick_y = expand4bitTo8bit(rx[4] & 0x0Fu);
         analog_input.l_analog = rx[5];
@@ -132,7 +132,7 @@ decode_status(std::span<const uint8_t, Joybus::kStatusResponseSize> rx,
         analog_input.a_analog = expand4bitTo8bit((rx[7] >> 4) & 0x0Fu);
         analog_input.b_analog = expand4bitTo8bit(rx[7] & 0x0Fu);
         break;
-    case Joybus::PollMode::Mode2:
+    case joybus::PollMode::Mode2:
         analog_input.c_stick_x = expand4bitTo8bit((rx[4] >> 4) & 0x0Fu);
         analog_input.c_stick_y = expand4bitTo8bit(rx[4] & 0x0Fu);
         analog_input.l_analog = expand4bitTo8bit((rx[5] >> 4) & 0x0Fu);
@@ -140,13 +140,13 @@ decode_status(std::span<const uint8_t, Joybus::kStatusResponseSize> rx,
         analog_input.a_analog = rx[6];
         analog_input.b_analog = rx[7];
         break;
-    case Joybus::PollMode::Mode3:
+    case joybus::PollMode::Mode3:
         analog_input.c_stick_x = rx[4];
         analog_input.c_stick_y = rx[5];
         analog_input.l_analog = rx[6];
         analog_input.r_analog = rx[7];
         break;
-    case Joybus::PollMode::Mode4:
+    case joybus::PollMode::Mode4:
         analog_input.c_stick_x = rx[4];
         analog_input.c_stick_y = rx[5];
         analog_input.a_analog = rx[6];
@@ -160,8 +160,8 @@ decode_status(std::span<const uint8_t, Joybus::kStatusResponseSize> rx,
 }
 
 // 共通形式のStatus情報をJoybusレスポンス形式に変換
-inline JoybusReply encode_status(const domain::PadState &state, Joybus::PollMode poll_mode) {
-    std::array<uint8_t, Joybus::kStatusResponseSize> out{};
+inline JoybusReply encode_status(const domain::PadState &state, joybus::PollMode poll_mode) {
+    std::array<uint8_t, joybus::kStatusResponseSize> out{};
 
     // out[0], out[1]: Status word
     encode_to_status_word(state, std::span<uint8_t, 2>{out.data(), 2});
@@ -173,7 +173,7 @@ inline JoybusReply encode_status(const domain::PadState &state, Joybus::PollMode
 
     // https://jefflongo.dev/posts/gc-controller-reverse-engineering-part-1/#poll-mode
     switch (poll_mode) {
-    case Joybus::PollMode::Mode0:
+    case joybus::PollMode::Mode0:
         out[4] = analog_input.c_stick_x;
         out[5] = analog_input.c_stick_y;
         out[6] = pack4bitsToByte(shrink8bitTo4bit(analog_input.l_analog),
@@ -181,7 +181,7 @@ inline JoybusReply encode_status(const domain::PadState &state, Joybus::PollMode
         out[7] = pack4bitsToByte(shrink8bitTo4bit(analog_input.a_analog),
                                  shrink8bitTo4bit(analog_input.b_analog));
         break;
-    case Joybus::PollMode::Mode1:
+    case joybus::PollMode::Mode1:
         out[4] = pack4bitsToByte(shrink8bitTo4bit(analog_input.c_stick_x),
                                  shrink8bitTo4bit(analog_input.c_stick_y));
         out[5] = analog_input.l_analog;
@@ -189,7 +189,7 @@ inline JoybusReply encode_status(const domain::PadState &state, Joybus::PollMode
         out[7] = pack4bitsToByte(shrink8bitTo4bit(analog_input.a_analog),
                                  shrink8bitTo4bit(analog_input.b_analog));
         break;
-    case Joybus::PollMode::Mode2:
+    case joybus::PollMode::Mode2:
         out[4] = pack4bitsToByte(shrink8bitTo4bit(analog_input.c_stick_x),
                                  shrink8bitTo4bit(analog_input.c_stick_y));
         out[5] = pack4bitsToByte(shrink8bitTo4bit(analog_input.l_analog),
@@ -197,13 +197,13 @@ inline JoybusReply encode_status(const domain::PadState &state, Joybus::PollMode
         out[6] = analog_input.a_analog;
         out[7] = analog_input.b_analog;
         break;
-    case Joybus::PollMode::Mode3:
+    case joybus::PollMode::Mode3:
         out[4] = analog_input.c_stick_x;
         out[5] = analog_input.c_stick_y;
         out[6] = analog_input.l_analog;
         out[7] = analog_input.r_analog;
         break;
-    case Joybus::PollMode::Mode4:
+    case joybus::PollMode::Mode4:
         out[4] = analog_input.c_stick_x;
         out[5] = analog_input.c_stick_y;
         out[6] = analog_input.a_analog;
@@ -213,11 +213,11 @@ inline JoybusReply encode_status(const domain::PadState &state, Joybus::PollMode
         break;
     }
 
-    return JoybusReply(Joybus::Command::Status, out);
+    return JoybusReply(joybus::Command::Status, out);
 }
 
 inline constexpr domain::PadState
-decode_origin(std::span<const uint8_t, Joybus::kOriginResponseSize> rx) {
+decode_origin(std::span<const uint8_t, joybus::kOriginResponseSize> rx) {
     domain::PadState out{};
 
     out.report = report::decode_report_from_status_word(rx.first<2>());
@@ -235,13 +235,13 @@ decode_origin(std::span<const uint8_t, Joybus::kOriginResponseSize> rx) {
 }
 
 inline constexpr domain::PadState
-decode_recalibrate(std::span<const uint8_t, Joybus::kRecalibrateResponseSize> rx) {
+decode_recalibrate(std::span<const uint8_t, joybus::kRecalibrateResponseSize> rx) {
     return decode_origin(rx);
 }
 
-inline constexpr std::array<uint8_t, Joybus::kOriginResponseSize>
+inline constexpr std::array<uint8_t, joybus::kOriginResponseSize>
 encode_origin_byte(const domain::PadState &state) {
-    std::array<uint8_t, Joybus::kOriginResponseSize> out{};
+    std::array<uint8_t, joybus::kOriginResponseSize> out{};
 
     // out[0], out[1]: Status word
     encode_to_status_word(state, std::span<uint8_t, 2>{out.data(), 2});
@@ -260,15 +260,15 @@ encode_origin_byte(const domain::PadState &state) {
 }
 
 inline JoybusReply encode_origin(const domain::PadState &state) {
-    return JoybusReply(Joybus::Command::Origin, encode_origin_byte(state));
+    return JoybusReply(joybus::Command::Origin, encode_origin_byte(state));
 }
 
 inline JoybusReply encode_recalibrate(const domain::PadState &state) {
-    return JoybusReply(Joybus::Command::Recalibrate, encode_origin_byte(state));
+    return JoybusReply(joybus::Command::Recalibrate, encode_origin_byte(state));
 }
 
 static_assert(shrink8bitTo4bit(expand4bitTo8bit(0x0)) == 0x0);
 static_assert(shrink8bitTo4bit(expand4bitTo8bit(0x8)) == 0x8);
 static_assert(shrink8bitTo4bit(expand4bitTo8bit(0xF)) == 0xF);
 static_assert(pack4bitsToByte(0xA, 0x5) == 0xA5);
-} // namespace ConvertGcInput::Joybus::state
+} // namespace ConvertGcInput::joybus::state

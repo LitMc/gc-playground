@@ -137,7 +137,7 @@ int main() {
         pad_injector.tick(time_us_32());
 
         const auto real_pad_snapshot = client_link.real_pad_hub().load_original_snapshot();
-        if (real_pad_snapshot.last_rx_command == ConvertGcInput::Joybus::Command::Status) {
+        if (real_pad_snapshot.last_rx_command == ConvertGcInput::joybus::Command::Status) {
             const bool measure_enable =
                 real_pad_snapshot.status.input.pressed(ConvertGcInput::domain::PadButton::Z);
             const bool measure_disable =
@@ -171,8 +171,8 @@ int main() {
 
             const auto command = raw.command();
 
-            if (command == ConvertGcInput::Joybus::Command::Origin ||
-                command == ConvertGcInput::Joybus::Command::Recalibrate) {
+            if (command == ConvertGcInput::joybus::Command::Origin ||
+                command == ConvertGcInput::joybus::Command::Recalibrate) {
                 const auto raw_input = raw.view();
                 const auto modified_input = modified.view();
                 printf("%s %s [0x%02X]: ", client_link.is_measure_enabled() ? "[TEST]" : "[REAL]",
@@ -189,7 +189,7 @@ int main() {
                 printf("\n");
             }
 
-            if (command == ConvertGcInput::Joybus::Command::Status &&
+            if (command == ConvertGcInput::joybus::Command::Status &&
                 client_link.is_measure_enabled()) {
                 const auto status = modified.view();
                 printf("(X, Y): (%3d, %3d)\n", (int)status[2], (int)status[3]);

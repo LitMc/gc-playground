@@ -16,7 +16,7 @@
 namespace ConvertGcInput {
 struct PadSnapshot {
     uint32_t publish_count{0};
-    Joybus::Command last_rx_command{Joybus::Command::Id};
+    joybus::Command last_rx_command{joybus::Command::Id};
 
     domain::PadIdentity identity{};
     domain::PadState status{};
@@ -29,42 +29,42 @@ class SharedPad {
     PadSnapshot load() const { return db_.load(); }
 
     // パッドからの応答を記録
-    void on_response_isr(Joybus::Command command, std::span<const uint8_t> rx) {
+    void on_response_isr(joybus::Command command, std::span<const uint8_t> rx) {
         bool got_valid_frame = false;
         switch (command) {
-        case Joybus::Command::Status: {
-            if (rx.size() != Joybus::kStatusResponseSize) {
+        case joybus::Command::Status: {
+            if (rx.size() != joybus::kStatusResponseSize) {
                 break;
             }
-            auto view = std::span<const uint8_t, Joybus::kStatusResponseSize>(rx);
+            auto view = std::span<const uint8_t, joybus::kStatusResponseSize>(rx);
 
             auto decoded =
-                ConvertGcInput::Joybus::state::decode_status(view, policy::kPadPollModeForQuery);
+                ConvertGcInput::joybus::state::decode_status(view, policy::kPadPollModeForQuery);
             shadow_.status.report = decoded.report;
             shadow_.status.input = decoded.input;
             got_valid_frame = true;
             break;
         }
         // OriginとRecalibrateは同じフォーマット
-        case Joybus::Command::Origin:
-        case Joybus::Command::Recalibrate: {
-            if (rx.size() != Joybus::kOriginResponseSize) {
+        case joybus::Command::Origin:
+        case joybus::Command::Recalibrate: {
+            if (rx.size() != joybus::kOriginResponseSize) {
                 break;
             }
-            auto view = std::span<const uint8_t, Joybus::kOriginResponseSize>(rx);
-            auto decoded = ConvertGcInput::Joybus::state::decode_origin(view);
+            auto view = std::span<const uint8_t, joybus::kOriginResponseSize>(rx);
+            auto decoded = ConvertGcInput::joybus::state::decode_origin(view);
             shadow_.origin.report = decoded.report;
             shadow_.origin.input = decoded.input;
             got_valid_frame = true;
             break;
         }
-        case Joybus::Command::Id:
-        case Joybus::Command::Reset: {
-            if (rx.size() != Joybus::kIdResponseSize) {
+        case joybus::Command::Id:
+        case joybus::Command::Reset: {
+            if (rx.size() != joybus::kIdResponseSize) {
                 break;
             }
-            auto view = std::span<const uint8_t, Joybus::kIdResponseSize>(rx);
-            Joybus::identity::update_identity_from_id_bytes(shadow_.identity, view);
+            auto view = std::span<const uint8_t, joybus::kIdResponseSize>(rx);
+            joybus::identity::update_identity_from_id_bytes(shadow_.identity, view);
             got_valid_frame = true;
             break;
         }

@@ -20,7 +20,7 @@ class PadClient {
     void tick(uint32_t now_us, const ConsoleState &console);
 
     // Padからの応答を処理するISRコールバック
-    void on_pad_response_isr(Joybus::Command command, std::span<const uint8_t> rx);
+    void on_pad_response_isr(joybus::Command command, std::span<const uint8_t> rx);
 
     // パッドからの応答を受信したときに呼ぶコールバック
     static std::size_t callback(void *user, const uint8_t *rx, std::size_t rx_len, uint8_t *tx,
@@ -39,7 +39,7 @@ class PadClient {
 
   private:
     template <std::size_t N>
-    bool send_request_(const Joybus::Request<N> &request, uint32_t now_us, uint32_t timeout_us) {
+    bool send_request_(const joybus::Request<N> &request, uint32_t now_us, uint32_t timeout_us) {
         if (waiting_response_()) {
             return false;
         }
@@ -120,15 +120,15 @@ class PadClient {
     // 応答待ちのタイムアウト時間
     uint32_t response_deadline_us_{0};
 
-    std::atomic<uint8_t> await_command_{static_cast<uint8_t>(Joybus::Command::Invalid)};
+    std::atomic<uint8_t> await_command_{static_cast<uint8_t>(joybus::Command::Invalid)};
 
     // 応答を待っているコマンド
-    Joybus::Command awaiting_command_() const {
-        return static_cast<Joybus::Command>(await_command_.load(std::memory_order_acquire));
+    joybus::Command awaiting_command_() const {
+        return static_cast<joybus::Command>(await_command_.load(std::memory_order_acquire));
     }
 
     // 応答待ちか否か
-    bool waiting_response_() const { return Joybus::is_valid_command(awaiting_command_()); }
+    bool waiting_response_() const { return joybus::is_valid_command(awaiting_command_()); }
 
     // alive判定
     uint32_t last_seen_us_{0};

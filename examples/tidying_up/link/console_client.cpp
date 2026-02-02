@@ -31,21 +31,21 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
     auto &pad_hub = self->link_.active_pad_hub();
     const auto original_snapshot = pad_hub.load_original_snapshot();
 
-    const auto cmd = static_cast<Joybus::Command>(rx[0]);
+    const auto cmd = static_cast<joybus::Command>(rx[0]);
 
     // コンソールに指定されたPollModeとRumbleModeを応答に使う
     const auto host_console = self->link_.shared_console().load();
-    Joybus::PollMode host_poll_mode = host_console.poll_mode;
-    Joybus::RumbleMode host_rumble_mode = host_console.rumble_mode;
+    joybus::PollMode host_poll_mode = host_console.poll_mode;
+    joybus::RumbleMode host_rumble_mode = host_console.rumble_mode;
 
     JoybusReply original_reply;
     JoybusReply modified_reply;
 
     const auto &pipelines = self->link_.transform_pipelines();
     switch (cmd) {
-    case Joybus::Command::Status: {
+    case joybus::Command::Status: {
         const domain::PadState original_state = original_snapshot.status;
-        original_reply = Joybus::state::encode_status(original_state, host_poll_mode);
+        original_reply = joybus::state::encode_status(original_state, host_poll_mode);
 
         domain::PadState modified_state = original_state;
         // 計測用
@@ -53,45 +53,45 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
             // 計測時は厳密な値を送るため素通しする
             pipelines.status.apply_from_isr(modified_state);
         }
-        modified_reply = Joybus::state::encode_status(modified_state, host_poll_mode);
+        modified_reply = joybus::state::encode_status(modified_state, host_poll_mode);
         break;
     }
-    case Joybus::Command::Origin: {
+    case joybus::Command::Origin: {
         const domain::PadState original_state = original_snapshot.origin;
-        original_reply = Joybus::state::encode_origin(original_state);
+        original_reply = joybus::state::encode_origin(original_state);
         domain::PadState modified_state = original_state;
         pipelines.origin.apply_from_isr(modified_state);
-        modified_reply = Joybus::state::encode_origin(modified_state);
+        modified_reply = joybus::state::encode_origin(modified_state);
         break;
     }
-    case Joybus::Command::Recalibrate: {
+    case joybus::Command::Recalibrate: {
         const domain::PadState original_state = original_snapshot.origin;
-        original_reply = Joybus::state::encode_recalibrate(original_state);
+        original_reply = joybus::state::encode_recalibrate(original_state);
         domain::PadState modified_state = original_state;
         pipelines.recalibrate.apply_from_isr(modified_state);
-        modified_reply = Joybus::state::encode_recalibrate(modified_state);
+        modified_reply = joybus::state::encode_recalibrate(modified_state);
         break;
     }
-    case Joybus::Command::Id: {
+    case joybus::Command::Id: {
         domain::PadIdentity identity = original_snapshot.identity;
         // 直近のコンソールから指定されたPollModeとRumbleModeを反映する
         // パッドへのポーリングはMode3固定でコンソールへの応答はコンソールからの指示に従う仕様のため
-        identity.runtime.poll_mode = Joybus::common::to_domain_poll_mode(host_poll_mode);
-        identity.runtime.rumble_mode = Joybus::common::to_domain_rumble_mode(host_rumble_mode);
-        original_reply = Joybus::identity::encode_identity(identity);
+        identity.runtime.poll_mode = joybus::common::to_domain_poll_mode(host_poll_mode);
+        identity.runtime.rumble_mode = joybus::common::to_domain_rumble_mode(host_rumble_mode);
+        original_reply = joybus::identity::encode_identity(identity);
         // Identityは変換する意義が薄いのでそのまま返す
         modified_reply = original_reply;
         break;
     }
-    case Joybus::Command::Reset: {
+    case joybus::Command::Reset: {
         // パッドへリセットを要求
         self->link_.publish_pad_reset_request_from_isr();
 
         // Idと同じ
         domain::PadIdentity identity = original_snapshot.identity;
-        identity.runtime.poll_mode = Joybus::common::to_domain_poll_mode(host_poll_mode);
-        identity.runtime.rumble_mode = Joybus::common::to_domain_rumble_mode(host_rumble_mode);
-        original_reply = Joybus::identity::encode_reset_as_id(identity);
+        identity.runtime.poll_mode = joybus::common::to_domain_poll_mode(host_poll_mode);
+        identity.runtime.rumble_mode = joybus::common::to_domain_rumble_mode(host_rumble_mode);
+        original_reply = joybus::identity::encode_reset_as_id(identity);
         modified_reply = original_reply;
         break;
     }

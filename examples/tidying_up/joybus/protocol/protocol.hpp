@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace ConvertGcInput::Joybus {
+namespace ConvertGcInput::joybus {
 enum class Command : uint8_t {
     Id = 0x00,
     Status = 0x40,
@@ -36,9 +36,9 @@ enum class PollMode : uint8_t {
     Default = 0x03,
 };
 
-inline constexpr Joybus::PollMode sanitize_poll_mode(const uint8_t v) {
-    return (v <= static_cast<uint8_t>(Joybus::PollMode::Mode4)) ? static_cast<Joybus::PollMode>(v)
-                                                                : Joybus::PollMode::Default;
+inline constexpr joybus::PollMode sanitize_poll_mode(const uint8_t v) {
+    return (v <= static_cast<uint8_t>(joybus::PollMode::Mode4)) ? static_cast<joybus::PollMode>(v)
+                                                                : joybus::PollMode::Default;
 }
 
 enum class RumbleMode : uint8_t {
@@ -47,10 +47,10 @@ enum class RumbleMode : uint8_t {
     Brake = 0x02,
 };
 
-inline constexpr Joybus::RumbleMode sanitize_rumble_mode(const uint8_t v) {
-    return (v <= static_cast<uint8_t>(Joybus::RumbleMode::Brake))
-               ? static_cast<Joybus::RumbleMode>(v)
-               : Joybus::RumbleMode::Off;
+inline constexpr joybus::RumbleMode sanitize_rumble_mode(const uint8_t v) {
+    return (v <= static_cast<uint8_t>(joybus::RumbleMode::Brake))
+               ? static_cast<joybus::RumbleMode>(v)
+               : joybus::RumbleMode::Off;
 }
 
 inline constexpr uint8_t clamp_poll_mode(uint8_t v) { return (v <= 4) ? v : 3; }   // fallback Mode3
@@ -87,4 +87,4 @@ inline constexpr Request<3> Recalibrate{{static_cast<uint8_t>(Command::Recalibra
 
 inline constexpr Request<1> Reset{{static_cast<uint8_t>(Command::Reset)}, kResetResponseSize};
 
-} // namespace ConvertGcInput::Joybus
+} // namespace ConvertGcInput::joybus

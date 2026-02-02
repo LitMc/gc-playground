@@ -6,8 +6,8 @@
 namespace ConvertGcInput {
 
 struct ConsoleState {
-    Joybus::PollMode poll_mode = Joybus::PollMode::Default;
-    Joybus::RumbleMode rumble_mode = Joybus::RumbleMode::Off;
+    joybus::PollMode poll_mode = joybus::PollMode::Default;
+    joybus::RumbleMode rumble_mode = joybus::RumbleMode::Off;
     uint16_t reset_count = 0;
 };
 
@@ -21,12 +21,12 @@ class SharedConsole {
         }
 
         bool updated = false;
-        Joybus::Command command = static_cast<Joybus::Command>(rx[0]);
+        joybus::Command command = static_cast<joybus::Command>(rx[0]);
         switch (command) {
-        case Joybus::Command::Status:
+        case joybus::Command::Status:
             if (rx.size() >= 3) {
-                const auto poll = Joybus::sanitize_poll_mode(rx[1]);
-                const auto rumble = Joybus::sanitize_rumble_mode(rx[2]);
+                const auto poll = joybus::sanitize_poll_mode(rx[1]);
+                const auto rumble = joybus::sanitize_rumble_mode(rx[2]);
                 if (poll != shadow_.poll_mode || rumble != shadow_.rumble_mode) {
                     shadow_.poll_mode = poll;
                     shadow_.rumble_mode = rumble;
@@ -34,13 +34,13 @@ class SharedConsole {
                 }
             }
             break;
-        case Joybus::Command::Reset:
+        case joybus::Command::Reset:
             shadow_.reset_count++;
             updated = true;
             break;
-        case Joybus::Command::Id:
-        case Joybus::Command::Origin:
-        case Joybus::Command::Recalibrate:
+        case joybus::Command::Id:
+        case joybus::Command::Origin:
+        case joybus::Command::Recalibrate:
         default:
             break;
         }

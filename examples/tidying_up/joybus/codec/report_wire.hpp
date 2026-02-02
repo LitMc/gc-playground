@@ -6,7 +6,7 @@
 #include <span>
 
 // プロジェクト固有の実行時レポートをJoybus形式に変換、復元するための処理群
-namespace ConvertGcInput::Joybus::report {
+namespace ConvertGcInput::joybus::report {
 
 // JoybusのStatus wordにおけるレポートフラグのビット定義
 enum class StatusWordBits : uint16_t {
@@ -52,4 +52,4 @@ inline constexpr void update_report_from_id_byte3(domain::PadReport &report, uin
     report.error_latched = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::ErrorLatched)) != 0;
     report.error_last = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::ErrorLast)) != 0;
 }
-} // namespace ConvertGcInput::Joybus::report
+} // namespace ConvertGcInput::joybus::report
