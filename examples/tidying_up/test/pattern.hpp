@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/state.hpp"
+#include "domain/state.hpp"
 #include <concepts>
 #include <cstdint>
 

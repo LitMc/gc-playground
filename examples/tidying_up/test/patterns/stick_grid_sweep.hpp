@@ -1,5 +1,5 @@
 #pragma once
-#include "core/state.hpp"
+#include "domain/state.hpp"
 #include <cstdint>
 
 namespace ConvertGcInput::test {

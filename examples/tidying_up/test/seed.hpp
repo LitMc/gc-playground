@@ -26,8 +26,8 @@ inline domain::PadState make_neutral_pad_state() {
 
 inline domain::PadIdentity make_default_pad_identity_from_console(const ConsoleState &console) {
     domain::PadIdentity id{};
-    id.runtime.poll_mode = Joybus::common::to_core_poll_mode(console.poll_mode);
-    id.runtime.rumble_mode = Joybus::common::to_core_rumble_mode(console.rumble_mode);
+    id.runtime.poll_mode = Joybus::common::to_domain_poll_mode(console.poll_mode);
+    id.runtime.rumble_mode = Joybus::common::to_domain_rumble_mode(console.rumble_mode);
     return id;
 }
 

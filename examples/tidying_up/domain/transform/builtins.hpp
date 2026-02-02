@@ -1,5 +1,5 @@
 #pragma once
-#include "core/state.hpp"
+#include "domain/state.hpp"
 
 namespace ConvertGcInput::domain::transform::builtins {
 // アナログ入力をすべて正確なニュートラルポジションに固定

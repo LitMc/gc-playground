@@ -1,5 +1,5 @@
 #pragma once
-#include "core/state.hpp"
+#include "domain/state.hpp"
 #include <array>
 #include <atomic>
 #include <cstddef>

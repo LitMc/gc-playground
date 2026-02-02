@@ -1,5 +1,5 @@
 #pragma once
-#include "core/report.hpp"
+#include "domain/report.hpp"
 #include <cstdint>
 #include <type_traits>
 

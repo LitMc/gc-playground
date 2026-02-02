@@ -3,9 +3,9 @@
 #include "codec/joybus/report.hpp"
 #include "codec/joybus/state.hpp"
 #include "config.hpp"
-#include "core/identity.hpp"
-#include "core/report.hpp"
-#include "core/state.hpp"
+#include "domain/identity.hpp"
+#include "domain/report.hpp"
+#include "domain/state.hpp"
 #include "double_buffer.hpp"
 #include "joybus_protocol.hpp"
 #include <algorithm>
