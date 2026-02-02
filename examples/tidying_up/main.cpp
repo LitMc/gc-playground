@@ -7,8 +7,8 @@
 #include "joybus_console.pio.h"
 #include "joybus_pad.pio.h"
 #include "joybus_pio_sm.hpp"
+#include "measure/pad_injector.hpp"
 #include "measure/patterns/stick_grid_sweep.hpp"
-#include "measure/test_pad_client.hpp"
 #include "pad_client.hpp"
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
@@ -116,7 +116,7 @@ int main() {
         .target = ConvertGcInput::measure::StickGridSweep::Target::Joystick,
     }};
 
-    ConvertGcInput::measure::TestPadClient test_pad_client(client_link, schedule, pattern);
+    ConvertGcInput::measure::PadInjector test_pad_client(client_link, schedule, pattern);
 
     ConvertGcInput::ConsoleClient console_client(device_to_console_config, client_link);
 
@@ -152,7 +152,7 @@ int main() {
 
         if (client_link.consume_test_epoch(last_test_epoch)) {
             last_tx_publish_count = client_link.active_pad_hub().load_last_tx().publish_count;
-            printf("TestPadClient: measure mode %s.\n",
+            printf("PadInjector: measure mode %s.\n",
                    client_link.is_test_enabled() ? "enabled" : "disabled");
         }
 

@@ -8,9 +8,9 @@
 
 namespace ConvertGcInput::measure {
 
-template <TestPattern P> class TestPadClient {
+template <TestPattern P> class PadInjector {
   public:
-    TestPadClient(PadConsoleLink &link, Schedule schedule, P pattern)
+    PadInjector(PadConsoleLink &link, Schedule schedule, P pattern)
         : link_{link}, schedule_{schedule}, pattern_{pattern} {
         last_test_epoch_ = link_.load_test_epoch();
     }
