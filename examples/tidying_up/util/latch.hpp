@@ -3,7 +3,8 @@
 #include <atomic>
 
 namespace ConvertGcInput {
-template <class T> class DoubleBuffer {
+// 単一ライタ、複数リーダー向けの汎用コンテナ
+template <class T> class Latch {
   public:
     void publish(const T &v) {
         const uint8_t current = index_.load(std::memory_order_relaxed);

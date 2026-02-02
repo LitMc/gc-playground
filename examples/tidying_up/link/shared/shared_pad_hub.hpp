@@ -1,7 +1,7 @@
 #pragma once
-#include "double_buffer.hpp"
 #include "joybus/protocol/reply.hpp"
 #include "link/shared/shared_pad.hpp"
+#include "util/latch.hpp"
 
 namespace ConvertGcInput {
 struct TxPair {
@@ -48,7 +48,7 @@ class SharedPadHub {
 
   private:
     SharedPad rx_;
-    DoubleBuffer<TxPair> tx_;
+    Latch<TxPair> tx_;
     uint32_t tx_publish_count_{0};
 };
 } // namespace ConvertGcInput

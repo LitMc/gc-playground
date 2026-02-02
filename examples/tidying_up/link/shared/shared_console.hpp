@@ -1,6 +1,6 @@
 #pragma once
-#include "double_buffer.hpp"
 #include "joybus/protocol/protocol.hpp"
+#include "util/latch.hpp"
 #include <span>
 
 namespace ConvertGcInput {
@@ -52,7 +52,7 @@ class SharedConsole {
 
   private:
     ConsoleState shadow_{};
-    DoubleBuffer<ConsoleState> db_{};
+    Latch<ConsoleState> db_{};
 };
 
 } // namespace ConvertGcInput

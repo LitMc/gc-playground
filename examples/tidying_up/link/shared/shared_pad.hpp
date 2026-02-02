@@ -3,11 +3,11 @@
 #include "domain/identity.hpp"
 #include "domain/report.hpp"
 #include "domain/state.hpp"
-#include "double_buffer.hpp"
 #include "joybus/codec/identity_wire.hpp"
 #include "joybus/codec/report_wire.hpp"
 #include "joybus/codec/state_wire.hpp"
 #include "joybus/protocol/protocol.hpp"
+#include "util/latch.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -80,8 +80,8 @@ class SharedPad {
     }
 
   private:
-    PadSnapshot shadow_{};           // IRQでの書き込み専用
-    DoubleBuffer<PadSnapshot> db_{}; // 外部から読み取る用
+    PadSnapshot shadow_{};    // IRQでの書き込み専用
+    Latch<PadSnapshot> db_{}; // 外部から読み取る用
 };
 
 } // namespace ConvertGcInput
