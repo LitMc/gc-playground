@@ -104,19 +104,19 @@ int main() {
     ConvertGcInput::PadClient pad_client(host_to_pad_config, client_link);
 
     // テストパターン送信の準備
-    ConvertGcInput::test::Schedule schedule{ConvertGcInput::test::ScheduleConfig{
+    ConvertGcInput::measure::Schedule schedule{ConvertGcInput::measure::ScheduleConfig{
         .interval_us = 5'000'000,
         .catch_up = false,
     }};
 
-    ConvertGcInput::test::StickGridSweep pattern{ConvertGcInput::test::StickGridSweep::Config{
+    ConvertGcInput::measure::StickGridSweep pattern{ConvertGcInput::measure::StickGridSweep::Config{
         .x = {.begin = 0, .end = 240, .step = 16},
         .y = {.begin = 0, .end = 240, .step = 16},
         .loop = true,
-        .target = ConvertGcInput::test::StickGridSweep::Target::Joystick,
+        .target = ConvertGcInput::measure::StickGridSweep::Target::Joystick,
     }};
 
-    ConvertGcInput::test::TestPadClient test_pad_client(client_link, schedule, pattern);
+    ConvertGcInput::measure::TestPadClient test_pad_client(client_link, schedule, pattern);
 
     ConvertGcInput::ConsoleClient console_client(device_to_console_config, client_link);
 
@@ -152,7 +152,7 @@ int main() {
 
         if (client_link.consume_test_epoch(last_test_epoch)) {
             last_tx_publish_count = client_link.active_pad_hub().load_last_tx().publish_count;
-            printf("TestPadClient: test mode %s.\n",
+            printf("TestPadClient: measure mode %s.\n",
                    client_link.is_test_enabled() ? "enabled" : "disabled");
         }
 

@@ -5,7 +5,7 @@
 #include "pad_console_link.hpp"
 
 // テスト用に初期応答を流し込む
-namespace ConvertGcInput::test {
+namespace ConvertGcInput::measure {
 
 struct SeedOptions {
     bool status{true};
@@ -76,4 +76,4 @@ inline void seed_test_initial_responses(PadConsoleLink &link, const ConsoleState
     }
 }
 
-} // namespace ConvertGcInput::test
+} // namespace ConvertGcInput::measure

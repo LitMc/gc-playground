@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace ConvertGcInput::test {
+namespace ConvertGcInput::measure {
 struct ScheduleConfig {
     uint32_t interval_us{16'667}; // デフォルト60Hz
     bool catch_up{false};         // 遅延してでもテストパターンは捨てない
@@ -58,4 +58,4 @@ class Schedule {
     bool armed_{false};
     uint32_t next_due_us_{0};
 };
-} // namespace ConvertGcInput::test
+} // namespace ConvertGcInput::measure

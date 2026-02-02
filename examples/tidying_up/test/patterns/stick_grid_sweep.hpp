@@ -2,7 +2,7 @@
 #include "domain/state.hpp"
 #include <cstdint>
 
-namespace ConvertGcInput::test {
+namespace ConvertGcInput::measure {
 struct Uint8bitRange {
     uint8_t begin{0};
     uint8_t end{255};
@@ -118,4 +118,4 @@ class StickGridSweep {
     // 次の出力点のインデックス
     uint32_t index_{0};
 };
-} // namespace ConvertGcInput::test
+} // namespace ConvertGcInput::measure

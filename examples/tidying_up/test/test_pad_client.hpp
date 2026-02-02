@@ -6,7 +6,7 @@
 #include "test/scheduler.hpp"
 #include "test/seed.hpp"
 
-namespace ConvertGcInput::test {
+namespace ConvertGcInput::measure {
 
 template <TestPattern P> class TestPadClient {
   public:
@@ -64,4 +64,4 @@ template <TestPattern P> class TestPadClient {
     // 最後に実行したテストのエポック（テスト開始検知用）
     uint32_t last_test_epoch_{0};
 };
-} // namespace ConvertGcInput::test
+} // namespace ConvertGcInput::measure
