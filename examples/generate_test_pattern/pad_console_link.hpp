@@ -67,29 +67,31 @@ class PadConsoleLink {
 
     // テスト用
   public:
-    SharedPadHub &test_pad_hub() { return test_pad_hub_; }
-    const SharedPadHub &test_pad_hub() const { return test_pad_hub_; }
-    SharedPadHub &active_pad_hub() { return is_test_enabled() ? test_pad_hub_ : real_pad_hub_; }
+    SharedPadHub &test_pad_hub() { return measure_pad_hub; }
+    const SharedPadHub &test_pad_hub() const { return measure_pad_hub; }
+    SharedPadHub &active_pad_hub() {
+        return is_measure_enabled() ? measure_pad_hub : real_pad_hub_;
+    }
     const SharedPadHub &active_pad_hub() const {
-        return is_test_enabled() ? test_pad_hub_ : real_pad_hub_;
+        return is_measure_enabled() ? measure_pad_hub : real_pad_hub_;
     }
 
-    void enable_test_from_main() {
+    void enable_measure_from_main() {
         test_enabled_.store(1, std::memory_order_release);
         test_epoch_.fetch_add(1, std::memory_order_relaxed);
     }
 
-    void disable_test_from_main() {
+    void disable_measure_from_main() {
         test_enabled_.store(0, std::memory_order_release);
         test_epoch_.fetch_add(1, std::memory_order_relaxed);
     }
 
-    bool is_test_enabled() const { return test_enabled_.load(std::memory_order_acquire) != 0; }
+    bool is_measure_enabled() const { return test_enabled_.load(std::memory_order_acquire) != 0; }
 
-    uint32_t load_test_epoch() const { return test_epoch_.load(std::memory_order_relaxed); }
+    uint32_t load_measure_epoch() const { return test_epoch_.load(std::memory_order_relaxed); }
 
-    [[nodiscard]] bool consume_test_epoch(uint32_t &last) const {
-        const uint32_t cur = load_test_epoch();
+    [[nodiscard]] bool consume_measure_epoch(uint32_t &last) const {
+        const uint32_t cur = load_measure_epoch();
         if (cur == last) {
             return false;
         }
@@ -98,7 +100,7 @@ class PadConsoleLink {
     }
 
   private:
-    SharedPadHub test_pad_hub_{};
+    SharedPadHub measure_pad_hub{};
     std::atomic<uint8_t> test_enabled_{0};
     std::atomic<uint32_t> test_epoch_{0};
 };

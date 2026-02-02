@@ -32,7 +32,7 @@ inline domain::PadIdentity make_default_pad_identity_from_console(const ConsoleS
 }
 
 // テスト用PadHubにコントローラ応答を流す
-inline void feed_reply_to_test_hub(SharedPadHub &hub, const JoybusReply &reply) {
+inline void feed_reply_to_hub(SharedPadHub &hub, const JoybusReply &reply) {
     if (reply.command() == Joybus::Command::Invalid) {
         return;
     }
@@ -45,33 +45,33 @@ inline void feed_reply_to_test_hub(SharedPadHub &hub, const JoybusReply &reply) 
 }
 
 // テスト開始直後のOriginで困らないよう初期応答をセットする
-inline void seed_test_initial_responses(PadConsoleLink &link, const ConsoleState &console,
-                                        SeedOptions options = {}) {
-    auto &hub = link.test_pad_hub();
+inline void seed_initial_responses(PadConsoleLink &link, const ConsoleState &console,
+                                   SeedOptions options = {}) {
+    auto &hub = link.measure_pad_hub();
 
     const domain::PadState neutral = make_neutral_pad_state();
 
     if (options.status) {
         const auto reply = Joybus::state::encode_status(neutral, console.poll_mode);
-        feed_reply_to_test_hub(hub, reply);
+        feed_reply_to_hub(hub, reply);
     }
     if (options.origin) {
         const auto reply = Joybus::state::encode_origin(neutral);
-        feed_reply_to_test_hub(hub, reply);
+        feed_reply_to_hub(hub, reply);
     }
     if (options.recalibrate) {
         const auto reply = Joybus::state::encode_recalibrate(neutral);
-        feed_reply_to_test_hub(hub, reply);
+        feed_reply_to_hub(hub, reply);
     }
     if (options.id || options.reset) {
         const auto id = make_default_pad_identity_from_console(console);
         if (options.id) {
             const auto reply = Joybus::identity::encode_identity(id);
-            feed_reply_to_test_hub(hub, reply);
+            feed_reply_to_hub(hub, reply);
         }
         if (options.reset) {
             const auto reply = Joybus::identity::encode_reset_as_id(id);
-            feed_reply_to_test_hub(hub, reply);
+            feed_reply_to_hub(hub, reply);
         }
     }
 }

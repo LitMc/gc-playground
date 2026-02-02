@@ -12,24 +12,24 @@ template <TestPattern P> class PadInjector {
   public:
     PadInjector(PadConsoleLink &link, Schedule schedule, P pattern)
         : link_{link}, schedule_{schedule}, pattern_{pattern} {
-        last_test_epoch_ = link_.load_test_epoch();
+        last_measure_epoch_ = link_.load_measure_epoch();
     }
 
     // mainループから呼ぶ（非ブロッキング）
     void tick(uint32_t now_us) {
-        if (link_.consume_test_epoch(last_test_epoch_)) {
+        if (link_.consume_measure_epoch(last_measure_epoch_)) {
             // テストモードの切り替えを検知したらリセット
             reset_();
             // テスト開始前に初期応答をセット
-            if (link_.is_test_enabled()) {
+            if (link_.is_measure_enabled()) {
                 const auto console = link_.shared_console().load();
-                seed_test_initial_responses(link_, console);
+                seed_initial_responses(link_, console);
             }
             // 切り替え直後は送らず次のtickにまかせる
             return;
         }
 
-        if (!link_.is_test_enabled()) {
+        if (!link_.is_measure_enabled()) {
             return;
         }
 
@@ -43,7 +43,7 @@ template <TestPattern P> class PadInjector {
             return;
         }
 
-        auto &hub = link_.test_pad_hub();
+        auto &hub = link_.measure_pad_hub();
         const auto console = link_.shared_console().load();
         // 対PadのポーリングなのでMode3で問い合わせたことにしておく
         const auto reply = Joybus::state::encode_status(state, Joybus::PollMode::Mode3);
@@ -62,6 +62,6 @@ template <TestPattern P> class PadInjector {
     P pattern_;
 
     // 最後に実行したテストのエポック（テスト開始検知用）
-    uint32_t last_test_epoch_{0};
+    uint32_t last_measure_epoch_{0};
 };
 } // namespace ConvertGcInput::measure

@@ -128,7 +128,7 @@ int main() {
 
     uint32_t last_tx_publish_count = client_link.active_pad_hub().load_last_tx().publish_count;
 
-    uint32_t last_test_epoch = client_link.load_test_epoch();
+    uint32_t last_test_epoch = client_link.load_measure_epoch();
 
     while (true) {
         pad_client.tick(time_us_32(), client_link.shared_console().load());
@@ -141,17 +141,17 @@ int main() {
             const bool test_disable =
                 real_pad_snapshot.status.input.pressed(ConvertGcInput::core::PadButton::DpadUp);
 
-            if (test_enable && !client_link.is_test_enabled()) {
-                client_link.enable_test_from_main();
-            } else if (test_disable && client_link.is_test_enabled()) {
-                client_link.disable_test_from_main();
+            if (test_enable && !client_link.is_measure_enabled()) {
+                client_link.enable_measure_from_main();
+            } else if (test_disable && client_link.is_measure_enabled()) {
+                client_link.disable_measure_from_main();
             }
         }
 
-        if (client_link.consume_test_epoch(last_test_epoch)) {
+        if (client_link.consume_measure_epoch(last_test_epoch)) {
             last_tx_publish_count = client_link.active_pad_hub().load_last_tx().publish_count;
             printf("TestPadClient: test mode %s.\n",
-                   client_link.is_test_enabled() ? "enabled" : "disabled");
+                   client_link.is_measure_enabled() ? "enabled" : "disabled");
         }
 
         ConvertGcInput::TxPair last_tx = client_link.active_pad_hub().load_last_tx();
@@ -173,13 +173,13 @@ int main() {
                 command == ConvertGcInput::Joybus::Command::Recalibrate) {
                 const auto raw_input = raw.view();
                 const auto modified_input = modified.view();
-                printf("%s %s [0x%02X]: ", client_link.is_test_enabled() ? "[TEST]" : "[REAL]",
+                printf("%s %s [0x%02X]: ", client_link.is_measure_enabled() ? "[TEST]" : "[REAL]",
                        "raw", static_cast<uint8_t>(command));
                 for (size_t i = 0; i < raw_input.size(); ++i) {
                     printf("%02X ", raw_input[i]);
                 }
                 printf("\n");
-                printf("%s %s [0x%02X]: ", client_link.is_test_enabled() ? "[TEST]" : "[REAL]",
+                printf("%s %s [0x%02X]: ", client_link.is_measure_enabled() ? "[TEST]" : "[REAL]",
                        "mod", static_cast<uint8_t>(command));
                 for (size_t i = 0; i < modified_input.size(); ++i) {
                     printf("%02X ", modified_input[i]);
@@ -188,7 +188,7 @@ int main() {
             }
 
             if (command == ConvertGcInput::Joybus::Command::Status &&
-                client_link.is_test_enabled()) {
+                client_link.is_measure_enabled()) {
                 const auto status = modified.view();
                 printf("(X, Y): (%3d, %3d)\n", (int)status[2], (int)status[3]);
             }
