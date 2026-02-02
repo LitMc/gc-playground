@@ -5,14 +5,14 @@ void TestPadClient::tick(uint32_t now_us, const ConsoleState &console) {
     auto &hub = link_.test_pad_hub();
 
     const uint32_t served = hub.load_last_tx().publish_count;
-    if (link_.consume_test_epoch(last_test_epoch_)) {
+    if (link_.consume_measure_epoch(last_test_epoch_)) {
         // テストの有効/無効が切り替わった
         reset_test_state_();
         return;
     }
 
     // テスト中でなければ送らない
-    if (!link_.is_test_enabled()) {
+    if (!link_.is_measure_enabled()) {
         return;
     }
 

@@ -1,11 +1,11 @@
 #pragma once
-#include "core/transform/pipeline.hpp"
+#include "domain/transform/pipeline.hpp"
 #include "hardware/sync.h"
-#include "shared_console.hpp"
-#include "shared_pad_hub.hpp"
+#include "link/shared/shared_console.hpp"
+#include "link/shared/shared_pad_hub.hpp"
 #include <atomic>
 
-namespace ConvertGcInput {
+namespace gcinput {
 
 // パッド向けクライアントとコンソール向けクライアントで共有する情報
 class PadConsoleLink {
@@ -54,41 +54,43 @@ class PadConsoleLink {
     }
 
     // コマンド応答の変換パイプライン
-    core::transform::PipelineSet &transform_pipelines() { return pipelines_; }
+    domain::transform::PipelineSet &transform_pipelines() { return pipelines_; }
     // コマンド応答の変換パイプライン
-    const core::transform::PipelineSet &transform_pipelines() const { return pipelines_; }
+    const domain::transform::PipelineSet &transform_pipelines() const { return pipelines_; }
 
   private:
     std::atomic<uint8_t> pad_state_{static_cast<uint8_t>(PadConnectionState::Disconnected)};
     std::atomic<uint32_t> reset_epoch_{0};
     SharedPadHub real_pad_hub_{};
     SharedConsole shared_console_{};
-    core::transform::PipelineSet pipelines_{};
+    domain::transform::PipelineSet pipelines_{};
 
     // テスト用
   public:
-    SharedPadHub &test_pad_hub() { return measure_pad_hub; }
-    const SharedPadHub &test_pad_hub() const { return measure_pad_hub; }
+    SharedPadHub &measure_pad_hub() { return measure_pad_hub_; }
+    const SharedPadHub &measure_pad_hub() const { return measure_pad_hub_; }
     SharedPadHub &active_pad_hub() {
-        return is_measure_enabled() ? measure_pad_hub : real_pad_hub_;
+        return is_measure_enabled() ? measure_pad_hub_ : real_pad_hub_;
     }
     const SharedPadHub &active_pad_hub() const {
-        return is_measure_enabled() ? measure_pad_hub : real_pad_hub_;
+        return is_measure_enabled() ? measure_pad_hub_ : real_pad_hub_;
     }
 
     void enable_measure_from_main() {
-        test_enabled_.store(1, std::memory_order_release);
-        test_epoch_.fetch_add(1, std::memory_order_relaxed);
+        measure_enabled_.store(1, std::memory_order_release);
+        measure_epoch_.fetch_add(1, std::memory_order_relaxed);
     }
 
     void disable_measure_from_main() {
-        test_enabled_.store(0, std::memory_order_release);
-        test_epoch_.fetch_add(1, std::memory_order_relaxed);
+        measure_enabled_.store(0, std::memory_order_release);
+        measure_epoch_.fetch_add(1, std::memory_order_relaxed);
     }
 
-    bool is_measure_enabled() const { return test_enabled_.load(std::memory_order_acquire) != 0; }
+    bool is_measure_enabled() const {
+        return measure_enabled_.load(std::memory_order_acquire) != 0;
+    }
 
-    uint32_t load_measure_epoch() const { return test_epoch_.load(std::memory_order_relaxed); }
+    uint32_t load_measure_epoch() const { return measure_epoch_.load(std::memory_order_relaxed); }
 
     [[nodiscard]] bool consume_measure_epoch(uint32_t &last) const {
         const uint32_t cur = load_measure_epoch();
@@ -100,8 +102,8 @@ class PadConsoleLink {
     }
 
   private:
-    SharedPadHub measure_pad_hub{};
-    std::atomic<uint8_t> test_enabled_{0};
-    std::atomic<uint32_t> test_epoch_{0};
+    SharedPadHub measure_pad_hub_{};
+    std::atomic<uint8_t> measure_enabled_{0};
+    std::atomic<uint32_t> measure_epoch_{0};
 };
-} // namespace ConvertGcInput
+} // namespace gcinput

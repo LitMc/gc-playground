@@ -1,29 +1,30 @@
 #pragma once
-#include "codec/joybus/state.hpp"
-#include "pad_console_link.hpp"
-#include "shared_console.hpp"
-#include "test/pattern.hpp"
-#include "test/scheduler.hpp"
-#include "test/seed.hpp"
+#include "joybus/codec/state_wire.hpp"
+#include "link/pad_console_link.hpp"
+#include "link/policy.hpp"
+#include "link/shared/shared_console.hpp"
+#include "measure/pattern.hpp"
+#include "measure/scheduler.hpp"
+#include "measure/seed.hpp"
 
-namespace ConvertGcInput::test {
+namespace gcinput::measure {
 
-template <TestPattern P> class TestPadClient {
+template <TestPattern P> class PadInjector {
   public:
-    TestPadClient(PadConsoleLink &link, Schedule schedule, P pattern)
+    PadInjector(PadConsoleLink &link, Schedule schedule, P pattern)
         : link_{link}, schedule_{schedule}, pattern_{pattern} {
-        last_test_epoch_ = link_.load_measure_epoch();
+        last_measure_epoch_ = link_.load_measure_epoch();
     }
 
     // mainループから呼ぶ（非ブロッキング）
     void tick(uint32_t now_us) {
-        if (link_.consume_measure_epoch(last_test_epoch_)) {
+        if (link_.consume_measure_epoch(last_measure_epoch_)) {
             // テストモードの切り替えを検知したらリセット
             reset_();
             // テスト開始前に初期応答をセット
             if (link_.is_measure_enabled()) {
                 const auto console = link_.shared_console().load();
-                seed_test_initial_responses(link_, console);
+                seed_initial_responses(link_, console);
             }
             // 切り替え直後は送らず次のtickにまかせる
             return;
@@ -38,15 +39,15 @@ template <TestPattern P> class TestPadClient {
             return;
         }
 
-        core::PadState state{};
+        domain::PadState state{};
         if (!pattern_.sample_and_advance(state, steps)) {
             return;
         }
 
-        auto &hub = link_.test_pad_hub();
+        auto &hub = link_.measure_pad_hub();
         const auto console = link_.shared_console().load();
-        // 対PadのポーリングなのでMode3で問い合わせたことにしておく
-        const auto reply = Joybus::state::encode_status(state, Joybus::PollMode::Mode3);
+        // （存在しない）パッドへも固定のPollModeでポーリングしたということにする
+        const auto reply = joybus::state::encode_status(state, policy::kPadPollModeForQuery);
         hub.on_pad_response_isr(reply.command(), reply.view());
     }
 
@@ -62,6 +63,6 @@ template <TestPattern P> class TestPadClient {
     P pattern_;
 
     // 最後に実行したテストのエポック（テスト開始検知用）
-    uint32_t last_test_epoch_{0};
+    uint32_t last_measure_epoch_{0};
 };
-} // namespace ConvertGcInput::test
+} // namespace gcinput::measure
