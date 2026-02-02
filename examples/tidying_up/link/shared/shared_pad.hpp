@@ -1,5 +1,4 @@
 #pragma once
-#include "config.hpp"
 #include "domain/identity.hpp"
 #include "domain/report.hpp"
 #include "domain/state.hpp"
@@ -7,6 +6,7 @@
 #include "joybus/codec/report_wire.hpp"
 #include "joybus/codec/state_wire.hpp"
 #include "joybus/protocol/protocol.hpp"
+#include "link/policy.hpp"
 #include "util/latch.hpp"
 #include <algorithm>
 #include <array>
@@ -39,7 +39,7 @@ class SharedPad {
             auto view = std::span<const uint8_t, Joybus::kStatusResponseSize>(rx);
 
             auto decoded =
-                ConvertGcInput::Joybus::state::decode_status(view, config::kPadQueryPollMode);
+                ConvertGcInput::Joybus::state::decode_status(view, policy::kPadPollModeForQuery);
             shadow_.status.report = decoded.report;
             shadow_.status.input = decoded.input;
             got_valid_frame = true;
