@@ -1,4 +1,4 @@
-#include "console_client.hpp"
+#include "link/console_client.hpp"
 #include "domain/transform/pipeline.hpp"
 #include "joybus/codec/identity_wire.hpp"
 #include "joybus/codec/state_wire.hpp"

@@ -1,8 +1,8 @@
 #pragma once
 #include "joybus/driver/joybus_pio_port.hpp"
-#include "pad_console_link.hpp"
-#include "shared_console.hpp"
-#include "shared_pad_hub.hpp"
+#include "link/pad_console_link.hpp"
+#include "link/shared/shared_console.hpp"
+#include "link/shared/shared_pad_hub.hpp"
 
 namespace ConvertGcInput {
 class ConsoleClient {

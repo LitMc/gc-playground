@@ -1,8 +1,8 @@
 #pragma once
 #include "domain/transform/pipeline.hpp"
 #include "hardware/sync.h"
-#include "shared_console.hpp"
-#include "shared_pad_hub.hpp"
+#include "link/shared/shared_console.hpp"
+#include "link/shared/shared_pad_hub.hpp"
 #include <atomic>
 
 namespace ConvertGcInput {

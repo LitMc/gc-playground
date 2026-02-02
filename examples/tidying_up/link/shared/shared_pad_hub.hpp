@@ -1,7 +1,7 @@
 #pragma once
 #include "double_buffer.hpp"
 #include "joybus/protocol/reply.hpp"
-#include "shared_pad.hpp"
+#include "link/shared/shared_pad.hpp"
 
 namespace ConvertGcInput {
 struct TxPair {

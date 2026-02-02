@@ -1,4 +1,3 @@
-#include "console_client.hpp"
 #include "domain/state.hpp"
 #include "domain/transform/builtins.hpp"
 #include "domain/transform/pipeline.hpp"
@@ -7,12 +6,13 @@
 #include "joybus/driver/joybus_pio_port.hpp"
 #include "joybus_console.pio.h"
 #include "joybus_pad.pio.h"
+#include "link/console_client.hpp"
+#include "link/pad_client.hpp"
+#include "link/shared/shared_pad_hub.hpp"
 #include "measure/pad_injector.hpp"
 #include "measure/patterns/stick_grid_sweep.hpp"
-#include "pad_client.hpp"
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
-#include "shared_pad_hub.hpp"
 #include <array>
 #include <span>
 #include <stdio.h>
