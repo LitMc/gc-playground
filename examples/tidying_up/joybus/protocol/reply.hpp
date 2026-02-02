@@ -4,7 +4,7 @@
 #include <array>
 #include <span>
 
-namespace ConvertGcInput {
+namespace gcinput {
 
 class JoybusReply {
   public:
@@ -37,4 +37,4 @@ class JoybusReply {
     std::array<uint8_t, joybus::kMaxResponseSize> bytes_{};
 };
 
-} // namespace ConvertGcInput
+} // namespace gcinput

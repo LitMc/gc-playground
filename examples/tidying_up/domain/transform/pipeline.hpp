@@ -6,7 +6,7 @@
 #include <cstdint>
 
 // コントローラ応答の変換処理
-namespace ConvertGcInput::domain::transform {
+namespace gcinput::domain::transform {
 
 // コントローラ応答変換関数の型定義。ISRから呼ぶ想定
 using TransformFunction = void (*)(void *user, domain::PadState &state);
@@ -117,4 +117,4 @@ struct PipelineSet {
     Pipeline id{};
     Pipeline reset{};
 };
-} // namespace ConvertGcInput::domain::transform
+} // namespace gcinput::domain::transform

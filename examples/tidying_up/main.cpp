@@ -64,7 +64,7 @@ int main() {
     const uint sm_host_to_pad = pio_claim_unused_sm(host_to_pad_pio, true);
     const uint sm_device_to_host = pio_claim_unused_sm(device_to_console_pio, true);
 
-    ConvertGcInput::JoybusPioPort::Config host_to_pad_config{
+    gcinput::JoybusPioPort::Config host_to_pad_config{
         .pio = host_to_pad_pio,
         .state_machine = sm_host_to_pad,
         .pin = PIN_TO_REAL_PAD,
@@ -76,7 +76,7 @@ int main() {
         .irq_base = 0,
     };
 
-    ConvertGcInput::JoybusPioPort::Config device_to_console_config{
+    gcinput::JoybusPioPort::Config device_to_console_config{
         .pio = device_to_console_pio,
         .state_machine = sm_device_to_host,
         .pin = PIN_TO_REAL_CONSOLE,
@@ -88,37 +88,33 @@ int main() {
         .irq_base = 0,
     };
 
-    ConvertGcInput::PadConsoleLink client_link{};
+    gcinput::PadConsoleLink client_link{};
 
     // 入力変換処理を差し込む
     auto &pipelines = client_link.transform_pipelines();
-    const auto &fix_origin_to_neutral =
-        ConvertGcInput::domain::transform::builtins::fix_origin_to_neutral;
-    pipelines.origin.add_stage(
-        ConvertGcInput::domain::transform::make_stage(&fix_origin_to_neutral));
-    pipelines.recalibrate.add_stage(
-        ConvertGcInput::domain::transform::make_stage(&fix_origin_to_neutral));
-    pipelines.status.add_stage(
-        ConvertGcInput::domain::transform::make_stage(&fix_origin_to_neutral));
+    const auto &fix_origin_to_neutral = gcinput::domain::transform::builtins::fix_origin_to_neutral;
+    pipelines.origin.add_stage(gcinput::domain::transform::make_stage(&fix_origin_to_neutral));
+    pipelines.recalibrate.add_stage(gcinput::domain::transform::make_stage(&fix_origin_to_neutral));
+    pipelines.status.add_stage(gcinput::domain::transform::make_stage(&fix_origin_to_neutral));
 
-    ConvertGcInput::PadClient pad_client(host_to_pad_config, client_link);
+    gcinput::PadClient pad_client(host_to_pad_config, client_link);
 
     // テストパターン送信の準備
-    ConvertGcInput::measure::Schedule schedule{ConvertGcInput::measure::ScheduleConfig{
+    gcinput::measure::Schedule schedule{gcinput::measure::ScheduleConfig{
         .interval_us = 5'000'000,
         .catch_up = false,
     }};
 
-    ConvertGcInput::measure::StickGridSweep pattern{ConvertGcInput::measure::StickGridSweep::Config{
+    gcinput::measure::StickGridSweep pattern{gcinput::measure::StickGridSweep::Config{
         .x = {.begin = 0, .end = 240, .step = 16},
         .y = {.begin = 0, .end = 240, .step = 16},
         .loop = true,
-        .target = ConvertGcInput::measure::StickGridSweep::Target::Joystick,
+        .target = gcinput::measure::StickGridSweep::Target::Joystick,
     }};
 
-    ConvertGcInput::measure::PadInjector pad_injector(client_link, schedule, pattern);
+    gcinput::measure::PadInjector pad_injector(client_link, schedule, pattern);
 
-    ConvertGcInput::ConsoleClient console_client(device_to_console_config, client_link);
+    gcinput::ConsoleClient console_client(device_to_console_config, client_link);
 
     printf("JoybusPioPort ready.\n");
     printf("host_to_pad: PIO%d SM%u pin GP%u\n", pio_get_index(host_to_pad_config.pio),
@@ -137,11 +133,11 @@ int main() {
         pad_injector.tick(time_us_32());
 
         const auto real_pad_snapshot = client_link.real_pad_hub().load_original_snapshot();
-        if (real_pad_snapshot.last_rx_command == ConvertGcInput::joybus::Command::Status) {
+        if (real_pad_snapshot.last_rx_command == gcinput::joybus::Command::Status) {
             const bool measure_enable =
-                real_pad_snapshot.status.input.pressed(ConvertGcInput::domain::PadButton::Z);
+                real_pad_snapshot.status.input.pressed(gcinput::domain::PadButton::Z);
             const bool measure_disable =
-                real_pad_snapshot.status.input.pressed(ConvertGcInput::domain::PadButton::DpadUp);
+                real_pad_snapshot.status.input.pressed(gcinput::domain::PadButton::DpadUp);
 
             if (measure_enable && !client_link.is_measure_enabled()) {
                 client_link.enable_measure_from_main();
@@ -156,7 +152,7 @@ int main() {
                    client_link.is_measure_enabled() ? "enabled" : "disabled");
         }
 
-        ConvertGcInput::TxPair last_tx = client_link.active_pad_hub().load_last_tx();
+        gcinput::TxPair last_tx = client_link.active_pad_hub().load_last_tx();
         if (client_link.active_pad_hub().consume_tx_if_new(last_tx_publish_count, last_tx)) {
             last_tx_publish_count = last_tx.publish_count;
             const auto raw = last_tx.raw;
@@ -171,8 +167,8 @@ int main() {
 
             const auto command = raw.command();
 
-            if (command == ConvertGcInput::joybus::Command::Origin ||
-                command == ConvertGcInput::joybus::Command::Recalibrate) {
+            if (command == gcinput::joybus::Command::Origin ||
+                command == gcinput::joybus::Command::Recalibrate) {
                 const auto raw_input = raw.view();
                 const auto modified_input = modified.view();
                 printf("%s %s [0x%02X]: ", client_link.is_measure_enabled() ? "[TEST]" : "[REAL]",
@@ -189,8 +185,7 @@ int main() {
                 printf("\n");
             }
 
-            if (command == ConvertGcInput::joybus::Command::Status &&
-                client_link.is_measure_enabled()) {
+            if (command == gcinput::joybus::Command::Status && client_link.is_measure_enabled()) {
                 const auto status = modified.view();
                 printf("(X, Y): (%3d, %3d)\n", (int)status[2], (int)status[3]);
             }

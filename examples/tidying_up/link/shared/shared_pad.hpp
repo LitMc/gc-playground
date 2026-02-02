@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <span>
 
-namespace ConvertGcInput {
+namespace gcinput {
 struct PadSnapshot {
     uint32_t publish_count{0};
     joybus::Command last_rx_command{joybus::Command::Id};
@@ -39,7 +39,7 @@ class SharedPad {
             auto view = std::span<const uint8_t, joybus::kStatusResponseSize>(rx);
 
             auto decoded =
-                ConvertGcInput::joybus::state::decode_status(view, policy::kPadPollModeForQuery);
+                gcinput::joybus::state::decode_status(view, policy::kPadPollModeForQuery);
             shadow_.status.report = decoded.report;
             shadow_.status.input = decoded.input;
             got_valid_frame = true;
@@ -52,7 +52,7 @@ class SharedPad {
                 break;
             }
             auto view = std::span<const uint8_t, joybus::kOriginResponseSize>(rx);
-            auto decoded = ConvertGcInput::joybus::state::decode_origin(view);
+            auto decoded = gcinput::joybus::state::decode_origin(view);
             shadow_.origin.report = decoded.report;
             shadow_.origin.input = decoded.input;
             got_valid_frame = true;
@@ -84,4 +84,4 @@ class SharedPad {
     Latch<PadSnapshot> db_{}; // 外部から読み取る用
 };
 
-} // namespace ConvertGcInput
+} // namespace gcinput

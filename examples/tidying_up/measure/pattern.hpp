@@ -4,7 +4,7 @@
 #include <concepts>
 #include <cstdint>
 
-namespace ConvertGcInput::measure {
+namespace gcinput::measure {
 // テストパターンのコンセプト
 template <class P>
 concept TestPattern = requires(P p, domain::PadState &state, uint32_t steps) {
@@ -13,4 +13,4 @@ concept TestPattern = requires(P p, domain::PadState &state, uint32_t steps) {
     // 現在のパッド状態とステップ数から次の状態へ進められること
     { p.sample_and_advance(state, steps) } -> std::same_as<bool>;
 };
-} // namespace ConvertGcInput::measure
+} // namespace gcinput::measure

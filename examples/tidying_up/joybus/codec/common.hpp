@@ -1,7 +1,7 @@
 #pragma once
 #include "domain/identity.hpp"
 
-namespace ConvertGcInput::joybus::common {
+namespace gcinput::joybus::common {
 
 inline constexpr domain::PollMode to_domain_poll_mode(joybus::PollMode joybus_poll_mode) {
     return static_cast<domain::PollMode>(static_cast<uint8_t>(joybus_poll_mode));
@@ -33,4 +33,4 @@ inline constexpr void write_u16_le(uint16_t v, std::span<uint8_t, 2> b) {
     b[0] = static_cast<uint8_t>(v & 0xFFu);        // low byte first
     b[1] = static_cast<uint8_t>((v >> 8) & 0xFFu); // high byte second
 }
-} // namespace ConvertGcInput::joybus::common
+} // namespace gcinput::joybus::common

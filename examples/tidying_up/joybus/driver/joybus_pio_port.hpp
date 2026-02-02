@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace ConvertGcInput {
+namespace gcinput {
 
 class JoybusPioPort {
   public:
@@ -104,4 +104,4 @@ class JoybusPioPort {
     void *callback_user_ = nullptr;
 };
 
-} // namespace ConvertGcInput
+} // namespace gcinput

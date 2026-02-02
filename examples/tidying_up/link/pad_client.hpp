@@ -7,12 +7,11 @@
 #include <atomic>
 #include <span>
 
-namespace ConvertGcInput {
+namespace gcinput {
 class PadClient {
   public:
     explicit PadClient(JoybusPioPort::Config host_to_pad_config, PadConsoleLink &link)
-        : link_{link},
-          host_to_pad_(host_to_pad_config, &ConvertGcInput::PadClient::callback, this) {
+        : link_{link}, host_to_pad_(host_to_pad_config, &gcinput::PadClient::callback, this) {
         last_reset_epoch_ = link_.load_reset_epoch();
     };
 
@@ -155,4 +154,4 @@ class PadClient {
     // 送信失敗後にリトライするまでの待ち時間
     static constexpr uint32_t RETRY_DELAY_US = 0;
 };
-} // namespace ConvertGcInput
+} // namespace gcinput

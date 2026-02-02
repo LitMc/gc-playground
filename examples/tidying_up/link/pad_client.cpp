@@ -1,7 +1,7 @@
 #include "link/pad_client.hpp"
 #include "link/policy.hpp"
 
-namespace ConvertGcInput {
+namespace gcinput {
 void PadClient::load_reset_epoch_() { last_reset_epoch_ = link_.load_reset_epoch(); }
 
 void PadClient::on_pad_response_isr(joybus::Command command, std::span<const uint8_t> rx) {
@@ -187,4 +187,4 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     }
     }
 }
-} // namespace ConvertGcInput
+} // namespace gcinput

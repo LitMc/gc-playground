@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace ConvertGcInput::joybus {
+namespace gcinput::joybus {
 enum class Command : uint8_t {
     Id = 0x00,
     Status = 0x40,
@@ -87,4 +87,4 @@ inline constexpr Request<3> Recalibrate{{static_cast<uint8_t>(Command::Recalibra
 
 inline constexpr Request<1> Reset{{static_cast<uint8_t>(Command::Reset)}, kResetResponseSize};
 
-} // namespace ConvertGcInput::joybus
+} // namespace gcinput::joybus

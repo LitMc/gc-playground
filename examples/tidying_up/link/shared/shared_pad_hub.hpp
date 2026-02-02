@@ -3,7 +3,7 @@
 #include "link/shared/shared_pad.hpp"
 #include "util/latch.hpp"
 
-namespace ConvertGcInput {
+namespace gcinput {
 struct TxPair {
     uint32_t publish_count{0};
     uint32_t raw_publish_count{0};
@@ -51,4 +51,4 @@ class SharedPadHub {
     Latch<TxPair> tx_;
     uint32_t tx_publish_count_{0};
 };
-} // namespace ConvertGcInput
+} // namespace gcinput

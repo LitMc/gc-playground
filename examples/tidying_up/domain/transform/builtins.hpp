@@ -1,7 +1,7 @@
 #pragma once
 #include "domain/state.hpp"
 
-namespace ConvertGcInput::domain::transform::builtins {
+namespace gcinput::domain::transform::builtins {
 // アナログ入力をすべて正確なニュートラルポジションに固定
 inline void fix_origin_to_neutral(void *, domain::PadState &state) {
     auto &analog = state.input.analog;
@@ -13,4 +13,4 @@ inline void fix_origin_to_neutral(void *, domain::PadState &state) {
     analog.r_analog = domain::AnalogInput::kTriggerReleased;
 }
 
-} // namespace ConvertGcInput::domain::transform::builtins
+} // namespace gcinput::domain::transform::builtins

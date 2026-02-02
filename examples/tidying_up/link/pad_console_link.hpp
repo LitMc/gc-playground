@@ -5,7 +5,7 @@
 #include "link/shared/shared_pad_hub.hpp"
 #include <atomic>
 
-namespace ConvertGcInput {
+namespace gcinput {
 
 // パッド向けクライアントとコンソール向けクライアントで共有する情報
 class PadConsoleLink {
@@ -106,4 +106,4 @@ class PadConsoleLink {
     std::atomic<uint8_t> measure_enabled_{0};
     std::atomic<uint32_t> measure_epoch_{0};
 };
-} // namespace ConvertGcInput
+} // namespace gcinput

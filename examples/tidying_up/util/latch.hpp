@@ -2,7 +2,7 @@
 #include <array>
 #include <atomic>
 
-namespace ConvertGcInput {
+namespace gcinput {
 // 単一ライタ、複数リーダー向けの汎用コンテナ
 template <class T> class Latch {
   public:
@@ -22,4 +22,4 @@ template <class T> class Latch {
     std::array<T, 2> buffer_{};
     std::atomic<uint8_t> index_{0};
 };
-} // namespace ConvertGcInput
+} // namespace gcinput

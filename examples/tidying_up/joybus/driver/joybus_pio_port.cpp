@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cassert>
 
-namespace ConvertGcInput {
+namespace gcinput {
 
 // IRQラインが競合しないよう管理するマルチプレクサ
 struct JoybusPioPort::IrqMux {
@@ -271,4 +271,4 @@ bool JoybusPioPort::send_now(const uint8_t *data, std::size_t nbytes) {
     return true;
 }
 
-} // namespace ConvertGcInput
+} // namespace gcinput

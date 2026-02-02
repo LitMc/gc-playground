@@ -3,7 +3,7 @@
 #include "util/latch.hpp"
 #include <span>
 
-namespace ConvertGcInput {
+namespace gcinput {
 
 struct ConsoleState {
     joybus::PollMode poll_mode = joybus::PollMode::Default;
@@ -55,4 +55,4 @@ class SharedConsole {
     Latch<ConsoleState> db_{};
 };
 
-} // namespace ConvertGcInput
+} // namespace gcinput

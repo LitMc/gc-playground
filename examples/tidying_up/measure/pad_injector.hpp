@@ -7,7 +7,7 @@
 #include "measure/scheduler.hpp"
 #include "measure/seed.hpp"
 
-namespace ConvertGcInput::measure {
+namespace gcinput::measure {
 
 template <TestPattern P> class PadInjector {
   public:
@@ -65,4 +65,4 @@ template <TestPattern P> class PadInjector {
     // 最後に実行したテストのエポック（テスト開始検知用）
     uint32_t last_measure_epoch_{0};
 };
-} // namespace ConvertGcInput::measure
+} // namespace gcinput::measure

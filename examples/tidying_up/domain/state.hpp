@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace ConvertGcInput::domain {
+namespace gcinput::domain {
 
 // 意味上のボタン集合
 // 値はStatusレスポンス先頭2バイト（Status word）の最下位ビットから数えた位置に対応
@@ -177,4 +177,4 @@ struct PadState {
 // ISRやダブルバッファでコピーしても安全
 static_assert(std::is_trivially_copyable_v<PadInput>);
 static_assert(std::is_standard_layout_v<PadInput>);
-} // namespace ConvertGcInput::domain
+} // namespace gcinput::domain

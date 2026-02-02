@@ -3,7 +3,7 @@
 #include "joybus/codec/identity_wire.hpp"
 #include "joybus/codec/state_wire.hpp"
 
-namespace ConvertGcInput {
+namespace gcinput {
 
 std::size_t ConsoleClient::write_tx(const JoybusReply &reply, uint8_t *tx, std::size_t tx_max) {
     const auto view = reply.view();
@@ -112,4 +112,4 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
     return tx_len;
 }
 
-} // namespace ConvertGcInput
+} // namespace gcinput
