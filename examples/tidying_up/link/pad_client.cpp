@@ -1,4 +1,5 @@
 #include "link/pad_client.hpp"
+#include "link/policy.hpp"
 
 namespace ConvertGcInput {
 void PadClient::load_reset_epoch_() { last_reset_epoch_ = link_.load_reset_epoch(); }
@@ -137,8 +138,9 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     // 初回Status取得
     case State::WarmStatus: {
         if (!waiting_response_()) {
-            // TODO: ここをMode3に固定できそう
-            const auto req = Joybus::Status(console.poll_mode, console.rumble_mode);
+            // スティックとLRトリガーの分解能を重視してMode3に固定
+            // Mode3ではアナログAとBが犠牲になるが実機で使われていないので都合がいい
+            const auto req = Joybus::Status(policy::kPadPollModeForQuery, console.rumble_mode);
             send_request_(req, now_us, BOOT_TIMEOUT_US);
             break;
         }
@@ -171,7 +173,8 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
         }
 
         if (next_status_due_us_ == 0 || is_timeout_reached(now_us, next_status_due_us_)) {
-            const auto req = Joybus::Status(console.poll_mode, console.rumble_mode);
+            // Mode3固定
+            const auto req = Joybus::Status(policy::kPadPollModeForQuery, console.rumble_mode);
             if (send_request_(req, now_us, BOOT_TIMEOUT_US)) {
                 // 送信できたら次の送信予定をセット
                 next_status_due_us_ = now_us + STATUS_PERIOD_US;

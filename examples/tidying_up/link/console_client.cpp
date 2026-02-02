@@ -74,7 +74,7 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
     }
     case Joybus::Command::Id: {
         domain::PadIdentity identity = original_snapshot.identity;
-        // パッドからのID応答そのままではなく直近のコンソールから指定されたPollModeとRumbleModeを反映する
+        // 直近のコンソールから指定されたPollModeとRumbleModeを反映する
         // パッドへのポーリングはMode3固定でコンソールへの応答はコンソールからの指示に従う仕様のため
         identity.runtime.poll_mode = Joybus::common::to_domain_poll_mode(host_poll_mode);
         identity.runtime.rumble_mode = Joybus::common::to_domain_rumble_mode(host_rumble_mode);

@@ -1,6 +1,7 @@
 #pragma once
 #include "joybus/codec/state_wire.hpp"
 #include "link/pad_console_link.hpp"
+#include "link/policy.hpp"
 #include "link/shared/shared_console.hpp"
 #include "measure/pattern.hpp"
 #include "measure/scheduler.hpp"
@@ -45,8 +46,8 @@ template <TestPattern P> class PadInjector {
 
         auto &hub = link_.measure_pad_hub();
         const auto console = link_.shared_console().load();
-        // 対PadのポーリングなのでMode3で問い合わせたことにしておく
-        const auto reply = Joybus::state::encode_status(state, Joybus::PollMode::Mode3);
+        // （存在しない）パッドへも固定のPollModeでポーリングしたということにする
+        const auto reply = Joybus::state::encode_status(state, policy::kPadPollModeForQuery);
         hub.on_pad_response_isr(reply.command(), reply.view());
     }
 
