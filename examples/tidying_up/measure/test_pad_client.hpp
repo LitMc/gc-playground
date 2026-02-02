@@ -1,10 +1,10 @@
 #pragma once
 #include "codec/joybus/state.hpp"
+#include "measure/pattern.hpp"
+#include "measure/scheduler.hpp"
+#include "measure/seed.hpp"
 #include "pad_console_link.hpp"
 #include "shared_console.hpp"
-#include "test/pattern.hpp"
-#include "test/scheduler.hpp"
-#include "test/seed.hpp"
 
 namespace ConvertGcInput::measure {
 

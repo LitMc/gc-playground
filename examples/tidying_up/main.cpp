@@ -7,12 +7,12 @@
 #include "joybus_console.pio.h"
 #include "joybus_pad.pio.h"
 #include "joybus_pio_sm.hpp"
+#include "measure/patterns/stick_grid_sweep.hpp"
+#include "measure/test_pad_client.hpp"
 #include "pad_client.hpp"
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
 #include "shared_pad_hub.hpp"
-#include "test/patterns/stick_grid_sweep.hpp"
-#include "test/test_pad_client.hpp"
 #include <array>
 #include <span>
 #include <stdio.h>
