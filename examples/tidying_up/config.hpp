@@ -1,5 +1,5 @@
 #pragma once
-#include "joybus_protocol.hpp"
+#include "joybus/protocol/protocol.hpp"
 
 namespace ConvertGcInput::config {
 // Pico -> Padでのポーリングに使用するモードはMode3に固定

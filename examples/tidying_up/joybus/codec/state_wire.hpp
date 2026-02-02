@@ -3,8 +3,8 @@
 #include "domain/state.hpp"
 #include "joybus/codec/common.hpp"
 #include "joybus/codec/report_wire.hpp"
-#include "joybus_protocol.hpp"
-#include "joybus_reply.hpp"
+#include "joybus/protocol/protocol.hpp"
+#include "joybus/protocol/reply.hpp"
 #include <array>
 #include <span>
 #include <stdio.h>

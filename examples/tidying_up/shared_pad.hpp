@@ -7,7 +7,7 @@
 #include "joybus/codec/identity_wire.hpp"
 #include "joybus/codec/report_wire.hpp"
 #include "joybus/codec/state_wire.hpp"
-#include "joybus_protocol.hpp"
+#include "joybus/protocol/protocol.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdint>

@@ -1,6 +1,6 @@
 #pragma once
 #include "double_buffer.hpp"
-#include "joybus_reply.hpp"
+#include "joybus/protocol/reply.hpp"
 #include "shared_pad.hpp"
 
 namespace ConvertGcInput {

@@ -1,6 +1,6 @@
 #pragma once
 #include "double_buffer.hpp"
-#include "joybus_protocol.hpp"
+#include "joybus/protocol/protocol.hpp"
 #include <span>
 
 namespace ConvertGcInput {

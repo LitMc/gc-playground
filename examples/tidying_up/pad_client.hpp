@@ -1,6 +1,6 @@
 #pragma once
 #include "joybus/driver/joybus_pio_port.hpp"
-#include "joybus_protocol.hpp"
+#include "joybus/protocol/protocol.hpp"
 #include "pad_console_link.hpp"
 #include "shared_console.hpp"
 #include "shared_pad_hub.hpp"

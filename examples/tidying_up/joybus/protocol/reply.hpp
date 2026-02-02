@@ -1,5 +1,5 @@
 #pragma once
-#include "joybus_protocol.hpp"
+#include "joybus/protocol/protocol.hpp"
 #include <algorithm>
 #include <array>
 #include <span>
