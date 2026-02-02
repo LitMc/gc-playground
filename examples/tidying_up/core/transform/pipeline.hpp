@@ -6,23 +6,23 @@
 #include <cstdint>
 
 // コントローラ応答の変換処理
-namespace ConvertGcInput::core::transform {
+namespace ConvertGcInput::domain::transform {
 
 // コントローラ応答変換関数の型定義。ISRから呼ぶ想定
-using TransformFunction = void (*)(void *user, core::PadState &state);
+using TransformFunction = void (*)(void *user, domain::PadState &state);
 
 struct Stage {
     TransformFunction func{nullptr};
     void *user{nullptr};
 };
 
-template <class Context, void (*Func)(Context &, core::PadState &)>
-inline void thunk(void *user, core::PadState &state) {
+template <class Context, void (*Func)(Context &, domain::PadState &)>
+inline void thunk(void *user, domain::PadState &state) {
     auto *ctx = static_cast<Context *>(user);
     Func(*ctx, state);
 }
 
-template <class Context, void (*Func)(Context &, core::PadState &)>
+template <class Context, void (*Func)(Context &, domain::PadState &)>
 inline Stage make_stage(Context &context) {
     return Stage{
         .func{&thunk<Context, Func>},
@@ -82,7 +82,7 @@ class Pipeline {
         return (enabled & (1u << index)) != 0;
     }
 
-    void apply_from_isr(core::PadState &state) const {
+    void apply_from_isr(domain::PadState &state) const {
         const uint32_t enabled = enable_mask_.load(std::memory_order_acquire);
         for (std::size_t i = 0; i < stage_count_; ++i) {
             // is_stage_enabledでもいいけどISR内で何度もenabledをload()しなくて済むよう直接確認
@@ -117,4 +117,4 @@ struct PipelineSet {
     Pipeline id{};
     Pipeline reset{};
 };
-} // namespace ConvertGcInput::core::transform
+} // namespace ConvertGcInput::domain::transform

@@ -18,9 +18,9 @@ struct PadSnapshot {
     uint32_t publish_count{0};
     Joybus::Command last_rx_command{Joybus::Command::Id};
 
-    core::PadIdentity identity{};
-    core::PadState status{};
-    core::PadState origin{};
+    domain::PadIdentity identity{};
+    domain::PadState status{};
+    domain::PadState origin{};
 };
 
 class SharedPad {

@@ -93,11 +93,13 @@ int main() {
     // 入力変換処理を差し込む
     auto &pipelines = client_link.transform_pipelines();
     const auto &fix_origin_to_neutral =
-        ConvertGcInput::core::transform::builtins::fix_origin_to_neutral;
-    pipelines.origin.add_stage(ConvertGcInput::core::transform::make_stage(&fix_origin_to_neutral));
+        ConvertGcInput::domain::transform::builtins::fix_origin_to_neutral;
+    pipelines.origin.add_stage(
+        ConvertGcInput::domain::transform::make_stage(&fix_origin_to_neutral));
     pipelines.recalibrate.add_stage(
-        ConvertGcInput::core::transform::make_stage(&fix_origin_to_neutral));
-    pipelines.status.add_stage(ConvertGcInput::core::transform::make_stage(&fix_origin_to_neutral));
+        ConvertGcInput::domain::transform::make_stage(&fix_origin_to_neutral));
+    pipelines.status.add_stage(
+        ConvertGcInput::domain::transform::make_stage(&fix_origin_to_neutral));
 
     ConvertGcInput::PadClient pad_client(host_to_pad_config, client_link);
 
@@ -137,9 +139,9 @@ int main() {
         const auto real_pad_snapshot = client_link.real_pad_hub().load_original_snapshot();
         if (real_pad_snapshot.last_rx_command == ConvertGcInput::Joybus::Command::Status) {
             const bool test_enable =
-                real_pad_snapshot.status.input.pressed(ConvertGcInput::core::PadButton::Z);
+                real_pad_snapshot.status.input.pressed(ConvertGcInput::domain::PadButton::Z);
             const bool test_disable =
-                real_pad_snapshot.status.input.pressed(ConvertGcInput::core::PadButton::DpadUp);
+                real_pad_snapshot.status.input.pressed(ConvertGcInput::domain::PadButton::DpadUp);
 
             if (test_enable && !client_link.is_test_enabled()) {
                 client_link.enable_test_from_main();

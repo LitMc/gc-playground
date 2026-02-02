@@ -25,7 +25,7 @@ static constexpr uint8_t kPollMask = 0x07u;   // bits[2:0]
 static constexpr uint8_t kRumbleMask = 0x18u; // bits[4:3]
 
 inline constexpr std::array<uint8_t, kIdResponseSize>
-encode_identity_bytes(const core::PadIdentity &id) {
+encode_identity_bytes(const domain::PadIdentity &id) {
     uint16_t device_capabilities = 0;
 
     const auto &capabilities = id.capabilities;
@@ -75,16 +75,16 @@ encode_identity_bytes(const core::PadIdentity &id) {
     return out;
 }
 
-inline JoybusReply encode_identity(const core::PadIdentity &id) {
+inline JoybusReply encode_identity(const domain::PadIdentity &id) {
     return JoybusReply{Command::Id, encode_identity_bytes(id)};
 }
 
-inline JoybusReply encode_reset_as_id(const core::PadIdentity &id) {
+inline JoybusReply encode_reset_as_id(const domain::PadIdentity &id) {
     // ResetはIDと同じ形式
     return JoybusReply{Command::Reset, encode_identity_bytes(id)};
 }
 
-inline void update_capabilities_from_id_bytes(core::PadIdentity &out,
+inline void update_capabilities_from_id_bytes(domain::PadIdentity &out,
                                               std::span<const uint8_t, kIdResponseSize> rx) {
     const uint16_t device_capabilities = common::read_u16_le(rx.first<2>());
     auto &capabilities = out.capabilities;
@@ -97,17 +97,17 @@ inline void update_capabilities_from_id_bytes(core::PadIdentity &out,
     capabilities.is_standard_controller = (device_capabilities & kIsStandardController) != 0;
 }
 
-inline void update_runtime_from_id_byte3(core::PadIdentity &out, uint8_t byte3) {
+inline void update_runtime_from_id_byte3(domain::PadIdentity &out, uint8_t byte3) {
     auto &runtime = out.runtime;
     const uint8_t runtime_flags = byte3;
     runtime.poll_mode =
-        static_cast<core::PollMode>(Joybus::clamp_poll_mode(runtime_flags & kPollMask));
-    runtime.rumble_mode = static_cast<core::RumbleMode>(
+        static_cast<domain::PollMode>(Joybus::clamp_poll_mode(runtime_flags & kPollMask));
+    runtime.rumble_mode = static_cast<domain::RumbleMode>(
         Joybus::clamp_rumble_mode((runtime_flags & kRumbleMask) >> 3));
     report::update_report_from_id_byte3(runtime.report, byte3);
 }
 
-inline void update_identity_from_id_bytes(core::PadIdentity &out,
+inline void update_identity_from_id_bytes(domain::PadIdentity &out,
                                           std::span<const uint8_t, kIdResponseSize> rx) {
     update_capabilities_from_id_bytes(out, rx);
     update_runtime_from_id_byte3(out, rx[2]);

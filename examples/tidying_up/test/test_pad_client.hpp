@@ -38,7 +38,7 @@ template <TestPattern P> class TestPadClient {
             return;
         }
 
-        core::PadState state{};
+        domain::PadState state{};
         if (!pattern_.sample_and_advance(state, steps)) {
             return;
         }

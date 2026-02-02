@@ -36,7 +36,7 @@ class StickGridSweep {
         Target target{Target::Joystick};
 
         // パターン生成のベースとする状態。指定なければニュートラル
-        core::PadState base{};
+        domain::PadState base{};
         bool base_is_custom{false};
     };
 
@@ -44,7 +44,7 @@ class StickGridSweep {
         if (!config_.base_is_custom) {
             config_.base.input.clear_buttons();
             config_.base.input.set_analog_neutral();
-            config_.base.report = core::PadReport{};
+            config_.base.report = domain::PadReport{};
         }
 
         x_count_ = count_range(config_.x);
@@ -59,7 +59,7 @@ class StickGridSweep {
 
     void reset() { index_ = 0; }
 
-    bool sample_and_advance(core::PadState &out, uint32_t steps) {
+    bool sample_and_advance(domain::PadState &out, uint32_t steps) {
         if (steps == 0) {
             steps = 1;
         }

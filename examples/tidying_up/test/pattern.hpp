@@ -7,7 +7,7 @@
 namespace ConvertGcInput::test {
 // テストパターンのコンセプト
 template <class P>
-concept TestPattern = requires(P p, core::PadState &state, uint32_t steps) {
+concept TestPattern = requires(P p, domain::PadState &state, uint32_t steps) {
     // リセットできること
     { p.reset() } -> std::same_as<void>;
     // 現在のパッド状態とステップ数から次の状態へ進められること

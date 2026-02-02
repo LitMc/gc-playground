@@ -15,17 +15,17 @@ struct SeedOptions {
     bool reset{true};
 };
 
-inline core::PadState make_neutral_pad_state() {
+inline domain::PadState make_neutral_pad_state() {
     // 初期値と変わらないが明示
-    core::PadState state{};
+    domain::PadState state{};
     state.input.clear_buttons();
     state.input.set_analog_neutral();
-    state.report = core::PadReport{};
+    state.report = domain::PadReport{};
     return state;
 }
 
-inline core::PadIdentity make_default_pad_identity_from_console(const ConsoleState &console) {
-    core::PadIdentity id{};
+inline domain::PadIdentity make_default_pad_identity_from_console(const ConsoleState &console) {
+    domain::PadIdentity id{};
     id.runtime.poll_mode = Joybus::common::to_core_poll_mode(console.poll_mode);
     id.runtime.rumble_mode = Joybus::common::to_core_rumble_mode(console.rumble_mode);
     return id;
@@ -49,7 +49,7 @@ inline void seed_test_initial_responses(PadConsoleLink &link, const ConsoleState
                                         SeedOptions options = {}) {
     auto &hub = link.test_pad_hub();
 
-    const core::PadState neutral = make_neutral_pad_state();
+    const domain::PadState neutral = make_neutral_pad_state();
 
     if (options.status) {
         const auto reply = Joybus::state::encode_status(neutral, console.poll_mode);

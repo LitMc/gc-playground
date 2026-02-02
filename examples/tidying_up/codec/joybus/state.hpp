@@ -31,53 +31,54 @@ inline constexpr uint8_t pack4bitsToByte(uint8_t high4bits, uint8_t low4bits) {
 }
 
 // Status wordから共通形式のボタン入力を抽出
-inline constexpr core::ButtonInput
+inline constexpr domain::ButtonInput
 decode_buttons_from_status_word(std::span<const uint8_t, 2> byte2) {
-    core::ButtonInput buttons{};
+    domain::ButtonInput buttons{};
 
     const uint16_t status_word = common::read_u16_le(byte2);
-    buttons.a = (status_word & core::to_mask(core::PadButton::A)) != 0;
-    buttons.b = (status_word & core::to_mask(core::PadButton::B)) != 0;
-    buttons.x = (status_word & core::to_mask(core::PadButton::X)) != 0;
-    buttons.y = (status_word & core::to_mask(core::PadButton::Y)) != 0;
-    buttons.start = (status_word & core::to_mask(core::PadButton::Start)) != 0;
-    buttons.dpad_left = (status_word & core::to_mask(core::PadButton::DpadLeft)) != 0;
-    buttons.dpad_right = (status_word & core::to_mask(core::PadButton::DpadRight)) != 0;
-    buttons.dpad_down = (status_word & core::to_mask(core::PadButton::DpadDown)) != 0;
-    buttons.dpad_up = (status_word & core::to_mask(core::PadButton::DpadUp)) != 0;
-    buttons.z = (status_word & core::to_mask(core::PadButton::Z)) != 0;
-    buttons.r = (status_word & core::to_mask(core::PadButton::R)) != 0;
-    buttons.l = (status_word & core::to_mask(core::PadButton::L)) != 0;
+    buttons.a = (status_word & domain::to_mask(domain::PadButton::A)) != 0;
+    buttons.b = (status_word & domain::to_mask(domain::PadButton::B)) != 0;
+    buttons.x = (status_word & domain::to_mask(domain::PadButton::X)) != 0;
+    buttons.y = (status_word & domain::to_mask(domain::PadButton::Y)) != 0;
+    buttons.start = (status_word & domain::to_mask(domain::PadButton::Start)) != 0;
+    buttons.dpad_left = (status_word & domain::to_mask(domain::PadButton::DpadLeft)) != 0;
+    buttons.dpad_right = (status_word & domain::to_mask(domain::PadButton::DpadRight)) != 0;
+    buttons.dpad_down = (status_word & domain::to_mask(domain::PadButton::DpadDown)) != 0;
+    buttons.dpad_up = (status_word & domain::to_mask(domain::PadButton::DpadUp)) != 0;
+    buttons.z = (status_word & domain::to_mask(domain::PadButton::Z)) != 0;
+    buttons.r = (status_word & domain::to_mask(domain::PadButton::R)) != 0;
+    buttons.l = (status_word & domain::to_mask(domain::PadButton::L)) != 0;
 
     return buttons;
 }
 
 // 共通形式の実行時レポートをStatus wordに変換
-inline constexpr void encode_to_status_word(const core::PadState &state,
+inline constexpr void encode_to_status_word(const domain::PadState &state,
                                             std::span<uint8_t, 2> status_word_bytes) {
-    using namespace ConvertGcInput::core;
     uint16_t status_word = 0;
 
     // ボタン情報をStatus wordにセット
     const auto &buttons = state.input.buttons;
-    status_word |= (static_cast<uint16_t>(buttons.a) ? core::to_mask(core::PadButton::A) : 0u);
-    status_word |= (static_cast<uint16_t>(buttons.b) ? core::to_mask(core::PadButton::B) : 0u);
-    status_word |= (static_cast<uint16_t>(buttons.x) ? core::to_mask(core::PadButton::X) : 0u);
-    status_word |= (static_cast<uint16_t>(buttons.y) ? core::to_mask(core::PadButton::Y) : 0u);
+    status_word |= (static_cast<uint16_t>(buttons.a) ? domain::to_mask(domain::PadButton::A) : 0u);
+    status_word |= (static_cast<uint16_t>(buttons.b) ? domain::to_mask(domain::PadButton::B) : 0u);
+    status_word |= (static_cast<uint16_t>(buttons.x) ? domain::to_mask(domain::PadButton::X) : 0u);
+    status_word |= (static_cast<uint16_t>(buttons.y) ? domain::to_mask(domain::PadButton::Y) : 0u);
     status_word |=
-        (static_cast<uint16_t>(buttons.start) ? core::to_mask(core::PadButton::Start) : 0u);
+        (static_cast<uint16_t>(buttons.start) ? domain::to_mask(domain::PadButton::Start) : 0u);
     status_word |=
-        (static_cast<uint16_t>(buttons.dpad_left) ? core::to_mask(core::PadButton::DpadLeft) : 0u);
+        (static_cast<uint16_t>(buttons.dpad_left) ? domain::to_mask(domain::PadButton::DpadLeft)
+                                                  : 0u);
     status_word |=
-        (static_cast<uint16_t>(buttons.dpad_right) ? core::to_mask(core::PadButton::DpadRight)
+        (static_cast<uint16_t>(buttons.dpad_right) ? domain::to_mask(domain::PadButton::DpadRight)
                                                    : 0u);
     status_word |=
-        (static_cast<uint16_t>(buttons.dpad_down) ? core::to_mask(core::PadButton::DpadDown) : 0u);
+        (static_cast<uint16_t>(buttons.dpad_down) ? domain::to_mask(domain::PadButton::DpadDown)
+                                                  : 0u);
     status_word |=
-        (static_cast<uint16_t>(buttons.dpad_up) ? core::to_mask(core::PadButton::DpadUp) : 0u);
-    status_word |= (static_cast<uint16_t>(buttons.z) ? core::to_mask(core::PadButton::Z) : 0u);
-    status_word |= (static_cast<uint16_t>(buttons.r) ? core::to_mask(core::PadButton::R) : 0u);
-    status_word |= (static_cast<uint16_t>(buttons.l) ? core::to_mask(core::PadButton::L) : 0u);
+        (static_cast<uint16_t>(buttons.dpad_up) ? domain::to_mask(domain::PadButton::DpadUp) : 0u);
+    status_word |= (static_cast<uint16_t>(buttons.z) ? domain::to_mask(domain::PadButton::Z) : 0u);
+    status_word |= (static_cast<uint16_t>(buttons.r) ? domain::to_mask(domain::PadButton::R) : 0u);
+    status_word |= (static_cast<uint16_t>(buttons.l) ? domain::to_mask(domain::PadButton::L) : 0u);
 
     // レポートフラグをStatus wordにセット
     // OriginNotSentはビットが立っているとOrigin未送信を意味するので反転
@@ -99,10 +100,10 @@ inline constexpr void encode_to_status_word(const core::PadState &state,
 }
 
 // JoybusのStatusレスポンスを共通形式に変換
-inline constexpr core::PadState
+inline constexpr domain::PadState
 decode_status(std::span<const uint8_t, Joybus::kStatusResponseSize> rx,
               Joybus::PollMode poll_mode) {
-    core::PadState out{};
+    domain::PadState out{};
 
     // 先頭2バイト（Status word）を共通形式のレポートに変換
     out.report = report::decode_report_from_status_word(rx.first<2>());
@@ -159,7 +160,7 @@ decode_status(std::span<const uint8_t, Joybus::kStatusResponseSize> rx,
 }
 
 // 共通形式のStatus情報をJoybusレスポンス形式に変換
-inline JoybusReply encode_status(const core::PadState &state, Joybus::PollMode poll_mode) {
+inline JoybusReply encode_status(const domain::PadState &state, Joybus::PollMode poll_mode) {
     std::array<uint8_t, Joybus::kStatusResponseSize> out{};
 
     // out[0], out[1]: Status word
@@ -215,9 +216,9 @@ inline JoybusReply encode_status(const core::PadState &state, Joybus::PollMode p
     return JoybusReply(Joybus::Command::Status, out);
 }
 
-inline constexpr core::PadState
+inline constexpr domain::PadState
 decode_origin(std::span<const uint8_t, Joybus::kOriginResponseSize> rx) {
-    core::PadState out{};
+    domain::PadState out{};
 
     out.report = report::decode_report_from_status_word(rx.first<2>());
     out.input.buttons = decode_buttons_from_status_word(rx.first<2>());
@@ -233,13 +234,13 @@ decode_origin(std::span<const uint8_t, Joybus::kOriginResponseSize> rx) {
     return out;
 }
 
-inline constexpr core::PadState
+inline constexpr domain::PadState
 decode_recalibrate(std::span<const uint8_t, Joybus::kRecalibrateResponseSize> rx) {
     return decode_origin(rx);
 }
 
 inline constexpr std::array<uint8_t, Joybus::kOriginResponseSize>
-encode_origin_byte(const core::PadState &state) {
+encode_origin_byte(const domain::PadState &state) {
     std::array<uint8_t, Joybus::kOriginResponseSize> out{};
 
     // out[0], out[1]: Status word
@@ -258,11 +259,11 @@ encode_origin_byte(const core::PadState &state) {
     return out;
 }
 
-inline JoybusReply encode_origin(const core::PadState &state) {
+inline JoybusReply encode_origin(const domain::PadState &state) {
     return JoybusReply(Joybus::Command::Origin, encode_origin_byte(state));
 }
 
-inline JoybusReply encode_recalibrate(const core::PadState &state) {
+inline JoybusReply encode_recalibrate(const domain::PadState &state) {
     return JoybusReply(Joybus::Command::Recalibrate, encode_origin_byte(state));
 }
 

@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace ConvertGcInput::core {
+namespace ConvertGcInput::domain {
 
 // 入力以外のパッドからコンソールへ伝える状態。エラーの有無やOrigin送信済みなど
 struct PadReport {
@@ -22,4 +22,4 @@ struct PadReport {
 
 static_assert(std::is_trivially_copyable_v<PadReport>);
 static_assert(std::is_standard_layout_v<PadReport>);
-} // namespace ConvertGcInput::core
+} // namespace ConvertGcInput::domain

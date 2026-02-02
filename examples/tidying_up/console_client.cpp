@@ -44,10 +44,10 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
     const auto &pipelines = self->link_.transform_pipelines();
     switch (cmd) {
     case Joybus::Command::Status: {
-        const core::PadState original_state = original_snapshot.status;
+        const domain::PadState original_state = original_snapshot.status;
         original_reply = Joybus::state::encode_status(original_state, host_poll_mode);
 
-        core::PadState modified_state = original_state;
+        domain::PadState modified_state = original_state;
         // 計測用
         if (!self->link_.is_test_enabled()) {
             // テストモードでない場合のみ変換パイプラインを通す（原点固定）
@@ -58,23 +58,23 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         break;
     }
     case Joybus::Command::Origin: {
-        const core::PadState original_state = original_snapshot.origin;
+        const domain::PadState original_state = original_snapshot.origin;
         original_reply = Joybus::state::encode_origin(original_state);
-        core::PadState modified_state = original_state;
+        domain::PadState modified_state = original_state;
         pipelines.origin.apply_from_isr(modified_state);
         modified_reply = Joybus::state::encode_origin(modified_state);
         break;
     }
     case Joybus::Command::Recalibrate: {
-        const core::PadState original_state = original_snapshot.origin;
+        const domain::PadState original_state = original_snapshot.origin;
         original_reply = Joybus::state::encode_recalibrate(original_state);
-        core::PadState modified_state = original_state;
+        domain::PadState modified_state = original_state;
         pipelines.recalibrate.apply_from_isr(modified_state);
         modified_reply = Joybus::state::encode_recalibrate(modified_state);
         break;
     }
     case Joybus::Command::Id: {
-        core::PadIdentity identity = original_snapshot.identity;
+        domain::PadIdentity identity = original_snapshot.identity;
         // パッドからのID応答そのままではなく直近のコンソールから指定されたPollModeとRumbleModeを反映する
         // パッドへのポーリングはMode3固定でコンソールへの応答はコンソールからの指示に従う仕様のため
         identity.runtime.poll_mode = Joybus::common::to_core_poll_mode(host_poll_mode);
@@ -89,7 +89,7 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         self->link_.publish_pad_reset_request_from_isr();
 
         // Idと同じ
-        core::PadIdentity identity = original_snapshot.identity;
+        domain::PadIdentity identity = original_snapshot.identity;
         identity.runtime.poll_mode = Joybus::common::to_core_poll_mode(host_poll_mode);
         identity.runtime.rumble_mode = Joybus::common::to_core_rumble_mode(host_rumble_mode);
         original_reply = Joybus::identity::encode_reset_as_id(identity);

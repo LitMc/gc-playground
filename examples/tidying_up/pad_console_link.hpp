@@ -54,16 +54,16 @@ class PadConsoleLink {
     }
 
     // コマンド応答の変換パイプライン
-    core::transform::PipelineSet &transform_pipelines() { return pipelines_; }
+    domain::transform::PipelineSet &transform_pipelines() { return pipelines_; }
     // コマンド応答の変換パイプライン
-    const core::transform::PipelineSet &transform_pipelines() const { return pipelines_; }
+    const domain::transform::PipelineSet &transform_pipelines() const { return pipelines_; }
 
   private:
     std::atomic<uint8_t> pad_state_{static_cast<uint8_t>(PadConnectionState::Disconnected)};
     std::atomic<uint32_t> reset_epoch_{0};
     SharedPadHub real_pad_hub_{};
     SharedConsole shared_console_{};
-    core::transform::PipelineSet pipelines_{};
+    domain::transform::PipelineSet pipelines_{};
 
     // テスト用
   public:

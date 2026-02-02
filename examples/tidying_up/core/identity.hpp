@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace ConvertGcInput::core {
+namespace ConvertGcInput::domain {
 
 // Joybusに依存しない（ことになっている）プロジェクト固有のポーリングモード
 enum class PollMode : uint8_t { Mode0 = 0, Mode1 = 1, Mode2 = 2, Mode3 = 3, Mode4 = 4 };
@@ -39,4 +39,4 @@ struct PadIdentity {
 static_assert(std::is_trivially_copyable_v<PadIdentity>);
 static_assert(std::is_standard_layout_v<PadIdentity>);
 
-} // namespace ConvertGcInput::core
+} // namespace ConvertGcInput::domain
