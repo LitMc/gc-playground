@@ -1,5 +1,5 @@
 #pragma once
-#include "joybus_pio_sm.hpp"
+#include "joybus/driver/joybus_pio_port.hpp"
 #include "pad_console_link.hpp"
 #include "shared_console.hpp"
 #include "shared_pad_hub.hpp"
@@ -7,7 +7,7 @@
 namespace ConvertGcInput {
 class ConsoleClient {
   public:
-    explicit ConsoleClient(JoybusPioSm::Config device_to_console_config, PadConsoleLink &link)
+    explicit ConsoleClient(JoybusPioPort::Config device_to_console_config, PadConsoleLink &link)
         : link_{link}, device_to_console_(device_to_console_config,
                                           &ConvertGcInput::ConsoleClient::callback, this) {};
     // コンソールからの応答を受信したときに呼ぶコールバック
@@ -18,6 +18,6 @@ class ConsoleClient {
 
   private:
     PadConsoleLink &link_;
-    JoybusPioSm device_to_console_;
+    JoybusPioPort device_to_console_;
 };
 } // namespace ConvertGcInput

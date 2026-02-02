@@ -1,5 +1,5 @@
 #pragma once
-#include "joybus_pio_sm.hpp"
+#include "joybus/driver/joybus_pio_port.hpp"
 #include "joybus_protocol.hpp"
 #include "pad_console_link.hpp"
 #include "shared_console.hpp"
@@ -10,7 +10,7 @@
 namespace ConvertGcInput {
 class PadClient {
   public:
-    explicit PadClient(JoybusPioSm::Config host_to_pad_config, PadConsoleLink &link)
+    explicit PadClient(JoybusPioPort::Config host_to_pad_config, PadConsoleLink &link)
         : link_{link},
           host_to_pad_(host_to_pad_config, &ConvertGcInput::PadClient::callback, this) {
         last_reset_epoch_ = link_.load_reset_epoch();
@@ -111,7 +111,7 @@ class PadClient {
 
   private:
     PadConsoleLink &link_;
-    JoybusPioSm host_to_pad_;
+    JoybusPioPort host_to_pad_;
 
     State state_{State::Disconnected};
 

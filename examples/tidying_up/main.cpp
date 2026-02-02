@@ -4,9 +4,9 @@
 #include "domain/transform/pipeline.hpp"
 #include "hardware/pio.h"
 #include "hardware/sync.h"
+#include "joybus/driver/joybus_pio_port.hpp"
 #include "joybus_console.pio.h"
 #include "joybus_pad.pio.h"
-#include "joybus_pio_sm.hpp"
 #include "measure/pad_injector.hpp"
 #include "measure/patterns/stick_grid_sweep.hpp"
 #include "pad_client.hpp"
@@ -64,7 +64,7 @@ int main() {
     const uint sm_host_to_pad = pio_claim_unused_sm(host_to_pad_pio, true);
     const uint sm_device_to_host = pio_claim_unused_sm(device_to_console_pio, true);
 
-    ConvertGcInput::JoybusPioSm::Config host_to_pad_config{
+    ConvertGcInput::JoybusPioPort::Config host_to_pad_config{
         .pio = host_to_pad_pio,
         .state_machine = sm_host_to_pad,
         .pin = PIN_TO_REAL_PAD,
@@ -76,7 +76,7 @@ int main() {
         .irq_base = 0,
     };
 
-    ConvertGcInput::JoybusPioSm::Config device_to_console_config{
+    ConvertGcInput::JoybusPioPort::Config device_to_console_config{
         .pio = device_to_console_pio,
         .state_machine = sm_device_to_host,
         .pin = PIN_TO_REAL_CONSOLE,
@@ -120,7 +120,7 @@ int main() {
 
     ConvertGcInput::ConsoleClient console_client(device_to_console_config, client_link);
 
-    printf("JoybusPioSm ready.\n");
+    printf("JoybusPioPort ready.\n");
     printf("host_to_pad: PIO%d SM%u pin GP%u\n", pio_get_index(host_to_pad_config.pio),
            host_to_pad_config.state_machine, PIN_TO_REAL_PAD);
     printf("device_to_console: PIO%d SM%u pin GP%u\n", pio_get_index(device_to_console_config.pio),

@@ -11,7 +11,7 @@
 
 namespace ConvertGcInput {
 
-class JoybusPioSm {
+class JoybusPioPort {
   public:
     static constexpr std::size_t JOYBUS_MAX_FRAME_BYTES = 16;
     // RX: stop(0x01) を末尾に 1byte 追加で受け取る
@@ -42,13 +42,13 @@ class JoybusPioSm {
     using PacketCallback = std::size_t (*)(void *user, const uint8_t *rx, std::size_t rx_len,
                                            uint8_t *tx, std::size_t tx_max);
 
-    explicit JoybusPioSm(const Config &config, PacketCallback callback, void *user);
-    ~JoybusPioSm();
+    explicit JoybusPioPort(const Config &config, PacketCallback callback, void *user);
+    ~JoybusPioPort();
 
-    JoybusPioSm(const JoybusPioSm &) = delete;
-    JoybusPioSm &operator=(const JoybusPioSm &) = delete;
-    JoybusPioSm(JoybusPioSm &&) = delete;
-    JoybusPioSm &operator=(JoybusPioSm &&) = delete;
+    JoybusPioPort(const JoybusPioPort &) = delete;
+    JoybusPioPort &operator=(const JoybusPioPort &) = delete;
+    JoybusPioPort(JoybusPioPort &&) = delete;
+    JoybusPioPort &operator=(JoybusPioPort &&) = delete;
 
     void __time_critical_func(start_receive)();
 

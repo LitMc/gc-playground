@@ -1,4 +1,4 @@
-#include "joybus_pio_sm.hpp"
+#include "joybus_pio_port.hpp"
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
@@ -8,8 +8,8 @@
 namespace ConvertGcInput {
 
 // IRQラインが競合しないよう管理するマルチプレクサ
-struct JoybusPioSm::IrqMux {
-    std::array<std::array<JoybusPioSm *, 8>, 2> owners{};
+struct JoybusPioPort::IrqMux {
+    std::array<std::array<JoybusPioPort *, 8>, 2> owners{};
     std::array<uint8_t, 2> owned_mask{0, 0};
     std::array<bool, 2> installed{false, false};
 
@@ -22,10 +22,10 @@ struct JoybusPioSm::IrqMux {
         }
         const int irq = (index == 0) ? PIO0_IRQ_0 : PIO1_IRQ_0;
         if (index == 0) {
-            irq_add_shared_handler(irq, &JoybusPioSm::pio0_irq0_handler,
+            irq_add_shared_handler(irq, &JoybusPioPort::pio0_irq0_handler,
                                    PICO_SHARED_IRQ_HANDLER_HIGHEST_ORDER_PRIORITY);
         } else {
-            irq_add_shared_handler(irq, &JoybusPioSm::pio1_irq0_handler,
+            irq_add_shared_handler(irq, &JoybusPioPort::pio1_irq0_handler,
                                    PICO_SHARED_IRQ_HANDLER_HIGHEST_ORDER_PRIORITY);
         }
 
@@ -34,7 +34,7 @@ struct JoybusPioSm::IrqMux {
         installed[(size_t)index] = true;
     }
 
-    void register_owner(PIO pio, uint bit, JoybusPioSm *self) {
+    void register_owner(PIO pio, uint bit, JoybusPioPort *self) {
         assert(bit < 8);
         const int index = pio_index(pio);
 
@@ -51,7 +51,7 @@ struct JoybusPioSm::IrqMux {
         pio_set_irq0_source_enabled(pio, (pio_interrupt_source_t)(pis_interrupt0 + bit), true);
     }
 
-    void unregister_owner(PIO pio, uint bit, JoybusPioSm *self) {
+    void unregister_owner(PIO pio, uint bit, JoybusPioPort *self) {
         assert(bit < 8);
         const int index = pio_index(pio);
 
@@ -83,7 +83,7 @@ struct JoybusPioSm::IrqMux {
             pio_interrupt_clear(pio, bit);
             // index番目のPIOのIRQフラグ bitを使っているインスタンスのon_pio_irqを呼ぶ
             // pio0のIRQ0ならowners[0][0]
-            JoybusPioSm *self = owners[(size_t)index][bit];
+            JoybusPioPort *self = owners[(size_t)index][bit];
             if (self) {
                 self->on_pio_irq();
             }
@@ -91,16 +91,16 @@ struct JoybusPioSm::IrqMux {
     }
 };
 
-JoybusPioSm::IrqMux &JoybusPioSm::irq_mux() {
+JoybusPioPort::IrqMux &JoybusPioPort::irq_mux() {
     static IrqMux mux;
     return mux;
 }
 
-void __isr JoybusPioSm::pio0_irq0_handler() { irq_mux().dispatch(pio0); }
+void __isr JoybusPioPort::pio0_irq0_handler() { irq_mux().dispatch(pio0); }
 
-void __isr JoybusPioSm::pio1_irq0_handler() { irq_mux().dispatch(pio1); }
+void __isr JoybusPioPort::pio1_irq0_handler() { irq_mux().dispatch(pio1); }
 
-JoybusPioSm::JoybusPioSm(const Config &config, PacketCallback callback, void *user)
+JoybusPioPort::JoybusPioPort(const Config &config, PacketCallback callback, void *user)
     : config_(config), callback_(callback), callback_user_(user) {
     program_offset_ = pio_add_program(config_.pio, config_.program);
 
@@ -164,7 +164,7 @@ JoybusPioSm::JoybusPioSm(const Config &config, PacketCallback callback, void *us
     start_receive();
 }
 
-JoybusPioSm::~JoybusPioSm() {
+JoybusPioPort::~JoybusPioPort() {
     if (!config_.pio) {
         return;
     }
@@ -180,14 +180,14 @@ JoybusPioSm::~JoybusPioSm() {
     gpio_set_dir(config_.pin, GPIO_IN);
 }
 
-void JoybusPioSm::start_receive() {
+void JoybusPioPort::start_receive() {
     dma_channel_abort(dma_channel_);
     dma_channel_set_config(dma_channel_, &dma_rx_config_, false);
     dma_channel_set_read_addr(dma_channel_, &config_.pio->rxf[config_.state_machine], false);
     dma_channel_transfer_to_buffer_now(dma_channel_, rx_work_buffer_.data(), RX_BUFFER_SIZE);
 }
 
-void JoybusPioSm::finish_receive_from_irq() {
+void JoybusPioPort::finish_receive_from_irq() {
     dma_channel_hw_t *dma = dma_channel_hw_addr(dma_channel_);
     // dma->transfer_countは残りの転送数なので元のサイズから引いて受信済みバイト数を得る
     uint32_t received = RX_BUFFER_SIZE - dma->transfer_count;
@@ -209,7 +209,7 @@ void JoybusPioSm::finish_receive_from_irq() {
     rx_ready_ = true;
 }
 
-void JoybusPioSm::start_transmit_from_irq(std::size_t nbytes) {
+void JoybusPioPort::start_transmit_from_irq(std::size_t nbytes) {
     // 送信すべきビット数をPIOに教える
     pio_sm_put(config_.pio, config_.state_machine, static_cast<uint32_t>(nbytes * 8));
     dma_channel_set_config(dma_channel_, &dma_tx_config_, false);
@@ -221,7 +221,7 @@ void JoybusPioSm::start_transmit_from_irq(std::size_t nbytes) {
     pio_sm_exec_wait_blocking(config_.pio, config_.state_machine, jmp_to_tx_start);
 }
 
-void JoybusPioSm::on_pio_irq() {
+void JoybusPioPort::on_pio_irq() {
     // 送信中だったなら送信完了の通知を受けた
     if (tx_busy_.load(std::memory_order_acquire)) {
         tx_busy_.store(false, std::memory_order_release);
@@ -252,7 +252,7 @@ void JoybusPioSm::on_pio_irq() {
     }
 }
 
-bool JoybusPioSm::send_now(const uint8_t *data, std::size_t nbytes) {
+bool JoybusPioPort::send_now(const uint8_t *data, std::size_t nbytes) {
     if (nbytes == 0 || nbytes > TX_BUFFER_SIZE) {
         return false;
     }

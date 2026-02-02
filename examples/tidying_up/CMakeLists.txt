@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 project(tidying_up)
 add_executable(${PROJECT_NAME}
     main.cpp
-    joybus_pio_sm.cpp
+    joybus/driver/joybus_pio_port.cpp
     pad_client.cpp
     console_client.cpp
 )
@@ -11,8 +11,8 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 # .pioからヘッダ生成
-pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/joybus_console.pio)
-pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/joybus_pad.pio)
+pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/joybus/driver/pio/joybus_console.pio)
+pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/joybus/driver/pio/joybus_pad.pio)
 
 target_link_libraries(${PROJECT_NAME}
     pico_stdlib
