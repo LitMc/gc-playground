@@ -1,8 +1,8 @@
 #pragma once
-#include "codec/joybus/common.hpp"
-#include "codec/joybus/report_wire.hpp"
 #include "domain/identity.hpp"
 #include "domain/report.hpp"
+#include "joybus/codec/common.hpp"
+#include "joybus/codec/report_wire.hpp"
 #include "joybus_protocol.hpp"
 #include "joybus_reply.hpp"
 #include <array>

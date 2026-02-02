@@ -1,12 +1,12 @@
 #pragma once
-#include "codec/joybus/identity_wire.hpp"
-#include "codec/joybus/report_wire.hpp"
-#include "codec/joybus/state_wire.hpp"
 #include "config.hpp"
 #include "domain/identity.hpp"
 #include "domain/report.hpp"
 #include "domain/state.hpp"
 #include "double_buffer.hpp"
+#include "joybus/codec/identity_wire.hpp"
+#include "joybus/codec/report_wire.hpp"
+#include "joybus/codec/state_wire.hpp"
 #include "joybus_protocol.hpp"
 #include <algorithm>
 #include <array>

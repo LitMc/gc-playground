@@ -1,7 +1,7 @@
 #pragma once
-#include "codec/joybus/common.hpp"
 #include "domain/report.hpp"
 #include "domain/state.hpp"
+#include "joybus/codec/common.hpp"
 #include <cstdint>
 #include <span>
 

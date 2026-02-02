@@ -1,7 +1,7 @@
 #include "console_client.hpp"
-#include "codec/joybus/identity_wire.hpp"
-#include "codec/joybus/state_wire.hpp"
 #include "domain/transform/pipeline.hpp"
+#include "joybus/codec/identity_wire.hpp"
+#include "joybus/codec/state_wire.hpp"
 
 namespace ConvertGcInput {
 

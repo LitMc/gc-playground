@@ -1,7 +1,7 @@
 #pragma once
-#include "codec/joybus/common.hpp"
-#include "codec/joybus/identity_wire.hpp"
-#include "codec/joybus/state_wire.hpp"
+#include "joybus/codec/common.hpp"
+#include "joybus/codec/identity_wire.hpp"
+#include "joybus/codec/state_wire.hpp"
 #include "pad_console_link.hpp"
 
 // テスト用に初期応答を流し込む
