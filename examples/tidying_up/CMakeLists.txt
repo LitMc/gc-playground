@@ -3,8 +3,8 @@ project(tidying_up)
 add_executable(${PROJECT_NAME}
     main.cpp
     joybus/driver/joybus_pio_port.cpp
-    pad_client.cpp
-    console_client.cpp
+    link/pad_client.cpp
+    link/console_client.cpp
 )
 
 # transforms/など子ディレクトリのソースが親ディレクトリのヘッダを参照できるようインクルードルートをプロジェクト直下に設定
