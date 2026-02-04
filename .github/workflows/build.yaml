@@ -20,17 +20,12 @@ jobs:
           git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git "${{ github.workspace }}/pico-sdk"
           cd "${{ github.workspace }}/pico-sdk"
           git submodule update --init --depth 1
-      - name: Build all examples
-        env:
-          PICO_SDK_PATH: "${{ github.workspace }}/pico-sdk"
+      - name: Configure (root)
         run: |
-          set -euo pipefail
-          for d in examples/*/ ; do
-            [ -d "$d" ] || continue
-             echo "==== Buliding $d ===="
-             cmake -S "$d" -B "$d/build" -G Ninja -DPICO_SDK_PATH="$PICO_SDK_PATH"
-             cmake --build "$d/build" --parallel
-          done
+          cmake -S . -B build -G Ninja -DPICO_SDK_PATH="${GITHUB_WORKSPACE}/pico-sdk"
+      - name: Build all targets
+        run: |
+          cmake --build build --parallel
   upload-artifacts:
     runs-on: ubuntu-latest
     needs: build
