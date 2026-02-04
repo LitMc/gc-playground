@@ -26,10 +26,6 @@ jobs:
       - name: Build all targets
         run: |
           cmake --build build --parallel
-  upload-artifacts:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
       - name: Upload build artifacts
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
@@ -37,4 +33,4 @@ jobs:
           name: pico-build-artifacts
           if-no-files-found: error
           path: |
-            examples/*/build/*.uf2
+            build/**/*.uf2
