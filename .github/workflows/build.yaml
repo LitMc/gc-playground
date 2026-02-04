@@ -1,0 +1,36 @@
+name: build-all-examples
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install build dependencies
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y \
+              cmake python3 build-essential ninja-build \
+              gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+      - name: Checkout pico-sdk
+        run: |
+          git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git "${{ github.workspace }}/pico-sdk"
+          cd "${{ github.workspace }}/pico-sdk"
+          git submodule update --init --depth 1
+      - name: Configure (root)
+        run: |
+          cmake -S . -B build -G Ninja -DPICO_SDK_PATH="${GITHUB_WORKSPACE}/pico-sdk"
+      - name: Build all targets
+        run: |
+          cmake --build build --parallel
+      - name: Upload build artifacts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pico-build-artifacts
+          if-no-files-found: error
+          path: |
+            build/**/*.uf2
