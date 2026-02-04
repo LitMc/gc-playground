@@ -1,0 +1,10 @@
+[project]
+name = "gc-playground"
+version = "0.1.0"
+description = "Playground for Raspberry Pi Pico and Joybus"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pyserial",
+    "aiohttp",
+]

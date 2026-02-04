@@ -47,6 +47,21 @@ void init_led() {
     gpio_set_dir(ONBOARD_LED_PIN, GPIO_OUT);
     gpio_put(ONBOARD_LED_PIN, 1);
 }
+
+static uint8_t crc8(const std::array<uint8_t, 4> &data) {
+    uint8_t crc = 0x00;
+    for (std::size_t i = 0; i < data.size(); ++i) {
+        crc ^= data[i];
+        for (uint8_t j = 0; j < 8; ++j) {
+            if (crc & 0x80) {
+                crc = (crc << 1) ^ 0x07;
+            } else {
+                crc <<= 1;
+            }
+        }
+    }
+    return crc;
+}
 } // namespace
 
 int main() {
@@ -90,7 +105,7 @@ int main() {
 
     gcinput::PadConsoleLink client_link{};
 
-    // 入力変換処理を差し込む
+    // 入力変換処理
     auto &pipelines = client_link.transform_pipelines();
     const auto &fix_origin_to_neutral = gcinput::domain::transform::builtins::fix_origin_to_neutral;
     pipelines.origin.add_stage(gcinput::domain::transform::make_stage(&fix_origin_to_neutral));
@@ -99,15 +114,16 @@ int main() {
 
     gcinput::PadClient pad_client(host_to_pad_config, client_link);
 
-    // テストパターン送信の準備
+    // 計測
+    const uint32_t interval_1f = 16'667; // 約60Hz
     gcinput::measure::Schedule schedule{gcinput::measure::ScheduleConfig{
-        .interval_us = 5'000'000,
+        .interval_us = interval_1f * 10,
         .catch_up = false,
     }};
 
     gcinput::measure::StickGridSweep pattern{gcinput::measure::StickGridSweep::Config{
-        .x = {.begin = 0, .end = 240, .step = 16},
-        .y = {.begin = 0, .end = 240, .step = 16},
+        .x = {.begin = 0, .end = 255, .step = 1},
+        .y = {.begin = 0, .end = 255, .step = 1},
         .loop = true,
         .target = gcinput::measure::StickGridSweep::Target::Joystick,
     }};
@@ -128,6 +144,9 @@ int main() {
 
     uint32_t last_measure_epoch = client_link.load_measure_epoch();
 
+    uint32_t frame_count = 0;
+    std::pair<uint8_t, uint8_t> last_stick{128, 128};
+
     while (true) {
         pad_client.tick(time_us_32(), client_link.shared_console().load());
         pad_injector.tick(time_us_32());
@@ -140,6 +159,7 @@ int main() {
                 real_pad_snapshot.status.input.pressed(gcinput::domain::PadButton::DpadUp);
 
             if (measure_enable && !client_link.is_measure_enabled()) {
+                frame_count = 0;
                 client_link.enable_measure_from_main();
             } else if (measure_disable && client_link.is_measure_enabled()) {
                 client_link.disable_measure_from_main();
@@ -157,37 +177,29 @@ int main() {
             last_tx_publish_count = last_tx.publish_count;
             const auto raw = last_tx.raw;
             const auto modified = last_tx.modified;
-
-            if (raw.command() != modified.command()) {
-                printf("Command is not matched: raw=%02X modified=%02X\n",
-                       static_cast<uint8_t>(raw.command()),
-                       static_cast<uint8_t>(modified.command()));
-                continue;
-            }
-
             const auto command = raw.command();
-
-            if (command == gcinput::joybus::Command::Origin ||
-                command == gcinput::joybus::Command::Recalibrate) {
-                const auto raw_input = raw.view();
-                const auto modified_input = modified.view();
-                printf("%s %s [0x%02X]: ", client_link.is_measure_enabled() ? "[TEST]" : "[REAL]",
-                       "raw", static_cast<uint8_t>(command));
-                for (size_t i = 0; i < raw_input.size(); ++i) {
-                    printf("%02X ", raw_input[i]);
-                }
-                printf("\n");
-                printf("%s %s [0x%02X]: ", client_link.is_measure_enabled() ? "[TEST]" : "[REAL]",
-                       "mod", static_cast<uint8_t>(command));
-                for (size_t i = 0; i < modified_input.size(); ++i) {
-                    printf("%02X ", modified_input[i]);
-                }
-                printf("\n");
-            }
-
             if (command == gcinput::joybus::Command::Status && client_link.is_measure_enabled()) {
                 const auto status = modified.view();
-                printf("(X, Y): (%3d, %3d)\n", (int)status[2], (int)status[3]);
+                if (status.size() < 4) {
+                    continue;
+                }
+                std::pair<uint8_t, uint8_t> current_stick{
+                    status[2], // スティックX
+                    status[3]  // スティックY
+                };
+                if (current_stick != last_stick) {
+                    last_stick = current_stick;
+                    std::array<uint8_t, 4> crc_data{
+                        static_cast<uint8_t>((frame_count >> 8) & 0xFF),
+                        static_cast<uint8_t>(frame_count & 0xFF),
+                        current_stick.first,
+                        current_stick.second,
+                    };
+                    const uint8_t crc = crc8(crc_data);
+                    printf("D,%u,%u,%u,%02X\n", frame_count, current_stick.first,
+                           current_stick.second, crc);
+                    frame_count = (frame_count + 1) % 65536;
+                }
             }
         }
 
