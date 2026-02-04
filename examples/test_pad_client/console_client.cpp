@@ -63,7 +63,7 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
 
     JoybusReply modified_reply = raw_reply;
     // テスト時は変換をスキップしテストパターンをそのまま送る
-    if (!self->link_.is_measure_enabled()) {
+    if (!self->link_.is_test_enabled()) {
         // パッドの応答をパイプラインで変換
         self->link_.transform_pipeline().apply_from_isr(cmd, modified_reply);
     }

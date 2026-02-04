@@ -12,7 +12,7 @@ void TestPadClient::tick(uint32_t now_us, const ConsoleState &console) {
     }
 
     // テスト中でなければ送らない
-    if (!link_.is_measure_enabled()) {
+    if (!link_.is_test_enabled()) {
         return;
     }
 
@@ -22,9 +22,9 @@ void TestPadClient::tick(uint32_t now_us, const ConsoleState &console) {
     }
 
     // インターバルが0だと送信していないのに次を送ろうとしてしまうので1以上にまるめる
-    const uint32_t interval = test_pattern_.send_interval_frames_ == 0
+    const uint32_t interval = test_pattern_.send_interval_frames == 0
                                   ? 1
-                                  : static_cast<uint32_t>(test_pattern_.send_interval_frames_);
+                                  : static_cast<uint32_t>(test_pattern_.send_interval_frames);
 
     const uint32_t elapsed = served - last_publish_count_;
 
