@@ -61,7 +61,7 @@ class TestPadClient {
   public:
     TestPadClient(PadConsoleLink &link, TestInputFrames test_pattern)
         : link_{link}, test_pattern_{test_pattern} {
-        last_test_epoch_ = link_.load_measure_epoch();
+        last_test_epoch_ = link_.load_test_epoch();
         seed_test_snapshot_(InitialPadState{});
     }
 

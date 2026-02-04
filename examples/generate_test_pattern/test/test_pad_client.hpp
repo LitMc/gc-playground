@@ -12,7 +12,7 @@ template <TestPattern P> class TestPadClient {
   public:
     TestPadClient(PadConsoleLink &link, Schedule schedule, P pattern)
         : link_{link}, schedule_{schedule}, pattern_{pattern} {
-        last_test_epoch_ = link_.load_measure_epoch();
+        last_test_epoch_ = link_.load_test_epoch();
     }
 
     // mainループから呼ぶ（非ブロッキング）
@@ -21,7 +21,7 @@ template <TestPattern P> class TestPadClient {
             // テストモードの切り替えを検知したらリセット
             reset_();
             // テスト開始前に初期応答をセット
-            if (link_.is_measure_enabled()) {
+            if (link_.is_test_enabled()) {
                 const auto console = link_.shared_console().load();
                 seed_test_initial_responses(link_, console);
             }
@@ -29,7 +29,7 @@ template <TestPattern P> class TestPadClient {
             return;
         }
 
-        if (!link_.is_measure_enabled()) {
+        if (!link_.is_test_enabled()) {
             return;
         }
 

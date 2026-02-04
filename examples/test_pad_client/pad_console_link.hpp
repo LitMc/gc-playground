@@ -69,29 +69,27 @@ class PadConsoleLink {
   public:
     SharedPadHub &test_pad_hub() { return measure_pad_hub; }
     const SharedPadHub &test_pad_hub() const { return measure_pad_hub; }
-    SharedPadHub &active_pad_hub() {
-        return is_measure_enabled() ? measure_pad_hub : real_pad_hub_;
-    }
+    SharedPadHub &active_pad_hub() { return is_test_enabled() ? measure_pad_hub : real_pad_hub_; }
     const SharedPadHub &active_pad_hub() const {
-        return is_measure_enabled() ? measure_pad_hub : real_pad_hub_;
+        return is_test_enabled() ? measure_pad_hub : real_pad_hub_;
     }
 
-    void enable_measure_from_main() {
+    void enable_test_from_main() {
         test_enabled_.store(1, std::memory_order_release);
         test_epoch_.fetch_add(1, std::memory_order_relaxed);
     }
 
-    void disable_measure_from_main() {
+    void disable_test_from_main() {
         test_enabled_.store(0, std::memory_order_release);
         test_epoch_.fetch_add(1, std::memory_order_relaxed);
     }
 
-    bool is_measure_enabled() const { return test_enabled_.load(std::memory_order_acquire) != 0; }
+    bool is_test_enabled() const { return test_enabled_.load(std::memory_order_acquire) != 0; }
 
-    uint32_t load_measure_epoch() const { return test_epoch_.load(std::memory_order_relaxed); }
+    uint32_t load_test_epoch() const { return test_epoch_.load(std::memory_order_relaxed); }
 
     [[nodiscard]] bool consume_measure_epoch(uint32_t &last) const {
-        const uint32_t cur = load_measure_epoch();
+        const uint32_t cur = load_test_epoch();
         if (cur == last) {
             return false;
         }

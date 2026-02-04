@@ -56,7 +56,7 @@ void create_test_pattern(ConvertGcInput::Test::TestInputFrames &pattern,
     storage.size = 0;
 
     pattern.loop = true;
-    pattern.send_interval_frames_ = 1;
+    pattern.send_interval_frames = 1;
 
     const uint8_t y = 128;
 
@@ -138,7 +138,7 @@ int main() {
 
     uint32_t last_tx_publish_count = client_link.active_pad_hub().load_last_tx().publish_count;
 
-    uint32_t last_test_epoch = client_link.load_measure_epoch();
+    uint32_t last_test_epoch = client_link.load_test_epoch();
 
     while (true) {
         pad_client.tick(time_us_32(), client_link.shared_console().load());
@@ -151,17 +151,17 @@ int main() {
             const bool test_enable = (real_pad_snapshot.status[1] & test_enable_mask) != 0;
             const bool test_disable = (real_pad_snapshot.status[1] & test_disable_mask) != 0;
 
-            if (test_enable && !client_link.is_measure_enabled()) {
-                client_link.enable_measure_from_main();
-            } else if (test_disable && client_link.is_measure_enabled()) {
-                client_link.disable_measure_from_main();
+            if (test_enable && !client_link.is_test_enabled()) {
+                client_link.enable_test_from_main();
+            } else if (test_disable && client_link.is_test_enabled()) {
+                client_link.disable_test_from_main();
             }
         }
 
         if (client_link.consume_measure_epoch(last_test_epoch)) {
             last_tx_publish_count = client_link.active_pad_hub().load_last_tx().publish_count;
             printf("TestPadClient: test mode %s.\n",
-                   client_link.is_measure_enabled() ? "enabled" : "disabled");
+                   client_link.is_test_enabled() ? "enabled" : "disabled");
         }
 
         ConvertGcInput::TxPair last_tx = client_link.active_pad_hub().load_last_tx();
@@ -185,7 +185,7 @@ int main() {
                 const auto raw_input = raw.view();
                 const auto modified_input = modified.view();
                 printf("%s [0x%02X] (%3u,%3u) -> (%3u,%3u)\n",
-                       client_link.is_measure_enabled() ? "[TEST]" : "[REAL]",
+                       client_link.is_test_enabled() ? "[TEST]" : "[REAL]",
                        static_cast<uint8_t>(command), raw_input[2], raw_input[3], modified_input[2],
                        modified_input[3]);
             }
