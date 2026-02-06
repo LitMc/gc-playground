@@ -201,7 +201,9 @@ def build_line_regex(mark: str) -> re.Pattern:
     return re.compile(rf"^{m},(\d+),(\d+),(\d+),([0-9A-Fa-f]{{2}})$")
 
 
-def parse_data_line(line: str, mark: str, line_re: re.Pattern) -> Optional[Tuple[int, int, int]]:
+def parse_data_line(
+    line: str, mark: str, line_re: re.Pattern
+) -> Optional[Tuple[int, int, int]]:
     s = line.strip()
     m = line_re.match(s)
     if not m:
@@ -279,7 +281,14 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
     # Send latest immediately
     latest: Latest = request.app["latest"]
     await ws.send_str(
-        json.dumps({"frame": latest.frame, "sx": latest.sx, "sy": latest.sy, "bits": latest.bits})
+        json.dumps(
+            {
+                "frame": latest.frame,
+                "sx": latest.sx,
+                "sy": latest.sy,
+                "bits": latest.bits,
+            }
+        )
     )
 
     try:
@@ -317,20 +326,32 @@ async def broadcaster(app: web.Application) -> None:
 
 
 async def main() -> None:
-    ap = argparse.ArgumentParser(description="Serial -> OBS overlay (barcode + debug text)")
-    ap.add_argument("--serial", required=True, help="macOS: /dev/cu.usbmodemXXXX  (or /dev/tty.*)")
+    ap = argparse.ArgumentParser(
+        description="Serial -> OBS overlay (barcode + debug text)"
+    )
+    ap.add_argument(
+        "--serial", required=True, help="macOS: /dev/cu.usbmodemXXXX  (or /dev/tty.*)"
+    )
     ap.add_argument("--baud", type=int, default=115200)
-    ap.add_argument("--mark", default="D", help="fixed marker at line start (default: D)")
-    ap.add_argument("--host", default="127.0.0.1", help="bind host (use 0.0.0.0 for LAN)")
+    ap.add_argument(
+        "--mark", default="D", help="fixed marker at line start (default: D)"
+    )
+    ap.add_argument(
+        "--host", default="127.0.0.1", help="bind host (use 0.0.0.0 for LAN)"
+    )
     ap.add_argument("--port", type=int, default=8765)
-    ap.add_argument("--queue-size", type=int, default=256, help="async queue size (default: 256)")
+    ap.add_argument(
+        "--queue-size", type=int, default=256, help="async queue size (default: 256)"
+    )
     args = ap.parse_args()
 
     app = web.Application()
     app["clients"] = set()
     app["queue"] = asyncio.Queue(maxsize=args.queue_size)
     app["overlay_html"] = build_overlay_html()
-    app["latest"] = Latest(frame=0, sx=128, sy=128, bits=make_bits(0, 128, 128), updated_at=time.time())
+    app["latest"] = Latest(
+        frame=0, sx=128, sy=128, bits=make_bits(0, 128, 128), updated_at=time.time()
+    )
 
     app.router.add_get("/overlay.html", overlay_handler)
     app.router.add_get("/ws", ws_handler)

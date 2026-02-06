@@ -5,15 +5,15 @@ import re
 from pathlib import Path
 
 
-INDENT = ' ' * 4
-LABEL_REGEX = re.compile(r'^\s*(?:public\s+)?[A-Za-z_][\w.]*:\s*$')
-COMMENT_COLUMN = 44 # コメントを揃える列
+INDENT = " " * 4
+LABEL_REGEX = re.compile(r"^\s*(?:public\s+)?[A-Za-z_][\w.]*:\s*$")
+COMMENT_COLUMN = 44  # コメントを揃える列
 
 is_inside_wrapped_block = False
 
 
 def is_directive(line: str) -> bool:
-    return line.strip().startswith('.')
+    return line.strip().startswith(".")
 
 
 def is_label(line: str) -> bool:
@@ -22,8 +22,8 @@ def is_label(line: str) -> bool:
 
 def normalize_instruction(code: str) -> str:
     code = code.strip()
-    code = re.sub(r'\s+', ' ', code)
-    code = re.sub(r'\s*,\s*', ', ', code)
+    code = re.sub(r"\s+", " ", code)
+    code = re.sub(r"\s*,\s*", ", ", code)
     return code
 
 
@@ -37,16 +37,20 @@ def format_line(line: str) -> str:
         is_inside_wrapped_block = True
 
     # コメント行
-    if raw.lstrip().startswith(';'):
-        return ' ' * COMMENT_COLUMN + raw.strip() if is_inside_wrapped_block else raw.strip()
+    if raw.lstrip().startswith(";"):
+        return (
+            " " * COMMENT_COLUMN + raw.strip()
+            if is_inside_wrapped_block
+            else raw.strip()
+        )
 
     # コードとコメントを分離
-    if ';' in raw:
-        code_part, comment_part = raw.split(';', 1)
+    if ";" in raw:
+        code_part, comment_part = raw.split(";", 1)
         code_part = code_part.rstrip()
-        comment = ';' + comment_part
+        comment = ";" + comment_part
     else:
-        code_part, comment = raw.rstrip(), ''
+        code_part, comment = raw.rstrip(), ""
 
     if is_directive(code_part) or is_label(code_part):
         code = code_part.strip()
@@ -57,7 +61,7 @@ def format_line(line: str) -> str:
         return code.rstrip()
 
     if len(code) < COMMENT_COLUMN:
-        pad = ' ' * (COMMENT_COLUMN - len(code))
+        pad = " " * (COMMENT_COLUMN - len(code))
         return f"{code}{pad}{comment}"
     else:
         return f"{code}  {comment}"
@@ -71,7 +75,9 @@ def format_text(text: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description="RP2040 PIO assembly code formatter tool.")
     ap.add_argument("file", type=Path, help="Path to the PIO assembly file to format.")
-    ap.add_argument("--check", action="store_true", help="Check if the file is already formatted.")
+    ap.add_argument(
+        "--check", action="store_true", help="Check if the file is already formatted."
+    )
     args = ap.parse_args()
 
     src = args.file.read_text(encoding="utf-8")
