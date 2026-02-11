@@ -1,6 +1,6 @@
-import numpy as np
-import cv2 as cv
 import argparse
+
+import cv2 as cv
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video", required=True, help="path to input video file")
