@@ -5,4 +5,5 @@ samples/
 resources/images/
 resources/videos/
 resources/templates/
-__pycache__/
+__pycache__
+*.pyc
