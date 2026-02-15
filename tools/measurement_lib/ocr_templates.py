@@ -26,6 +26,31 @@ class TemplateBank:
     plus_templates: list[np.ndarray]
     digit_size: tuple[int, int]
     sign_size: tuple[int, int]
+    digit_template_masks: dict[int, np.ndarray]
+    blank_digit_template_masks: np.ndarray | None
+    blank_sign_template_masks: np.ndarray | None
+    minus_template_masks: np.ndarray | None
+    minus_template_digit_masks: np.ndarray | None
+    plus_template_masks: np.ndarray | None
+
+
+def _stack_template_masks(templates: list[np.ndarray]) -> np.ndarray | None:
+    if not templates:
+        return None
+    return np.stack([(t > 0) for t in templates], axis=0)
+
+
+def _max_iou_with_masks(sample_mask: np.ndarray, template_masks: np.ndarray | None) -> float:
+    if template_masks is None or template_masks.size == 0:
+        return -1.0
+
+    inter = np.logical_and(template_masks, sample_mask).sum(axis=(1, 2), dtype=np.int64)
+    union = np.logical_or(template_masks, sample_mask).sum(axis=(1, 2), dtype=np.int64)
+
+    scores = np.zeros_like(inter, dtype=np.float64)
+    valid = union > 0
+    scores[valid] = inter[valid] / union[valid]
+    return float(scores.max(initial=-1.0))
 
 
 def preprocess_to_binary(
@@ -134,6 +159,15 @@ def load_templates(templates_dir: str | None) -> TemplateBank | None:
     if not any(len(v) > 0 for v in digit_templates.values()):
         raise ValueError(f"No digit templates found in: {templates_dir}")
 
+    digit_template_masks = {
+        d: _stack_template_masks(tmpls) for d, tmpls in digit_templates.items()
+    }
+    blank_digit_template_masks = _stack_template_masks(blank_digit_templates)
+    blank_sign_template_masks = _stack_template_masks(blank_sign_templates)
+    minus_template_masks = _stack_template_masks(minus_templates)
+    minus_template_digit_masks = _stack_template_masks(minus_templates_digit)
+    plus_template_masks = _stack_template_masks(plus_templates)
+
     return TemplateBank(
         digit_templates=digit_templates,
         blank_digit_templates=blank_digit_templates,
@@ -143,6 +177,12 @@ def load_templates(templates_dir: str | None) -> TemplateBank | None:
         plus_templates=plus_templates,
         digit_size=digit_size,
         sign_size=sign_size,
+        digit_template_masks=digit_template_masks,
+        blank_digit_template_masks=blank_digit_template_masks,
+        blank_sign_template_masks=blank_sign_template_masks,
+        minus_template_masks=minus_template_masks,
+        minus_template_digit_masks=minus_template_digit_masks,
+        plus_template_masks=plus_template_masks,
     )
 
 
@@ -157,27 +197,39 @@ def compare_binary(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def predict_digit(sample: np.ndarray, bank: TemplateBank):
+    sample_mask = sample > 0
     best_digit = 0
     best_score = -1.0
-    for digit, tmpls in bank.digit_templates.items():
-        for tmpl in tmpls:
-            score = compare_binary(sample, tmpl)
-            if score > best_score:
-                best_score = score
-                best_digit = digit
+    for digit, template_masks in bank.digit_template_masks.items():
+        score = _max_iou_with_masks(sample_mask, template_masks)
+        if score > best_score:
+            best_score = score
+            best_digit = digit
     return best_digit, best_score
 
 
-def predict_minus_score(
-    roi_bgr, target_size: tuple[int, int], templates: list[np.ndarray]
+def predict_minus_score_from_sample(
+    sample: np.ndarray, template_masks: np.ndarray | None
 ):
-    if not templates:
+    return _max_iou_with_masks(sample > 0, template_masks)
+
+
+def predict_minus_score(
+    roi_bgr,
+    target_size: tuple[int, int],
+    templates: list[np.ndarray],
+    template_masks: np.ndarray | None = None,
+):
+    if not templates and template_masks is None:
         return -1.0, 0.0
 
     sample, ink_ratio = preprocess_to_binary(roi_bgr, target_size)
-    best = -1.0
-    for tmpl in templates:
-        best = max(best, compare_binary(sample, tmpl))
+    if template_masks is not None:
+        best = predict_minus_score_from_sample(sample, template_masks)
+    else:
+        best = -1.0
+        for tmpl in templates:
+            best = max(best, compare_binary(sample, tmpl))
     return best, ink_ratio
 
 
@@ -188,20 +240,17 @@ def classify_sign_roi(
     minus_thresh: float = 0.35,
     blank_ink_thresh: float = 0.05,
     blank_template_margin: float = 0.03,
+    preprocessed: tuple[np.ndarray, float] | None = None,
 ):
-    sample, ink_ratio = preprocess_to_binary(roi_bgr, bank.sign_size)
+    if preprocessed is None:
+        sample, ink_ratio = preprocess_to_binary(roi_bgr, bank.sign_size)
+    else:
+        sample, ink_ratio = preprocessed
 
-    minus_score = -1.0
-    for tmpl in bank.minus_templates:
-        minus_score = max(minus_score, compare_binary(sample, tmpl))
-
-    plus_score = -1.0
-    for tmpl in bank.plus_templates:
-        plus_score = max(plus_score, compare_binary(sample, tmpl))
-
-    blank_score = -1.0
-    for tmpl in bank.blank_sign_templates:
-        blank_score = max(blank_score, compare_binary(sample, tmpl))
+    sample_mask = sample > 0
+    minus_score = _max_iou_with_masks(sample_mask, bank.minus_template_masks)
+    plus_score = _max_iou_with_masks(sample_mask, bank.plus_template_masks)
+    blank_score = _max_iou_with_masks(sample_mask, bank.blank_sign_template_masks)
 
     is_blank = ink_ratio < blank_ink_thresh
     if not is_blank and blank_score >= 0:
@@ -231,17 +280,22 @@ def classify_digit_roi(
     blank_ink_thresh: float = 0.05,
     blank_digit_score_thresh: float = 0.22,
     blank_template_margin: float = 0.03,
+    preprocessed: tuple[np.ndarray, float] | None = None,
+    minus_score_override: float | None = None,
 ):
-    sample, ink_ratio = preprocess_to_binary(roi_bgr, bank.digit_size)
-    digit, digit_score = predict_digit(sample, bank)
-    minus_score, _ = predict_minus_score(
-        roi_bgr, bank.digit_size, bank.minus_templates_digit
-    )
+    if preprocessed is None:
+        sample, ink_ratio = preprocess_to_binary(roi_bgr, bank.digit_size)
+    else:
+        sample, ink_ratio = preprocessed
 
-    blank_score = -1.0
-    if bank.blank_digit_templates:
-        for tmpl in bank.blank_digit_templates:
-            blank_score = max(blank_score, compare_binary(sample, tmpl))
+    sample_mask = sample > 0
+    digit, digit_score = predict_digit(sample, bank)
+    if minus_score_override is None:
+        minus_score = _max_iou_with_masks(sample_mask, bank.minus_template_digit_masks)
+    else:
+        minus_score = minus_score_override
+
+    blank_score = _max_iou_with_masks(sample_mask, bank.blank_digit_template_masks)
 
     is_blank = False
     if allow_blank:
@@ -270,21 +324,28 @@ def decode_axis_value(frame, rois, axis: str, bank: TemplateBank):
     minus_thresh = 0.35
 
     sign_roi = crop(frame, rois[f"{axis}_sign"])
+    sign_preprocessed = preprocess_to_binary(sign_roi, bank.sign_size)
     sign_token, minus_sign_score, _, _, ink_sign = classify_sign_roi(
         sign_roi,
         bank,
         minus_thresh=minus_thresh,
+        preprocessed=sign_preprocessed,
     )
 
     d100_roi = crop(frame, rois[f"{axis}_100"])
-    minus_100_score, _ = predict_minus_score(
-        d100_roi, bank.digit_size, bank.minus_templates_digit
+    d100_preprocessed = preprocess_to_binary(d100_roi, bank.digit_size)
+    minus_100_score = predict_minus_score_from_sample(
+        d100_preprocessed[0], bank.minus_template_digit_masks
     )
 
     d10_roi = crop(frame, rois[f"{axis}_10"])
-    minus_10_score, _ = predict_minus_score(
-        d10_roi, bank.digit_size, bank.minus_templates_digit
+    d10_preprocessed = preprocess_to_binary(d10_roi, bank.digit_size)
+    minus_10_score = predict_minus_score_from_sample(
+        d10_preprocessed[0], bank.minus_template_digit_masks
     )
+
+    d1_roi = crop(frame, rois[f"{axis}_1"])
+    d1_preprocessed = preprocess_to_binary(d1_roi, bank.digit_size)
 
     minus_candidates = [
         ("sign", minus_sign_score if sign_token == "-" else -1.0),
@@ -302,18 +363,31 @@ def decode_axis_value(frame, rois, axis: str, bank: TemplateBank):
     digits: list[int | None] = []
     scores = [sign_score]
     for place in (100, 10, 1):
-        key = f"{axis}_{place}"
         if minus_slot == str(place):
             digits.append(None)
             scores.append(minus_best)
             continue
 
-        digit_roi = crop(frame, rois[key])
+        if place == 100:
+            digit_roi = d100_roi
+            digit_preprocessed = d100_preprocessed
+            minus_override = minus_100_score
+        elif place == 10:
+            digit_roi = d10_roi
+            digit_preprocessed = d10_preprocessed
+            minus_override = minus_10_score
+        else:
+            digit_roi = d1_roi
+            digit_preprocessed = d1_preprocessed
+            minus_override = None
+
         token, digit_score, minus_digit_score, _, _ = classify_digit_roi(
             digit_roi,
             bank,
             allow_blank=(place != 1),
             minus_thresh=minus_thresh,
+            preprocessed=digit_preprocessed,
+            minus_score_override=minus_override,
         )
 
         if token is None:

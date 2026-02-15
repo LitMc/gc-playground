@@ -1,5 +1,6 @@
 import argparse
 import csv
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -72,6 +73,11 @@ def main():
         default=1000,
         help="Print progress every N processed video frames (0 disables)",
     )
+    ap.add_argument(
+        "--profile-times",
+        action="store_true",
+        help="Print timing breakdown (barcode/ocr/aggregate) at the end",
+    )
     args = ap.parse_args()
 
     cap = cv.VideoCapture(args.video)
@@ -107,6 +113,9 @@ def main():
     preamble_fail_count = 0
     crc_fail_count = 0
     last_success: tuple[int, int, int, int, int, float] | None = None
+    scan_started_at = time.perf_counter()
+    barcode_time_s = 0.0
+    ocr_time_s = 0.0
 
     while True:
         if end_frame >= 0 and video_frame_idx > end_frame:
@@ -119,8 +128,10 @@ def main():
         processed_frames += 1
 
         barcode_roi = crop(frame, rois["barcode"])
+        barcode_t0 = time.perf_counter()
         _, bits, _ = decode_barcode(barcode_roi, n_bits)
         barcode_dec = parse_barcode_bits(bits)
+        barcode_time_s += time.perf_counter() - barcode_t0
         if barcode_dec is None:
             decode_fail_count += 1
         elif not barcode_dec.preamble_ok:
@@ -128,8 +139,10 @@ def main():
         elif not barcode_dec.crc_ok:
             crc_fail_count += 1
         else:
+            ocr_t0 = time.perf_counter()
             x_res = decode_axis_value(frame, rois, "x", bank)
             y_res = decode_axis_value(frame, rois, "y", bank)
+            ocr_time_s += time.perf_counter() - ocr_t0
             conf_min = min(x_res.confidence, y_res.confidence)
 
             observations.append(
@@ -176,9 +189,12 @@ def main():
 
     cap.release()
 
+    aggregate_t0 = time.perf_counter()
     aggregated = aggregate_longest_run(
         observations, min_support=max(1, args.min_support)
     )
+    aggregate_time_s = time.perf_counter() - aggregate_t0
+    scan_time_s = time.perf_counter() - scan_started_at
 
     print(
         "scan summary "
@@ -194,6 +210,18 @@ def main():
         f"input_observations={len(observations)} "
         f"output_rows={len(aggregated)}"
     )
+
+    if args.profile_times:
+        other_time_s = max(0.0, scan_time_s - barcode_time_s - ocr_time_s - aggregate_time_s)
+        print(
+            "timing summary "
+            f"scan_total_s={scan_time_s:.3f} "
+            f"barcode_s={barcode_time_s:.3f} "
+            f"ocr_s={ocr_time_s:.3f} "
+            f"aggregate_s={aggregate_time_s:.3f} "
+            f"other_s={other_time_s:.3f} "
+            f"processed_frames={processed_frames}"
+        )
 
     out_path = Path(args.out_csv)
     out_path.parent.mkdir(parents=True, exist_ok=True)
