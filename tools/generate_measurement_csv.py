@@ -48,6 +48,7 @@ class ScanStats:
     barcode_time_s: float = 0.0
     ocr_time_s: float = 0.0
     early_eof: bool = False
+    seek_prestart_skipped_frames: int = 0
 
     def merge(self, other: "ScanStats"):
         self.processed_frames += other.processed_frames
@@ -58,9 +59,12 @@ class ScanStats:
         self.barcode_time_s += other.barcode_time_s
         self.ocr_time_s += other.ocr_time_s
         self.early_eof = self.early_eof or other.early_eof
+        self.seek_prestart_skipped_frames += other.seek_prestart_skipped_frames
 
 
-def build_chunks(start_frame: int, end_frame: int, chunk_size: int) -> list[tuple[int, int]]:
+def build_chunks(
+    start_frame: int, end_frame: int, chunk_size: int
+) -> list[tuple[int, int]]:
     chunks: list[tuple[int, int]] = []
     cur = start_frame
     while cur <= end_frame:
@@ -74,6 +78,7 @@ def scan_chunk(
     video_path: str,
     rois_path: str,
     templates_dir: str,
+    seek_frame: int,
     start_frame: int,
     end_frame: int | None,
     log_every: int = 0,
@@ -90,13 +95,23 @@ def scan_chunk(
     if bank is None:
         raise RuntimeError("templates are required for CSV generation")
 
-    cap.set(cv.CAP_PROP_POS_FRAMES, start_frame)
-    video_frame_idx = start_frame
+    cap.set(cv.CAP_PROP_POS_FRAMES, seek_frame)
+    video_frame_idx = seek_frame
     n_bits = 48
     observations: list[ObservationRow] = []
     stats = ScanStats()
     last_success: tuple[int, int, int, int, int, float] | None = None
     hit_eof = False
+
+    frames_to_skip = max(0, start_frame - video_frame_idx)
+    while frames_to_skip > 0:
+        ret, _ = cap.read()
+        if not ret:
+            hit_eof = True
+            break
+        video_frame_idx += 1
+        frames_to_skip -= 1
+        stats.seek_prestart_skipped_frames += 1
 
     while True:
         if end_frame is not None and video_frame_idx > end_frame:
@@ -291,6 +306,7 @@ def main():
                     args.video,
                     args.rois,
                     args.templates_dir,
+                    start_frame,
                     chunk_start,
                     chunk_end,
                     0,
@@ -325,13 +341,24 @@ def main():
             args.rois,
             args.templates_dir,
             start_frame,
+            start_frame,
             end_frame,
             args.log_every,
         )
         observations.extend(chunk_observations)
         stats.merge(chunk_stats)
 
-    observations.sort(key=lambda r: r.video_frame_idx)
+    observations.sort(
+        key=lambda r: (
+            r.video_frame_idx,
+            r.raw_frame_id,
+            r.sx,
+            r.sy,
+            r.gx,
+            r.gy,
+            r.conf_min,
+        )
+    )
 
     aggregate_t0 = time.perf_counter()
     aggregated = aggregate_longest_run(
@@ -377,6 +404,12 @@ def main():
         print(
             "warning: reached EOF before requested end-frame "
             f"start_frame={start_frame} end_frame={end_frame}"
+        )
+
+    if stats.seek_prestart_skipped_frames > 0:
+        print(
+            "seek notice: skipped pre-start decoded frames "
+            f"count={stats.seek_prestart_skipped_frames}"
         )
 
     out_path = Path(args.out_csv)
