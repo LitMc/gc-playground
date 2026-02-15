@@ -184,9 +184,22 @@ uv run tools/generate_measurement_csv.py \
   --templates-dir resources/templates/game_digits \
   --out-csv resources/switch2/readings.csv \
   --out-diagnostics-csv resources/switch2/readings_diagnostics.csv \
+  --workers 4 \
+  --chunk-size 1000 \
   --log-every 1000 \
   --min-support 2
 ```
+
+並列化オプション:
+
+- `--workers`: ワーカープロセス数（`1` で単一プロセス互換、既定 `4`）
+- `--chunk-size`: 1タスクあたりのフレーム数（既定 `1000`）
+
+目安:
+
+- まず `--workers 4` を基準にして、`2/4/6` で速度比較
+- 発熱や負荷でスループットが落ちる場合は `workers` を下げる
+- `workers > 1` でも最終集約は親プロセスで1回実施するため、連続run判定のロジックは維持される
 
 進捗ログ（`--log-every` フレームごと）:
 

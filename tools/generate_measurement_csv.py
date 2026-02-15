@@ -1,4 +1,5 @@
 import argparse
+import concurrent.futures
 import csv
 import time
 from dataclasses import dataclass
@@ -35,6 +36,160 @@ class DiagnosticRow:
     frame: int
     support_len: int
     confidence_sum: float
+
+
+@dataclass
+class ScanStats:
+    processed_frames: int = 0
+    accepted_count: int = 0
+    decode_fail_count: int = 0
+    preamble_fail_count: int = 0
+    crc_fail_count: int = 0
+    barcode_time_s: float = 0.0
+    ocr_time_s: float = 0.0
+    early_eof: bool = False
+
+    def merge(self, other: "ScanStats"):
+        self.processed_frames += other.processed_frames
+        self.accepted_count += other.accepted_count
+        self.decode_fail_count += other.decode_fail_count
+        self.preamble_fail_count += other.preamble_fail_count
+        self.crc_fail_count += other.crc_fail_count
+        self.barcode_time_s += other.barcode_time_s
+        self.ocr_time_s += other.ocr_time_s
+        self.early_eof = self.early_eof or other.early_eof
+
+
+def build_chunks(start_frame: int, end_frame: int, chunk_size: int) -> list[tuple[int, int]]:
+    chunks: list[tuple[int, int]] = []
+    cur = start_frame
+    while cur <= end_frame:
+        chunk_end = min(end_frame, cur + chunk_size - 1)
+        chunks.append((cur, chunk_end))
+        cur = chunk_end + 1
+    return chunks
+
+
+def scan_chunk(
+    video_path: str,
+    rois_path: str,
+    templates_dir: str,
+    start_frame: int,
+    end_frame: int | None,
+    log_every: int = 0,
+) -> tuple[list[ObservationRow], ScanStats]:
+    cv.setNumThreads(1)
+    cap = cv.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise RuntimeError(f"Error opening video: {video_path}")
+
+    rois = load_rois(rois_path)
+    ensure_roi_names(rois, REQUIRED_ROIS)
+
+    bank = load_templates(templates_dir)
+    if bank is None:
+        raise RuntimeError("templates are required for CSV generation")
+
+    cap.set(cv.CAP_PROP_POS_FRAMES, start_frame)
+    video_frame_idx = start_frame
+    n_bits = 48
+    observations: list[ObservationRow] = []
+    stats = ScanStats()
+    last_success: tuple[int, int, int, int, int, float] | None = None
+    hit_eof = False
+
+    while True:
+        if end_frame is not None and video_frame_idx > end_frame:
+            break
+
+        ret, frame = cap.read()
+        if not ret:
+            hit_eof = True
+            break
+
+        stats.processed_frames += 1
+
+        barcode_roi = crop(frame, rois["barcode"])
+        barcode_t0 = time.perf_counter()
+        _, bits, _ = decode_barcode(barcode_roi, n_bits)
+        barcode_dec = parse_barcode_bits(bits)
+        stats.barcode_time_s += time.perf_counter() - barcode_t0
+        if barcode_dec is None:
+            stats.decode_fail_count += 1
+        elif not barcode_dec.preamble_ok:
+            stats.preamble_fail_count += 1
+        elif not barcode_dec.crc_ok:
+            stats.crc_fail_count += 1
+        else:
+            ocr_t0 = time.perf_counter()
+            x_res = decode_axis_value(frame, rois, "x", bank)
+            y_res = decode_axis_value(frame, rois, "y", bank)
+            stats.ocr_time_s += time.perf_counter() - ocr_t0
+            conf_min = min(x_res.confidence, y_res.confidence)
+
+            observations.append(
+                ObservationRow(
+                    video_frame_idx=video_frame_idx,
+                    raw_frame_id=barcode_dec.frame,
+                    sx=barcode_dec.sx,
+                    sy=barcode_dec.sy,
+                    gx=x_res.value,
+                    gy=y_res.value,
+                    conf_min=conf_min,
+                )
+            )
+
+            stats.accepted_count += 1
+            last_success = (
+                barcode_dec.frame,
+                barcode_dec.sx,
+                barcode_dec.sy,
+                x_res.value,
+                y_res.value,
+                conf_min,
+            )
+
+        if log_every > 0 and stats.processed_frames % log_every == 0:
+            sample_text = "sample=none"
+            if last_success is not None:
+                rf, sx, sy, gx, gy, conf = last_success
+                sample_text = (
+                    f"sample(raw={rf},sx={sx},sy={sy},gx={gx},gy={gy},conf={conf:.3f})"
+                )
+            print(
+                "progress "
+                f"video_frame={video_frame_idx} "
+                f"processed={stats.processed_frames} "
+                f"accepted={stats.accepted_count} "
+                f"decode_fail={stats.decode_fail_count} "
+                f"preamble_fail={stats.preamble_fail_count} "
+                f"crc_fail={stats.crc_fail_count} "
+                f"{sample_text}"
+            )
+
+        video_frame_idx += 1
+
+    cap.release()
+
+    if end_frame is not None and hit_eof and video_frame_idx <= end_frame:
+        stats.early_eof = True
+
+    return observations, stats
+
+
+def resolve_end_frame(
+    cap: cv.VideoCapture,
+    user_end_frame: int,
+) -> tuple[int | None, int]:
+    frame_count = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
+    if frame_count <= 0:
+        frame_count = -1
+
+    if user_end_frame >= 0:
+        return user_end_frame, frame_count
+    if frame_count > 0:
+        return frame_count - 1, frame_count
+    return None, frame_count
 
 
 def main():
@@ -78,116 +233,105 @@ def main():
         action="store_true",
         help="Print timing breakdown (barcode/ocr/aggregate) at the end",
     )
+    ap.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="Number of worker processes (1 keeps single-process behavior)",
+    )
+    ap.add_argument(
+        "--chunk-size",
+        type=int,
+        default=1000,
+        help="Frames per task chunk in parallel mode",
+    )
     args = ap.parse_args()
+
+    if args.workers < 1:
+        raise ValueError("--workers must be >= 1")
+    if args.chunk_size < 1:
+        raise ValueError("--chunk-size must be >= 1")
 
     cap = cv.VideoCapture(args.video)
     if not cap.isOpened():
         raise RuntimeError(f"Error opening video: {args.video}")
 
-    rois = load_rois(args.rois)
-    ensure_roi_names(rois, REQUIRED_ROIS)
-
-    bank = load_templates(args.templates_dir)
-    if bank is None:
-        raise RuntimeError("templates are required for CSV generation")
-
-    frame_count = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
-    if frame_count <= 0:
-        frame_count = -1
-
     start_frame = max(0, args.start_frame)
-    if args.end_frame >= 0:
-        end_frame = args.end_frame
-    elif frame_count > 0:
-        end_frame = frame_count - 1
-    else:
-        end_frame = -1
-
-    cap.set(cv.CAP_PROP_POS_FRAMES, start_frame)
-    video_frame_idx = start_frame
-    n_bits = 48
-    observations: list[ObservationRow] = []
-    processed_frames = 0
-    accepted_count = 0
-    decode_fail_count = 0
-    preamble_fail_count = 0
-    crc_fail_count = 0
-    last_success: tuple[int, int, int, int, int, float] | None = None
-    scan_started_at = time.perf_counter()
-    barcode_time_s = 0.0
-    ocr_time_s = 0.0
-
-    while True:
-        if end_frame >= 0 and video_frame_idx > end_frame:
-            break
-
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        processed_frames += 1
-
-        barcode_roi = crop(frame, rois["barcode"])
-        barcode_t0 = time.perf_counter()
-        _, bits, _ = decode_barcode(barcode_roi, n_bits)
-        barcode_dec = parse_barcode_bits(bits)
-        barcode_time_s += time.perf_counter() - barcode_t0
-        if barcode_dec is None:
-            decode_fail_count += 1
-        elif not barcode_dec.preamble_ok:
-            preamble_fail_count += 1
-        elif not barcode_dec.crc_ok:
-            crc_fail_count += 1
-        else:
-            ocr_t0 = time.perf_counter()
-            x_res = decode_axis_value(frame, rois, "x", bank)
-            y_res = decode_axis_value(frame, rois, "y", bank)
-            ocr_time_s += time.perf_counter() - ocr_t0
-            conf_min = min(x_res.confidence, y_res.confidence)
-
-            observations.append(
-                ObservationRow(
-                    video_frame_idx=video_frame_idx,
-                    raw_frame_id=barcode_dec.frame,
-                    sx=barcode_dec.sx,
-                    sy=barcode_dec.sy,
-                    gx=x_res.value,
-                    gy=y_res.value,
-                    conf_min=conf_min,
-                )
-            )
-
-            accepted_count += 1
-            last_success = (
-                barcode_dec.frame,
-                barcode_dec.sx,
-                barcode_dec.sy,
-                x_res.value,
-                y_res.value,
-                conf_min,
-            )
-
-        if args.log_every > 0 and processed_frames % args.log_every == 0:
-            sample_text = "sample=none"
-            if last_success is not None:
-                rf, sx, sy, gx, gy, conf = last_success
-                sample_text = (
-                    f"sample(raw={rf},sx={sx},sy={sy},gx={gx},gy={gy},conf={conf:.3f})"
-                )
-            print(
-                "progress "
-                f"video_frame={video_frame_idx} "
-                f"processed={processed_frames} "
-                f"accepted={accepted_count} "
-                f"decode_fail={decode_fail_count} "
-                f"preamble_fail={preamble_fail_count} "
-                f"crc_fail={crc_fail_count} "
-                f"{sample_text}"
-            )
-
-        video_frame_idx += 1
-
+    end_frame, frame_count = resolve_end_frame(cap, args.end_frame)
     cap.release()
+
+    if end_frame is not None and end_frame < start_frame:
+        raise ValueError(
+            f"invalid frame range: start={start_frame}, end={end_frame} (inclusive)"
+        )
+
+    observations: list[ObservationRow] = []
+    stats = ScanStats()
+    scan_started_at = time.perf_counter()
+
+    use_parallel = args.workers > 1 and end_frame is not None
+    chunk_count = 1
+
+    if use_parallel:
+        chunks = build_chunks(start_frame, end_frame, args.chunk_size)
+        chunk_count = len(chunks)
+        print(
+            "parallel scan "
+            f"workers={args.workers} "
+            f"chunk_size={args.chunk_size} "
+            f"chunks={chunk_count}"
+        )
+
+        completed_chunks = 0
+        next_progress_threshold = max(1, args.log_every)
+        with concurrent.futures.ProcessPoolExecutor(max_workers=args.workers) as pool:
+            futures = [
+                pool.submit(
+                    scan_chunk,
+                    args.video,
+                    args.rois,
+                    args.templates_dir,
+                    chunk_start,
+                    chunk_end,
+                    0,
+                )
+                for chunk_start, chunk_end in chunks
+            ]
+            for fut in concurrent.futures.as_completed(futures):
+                chunk_observations, chunk_stats = fut.result()
+                observations.extend(chunk_observations)
+                stats.merge(chunk_stats)
+                completed_chunks += 1
+                if args.log_every > 0:
+                    while stats.processed_frames >= next_progress_threshold:
+                        print(
+                            "progress "
+                            f"chunks={completed_chunks}/{chunk_count} "
+                            f"processed={stats.processed_frames} "
+                            f"accepted={stats.accepted_count} "
+                            f"decode_fail={stats.decode_fail_count} "
+                            f"preamble_fail={stats.preamble_fail_count} "
+                            f"crc_fail={stats.crc_fail_count}"
+                        )
+                        next_progress_threshold += args.log_every
+    else:
+        if args.workers > 1 and end_frame is None:
+            print(
+                "warning: frame count is unknown, falling back to single worker for end-frame=-1"
+            )
+
+        chunk_observations, chunk_stats = scan_chunk(
+            args.video,
+            args.rois,
+            args.templates_dir,
+            start_frame,
+            end_frame,
+            args.log_every,
+        )
+        observations.extend(chunk_observations)
+        stats.merge(chunk_stats)
+
+    observations.sort(key=lambda r: r.video_frame_idx)
 
     aggregate_t0 = time.perf_counter()
     aggregated = aggregate_longest_run(
@@ -198,11 +342,11 @@ def main():
 
     print(
         "scan summary "
-        f"processed={processed_frames} "
-        f"accepted={accepted_count} "
-        f"decode_fail={decode_fail_count} "
-        f"preamble_fail={preamble_fail_count} "
-        f"crc_fail={crc_fail_count} "
+        f"processed={stats.processed_frames} "
+        f"accepted={stats.accepted_count} "
+        f"decode_fail={stats.decode_fail_count} "
+        f"preamble_fail={stats.preamble_fail_count} "
+        f"crc_fail={stats.crc_fail_count} "
         f"min_support={max(1, args.min_support)}"
     )
     print(
@@ -212,15 +356,27 @@ def main():
     )
 
     if args.profile_times:
-        other_time_s = max(0.0, scan_time_s - barcode_time_s - ocr_time_s - aggregate_time_s)
+        other_time_s = max(
+            0.0,
+            scan_time_s - stats.barcode_time_s - stats.ocr_time_s - aggregate_time_s,
+        )
         print(
             "timing summary "
             f"scan_total_s={scan_time_s:.3f} "
-            f"barcode_s={barcode_time_s:.3f} "
-            f"ocr_s={ocr_time_s:.3f} "
+            f"barcode_s={stats.barcode_time_s:.3f} "
+            f"ocr_s={stats.ocr_time_s:.3f} "
             f"aggregate_s={aggregate_time_s:.3f} "
             f"other_s={other_time_s:.3f} "
-            f"processed_frames={processed_frames}"
+            f"processed_frames={stats.processed_frames} "
+            f"workers={args.workers if use_parallel else 1} "
+            f"chunk_size={args.chunk_size} "
+            f"chunks={chunk_count}"
+        )
+
+    if stats.early_eof and end_frame is not None:
+        print(
+            "warning: reached EOF before requested end-frame "
+            f"start_frame={start_frame} end_frame={end_frame}"
         )
 
     out_path = Path(args.out_csv)
