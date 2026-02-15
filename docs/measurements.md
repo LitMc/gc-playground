@@ -224,3 +224,43 @@ uv run tools/read_values.py \
   --rois resources/rois/rois.json \
   --templates-dir resources/templates/game_digits
 ```
+
+## 計測CSVの対応可視化
+`readings.csv` (`frame,sx,sy,gx,gy`) から、`sx,sy -> gx,gy` の対応を俯瞰するPNGを生成する。
+
+```bash
+uv run tools/visualize_measurement_map.py \
+  --input resources/switch2/readings.csv \
+  --diagnostics resources/switch2/readings_diagnostics.csv \
+  --outdir resources/switch2/plots
+```
+
+主な出力:
+
+- `map_heatmaps_raw.png` / `map_heatmaps_centered.png`
+- `map_surface_gx.png` / `map_surface_gy.png`
+- `map_residuals.png`
+- `map_scatter_pairs.png`
+- `map_slices.png`
+- `map_diagnostics.png` (`--diagnostics` 指定時)
+
+## 計測CSVのインタラクティブ可視化
+ブラウザで回転・拡大・ホバー確認できるHTMLを生成する。
+
+```bash
+uv run tools/visualize_measurement_map_interactive.py \
+  --input resources/switch2/readings.csv \
+  --diagnostics resources/switch2/readings_diagnostics.csv \
+  --outdir resources/switch2/plots_interactive
+```
+
+主な出力:
+
+- `interactive_dashboard.html` (全体を1ページで切り替え表示)
+- `interactive_heatmaps_raw.html` / `interactive_heatmaps_centered.html`
+- `interactive_surface_gx.html` / `interactive_surface_gy.html`
+- `interactive_surface_residual_mag.html` (理想なら平坦になる residual 3D)
+- `interactive_residuals.html`
+- `interactive_scatter_pairs.html`
+- `interactive_slices.html`
+- `interactive_diagnostics.html` (`--diagnostics` 指定時)
