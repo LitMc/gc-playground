@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import cv2 as cv
+import numpy as np
 
 from .roi_io import Roi
 
@@ -38,11 +39,15 @@ def decode_barcode(barcode_bgr, n_bits: int):
 
     width = signal.shape[0]
     wins = barcode_windows(width, n_bits)
-    bits = []
-    for x0, x1 in wins:
-        v = signal[x0:x1].mean()
-        bit = 0 if v < threshold else 1
-        bits.append(bit)
+    starts = np.array([x0 for x0, _ in wins], dtype=np.int32)
+    ends = np.array([x1 for _, x1 in wins], dtype=np.int32)
+    lengths = np.maximum(ends - starts, 1)
+
+    csum = np.concatenate(([0.0], np.cumsum(signal, dtype=np.float64)))
+    sums = csum[ends] - csum[starts]
+    means = sums / lengths
+    bits_arr = (means >= threshold).astype(np.uint8)
+    bits = bits_arr.tolist()
 
     value = 0
     for bit in bits:
