@@ -2,5 +2,7 @@ build/
 .DS_Store
 samples/
 
-images/
-videos/
+resources/images/
+resources/videos/
+resources/templates/
+__pycache__/
