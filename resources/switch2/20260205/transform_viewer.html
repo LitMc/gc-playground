@@ -5,17 +5,37 @@
 <title>変換ビューア — S / φ</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --bg: #f0f2f5; --fg: #333; --h1: #2060a0;
+    --tab-bg: #d0d4d8; --tab-fg: #666;
+    --tab-active-bg: #e0e4ee; --tab-active-fg: #2060a0;
+    --tab-border: #aaa;
+    --canvas-border: #bbb; --info-fg: #666;
+    --legend-s-input: #222; --legend-s-output: #cc2222;
+    --legend-phi-output: #0066aa; --legend-oct125: #a07800;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #1a1a2e; --fg: #e0e0e0; --h1: #a0c4ff;
+        --tab-bg: #2a2a3e; --tab-fg: #888;
+        --tab-active-bg: #3a3a5e; --tab-active-fg: #a0c4ff;
+        --tab-border: #555;
+        --canvas-border: #444; --info-fg: #888;
+        --legend-s-input: #fff; --legend-s-output: #ff6b6b;
+        --legend-phi-output: #6bcaff; --legend-oct125: #ffd700;
+    }
+}
 body {
     font-family: monospace;
-    background: #1a1a2e;
-    color: #e0e0e0;
+    background: var(--bg);
+    color: var(--fg);
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
     padding: 16px;
 }
-h1 { font-size: 18px; margin-bottom: 12px; color: #a0c4ff; }
+h1 { font-size: 18px; margin-bottom: 12px; color: var(--h1); }
 .tabs {
     display: flex;
     gap: 4px;
@@ -25,28 +45,32 @@ h1 { font-size: 18px; margin-bottom: 12px; color: #a0c4ff; }
     font-family: monospace;
     font-size: 14px;
     padding: 6px 20px;
-    border: 1px solid #555;
-    background: #2a2a3e;
-    color: #888;
+    border: 1px solid var(--tab-border);
+    background: var(--tab-bg);
+    color: var(--tab-fg);
     cursor: pointer;
     border-radius: 4px 4px 0 0;
 }
 .tabs button.active {
-    background: #3a3a5e;
-    color: #a0c4ff;
-    border-bottom-color: #3a3a5e;
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
+    border-bottom-color: var(--tab-active-bg);
 }
 .tab-panel { display: none; flex-direction: column; align-items: center; }
 .tab-panel.active { display: flex; }
 canvas {
-    border: 1px solid #444;
+    border: 1px solid var(--canvas-border);
     cursor: crosshair;
 }
 .info {
     margin-top: 12px;
     font-size: 12px;
-    color: #888;
+    color: var(--info-fg);
 }
+.legend-input { color: var(--legend-s-input); }
+.legend-s-out { color: var(--legend-s-output); }
+.legend-phi-out { color: var(--legend-phi-output); }
+.legend-oct125 { color: var(--legend-oct125); }
 </style>
 </head>
 <body>
@@ -59,18 +83,18 @@ canvas {
 <div id="panelS" class="tab-panel active">
     <canvas id="cvS" width="512" height="512"></canvas>
     <div class="info">
-        <span style="color:#fff">●</span> s（入力）
-        <span style="color:#ff6b6b">●</span> S(s)（出力）
-        &emsp; 白線: Oct(100)
+        <span class="legend-input">●</span> s（入力）
+        <span class="legend-s-out">●</span> S(s)（出力）
+        &emsp; Oct(100)
     </div>
 </div>
 
 <div id="panelPhi" class="tab-panel">
     <canvas id="cvPhi" width="512" height="512"></canvas>
     <div class="info">
-        <span style="color:#fff">●</span> s（入力）
-        <span style="color:#6bcaff">●</span> φ(s)（出力）
-        &emsp; 白線: Oct(100)　<span style="color:#ffd700">━</span> Oct(125)
+        <span class="legend-input">●</span> s（入力）
+        <span class="legend-phi-out">●</span> φ(s)（出力）
+        &emsp; Oct(100)　<span class="legend-oct125">━</span> Oct(125)
     </div>
 </div>
 
@@ -85,6 +109,29 @@ const S8 = Math.sin(Math.PI / 8);
 
 const OCT100_VERTS = [[100, 0], [70.71067811865474, 70.71067811865474], [0, 100], [-70.71067811865474, 70.71067811865474], [-100, 0], [-70.71067811865474, -70.71067811865474], [0, -100], [70.71067811865474, -70.71067811865474]];
 const OCT125_VERTS = [[125, 0], [88.38834764831843, 88.38834764831843], [0, 125], [-88.38834764831843, 88.38834764831843], [-125, 0], [-88.38834764831843, -88.38834764831843], [0, -125], [88.38834764831843, -88.38834764831843]];
+
+// ── テーマ ──
+const THEMES = {
+    light: {
+        octInside: [220,225,240], octOutside: [240,240,248],
+        oct125Zone: [248,235,215],
+        centerLine: 'rgba(0,0,0,0.08)',
+        oct100Line: 'rgba(0,0,0,0.3)', oct125Line: 'rgba(160,120,0,0.45)',
+        inputDot: '#222', sOutput: '#cc2222', phiOutput: '#0066aa',
+        dashLine: 'rgba(0,0,0,0.2)',
+    },
+    dark: {
+        octInside: [28,33,52], octOutside: [18,18,28],
+        oct125Zone: [38,30,22],
+        centerLine: 'rgba(255,255,255,0.08)',
+        oct100Line: 'rgba(255,255,255,0.35)', oct125Line: 'rgba(255,215,0,0.4)',
+        inputDot: '#ffffff', sOutput: '#ff6b6b', phiOutput: '#6bcaff',
+        dashLine: 'rgba(255,255,255,0.2)',
+    },
+};
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+let T = mq.matches ? THEMES.dark : THEMES.light;
 
 function inOctA(cx, cy, a) {
     const h = a * C8;
@@ -132,7 +179,7 @@ function drawOctOutline(c, verts, style, width) {
 }
 
 function drawCenterLines(c) {
-    c.strokeStyle = 'rgba(255,255,255,0.08)';
+    c.strokeStyle = T.centerLine;
     c.lineWidth = 1;
     const [cx, cy] = g2c(128, 128);
     c.beginPath();
@@ -154,9 +201,7 @@ function initBgS() {
     for (let mx = 0; mx < N; mx++)
         for (let my = 0; my < N; my++) {
             const inside = inOctA(mx - 128, my - 128, 100);
-            const r = inside ? 28 : 18;
-            const g = inside ? 33 : 18;
-            const b = inside ? 52 : 28;
+            const [r, g, b] = inside ? T.octInside : T.octOutside;
             for (let px = 0; px < PX; px++)
                 for (let py = 0; py < PX; py++) {
                     const i = ((N-1-my)*PX+py) * SZ + mx*PX+px;
@@ -170,7 +215,7 @@ function initBgS() {
 function drawBgS() {
     ctxS.putImageData(bgS, 0, 0);
     drawCenterLines(ctxS);
-    drawOctOutline(ctxS, OCT100_VERTS, 'rgba(255,255,255,0.35)', 1.5);
+    drawOctOutline(ctxS, OCT100_VERTS, T.oct100Line, 1.5);
 }
 
 let curS = [-1, -1];
@@ -183,7 +228,7 @@ function updateS() {
 
     const [x1, y1] = g2c(sx, sy);
     const [x2, y2] = g2c(mx, my);
-    ctxS.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctxS.strokeStyle = T.dashLine;
     ctxS.lineWidth = 1;
     ctxS.setLineDash([3, 3]);
     ctxS.beginPath();
@@ -191,10 +236,10 @@ function updateS() {
     ctxS.stroke();
     ctxS.setLineDash([]);
 
-    dot(ctxS, sx, sy, '#ffffff', 4);
-    label(ctxS, sx, sy, `s (${sx}, ${sy})`, '#ffffff');
-    dot(ctxS, mx, my, '#ff6b6b', 5);
-    label(ctxS, mx, my, `S(s) (${mx}, ${my})`, '#ff6b6b');
+    dot(ctxS, sx, sy, T.inputDot, 4);
+    label(ctxS, sx, sy, `s (${sx}, ${sy})`, T.inputDot);
+    dot(ctxS, mx, my, T.sOutput, 5);
+    label(ctxS, mx, my, `S(s) (${mx}, ${my})`, T.sOutput);
 }
 
 cvS.addEventListener('mousemove', (e) => {
@@ -225,10 +270,11 @@ function initBgPhi() {
             const cx = mx - 128, cy = my - 128;
             const in100 = inOctA(cx, cy, 100);
             const in125 = inOctA(cx, cy, 125);
-            let r, g, b;
-            if (in100)      { r = 28; g = 33; b = 52; }
-            else if (in125) { r = 38; g = 30; b = 22; }
-            else            { r = 18; g = 18; b = 28; }
+            let rgb;
+            if (in100)      rgb = T.octInside;
+            else if (in125) rgb = T.oct125Zone;
+            else            rgb = T.octOutside;
+            const [r, g, b] = rgb;
             for (let px = 0; px < PX; px++)
                 for (let py = 0; py < PX; py++) {
                     const i = ((N-1-my)*PX+py) * SZ + mx*PX+px;
@@ -242,8 +288,8 @@ function initBgPhi() {
 function drawBgPhi() {
     ctxPhi.putImageData(bgPhi, 0, 0);
     drawCenterLines(ctxPhi);
-    drawOctOutline(ctxPhi, OCT100_VERTS, 'rgba(255,255,255,0.35)', 1.5);
-    drawOctOutline(ctxPhi, OCT125_VERTS, 'rgba(255,215,0,0.4)', 1.5);
+    drawOctOutline(ctxPhi, OCT100_VERTS, T.oct100Line, 1.5);
+    drawOctOutline(ctxPhi, OCT125_VERTS, T.oct125Line, 1.5);
 }
 
 function phi(sx, sy) {
@@ -260,7 +306,7 @@ function updatePhi() {
 
     const [x1, y1] = g2c(sx, sy);
     const [x2, y2] = g2c(px, py);
-    ctxPhi.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctxPhi.strokeStyle = T.dashLine;
     ctxPhi.lineWidth = 1;
     ctxPhi.setLineDash([3, 3]);
     ctxPhi.beginPath();
@@ -268,10 +314,10 @@ function updatePhi() {
     ctxPhi.stroke();
     ctxPhi.setLineDash([]);
 
-    dot(ctxPhi, sx, sy, '#ffffff', 4);
-    label(ctxPhi, sx, sy, `s (${sx}, ${sy})`, '#ffffff');
-    dot(ctxPhi, px, py, '#6bcaff', 5);
-    label(ctxPhi, px, py, `\u03c6(s) (${px.toFixed(1)}, ${py.toFixed(1)})`, '#6bcaff');
+    dot(ctxPhi, sx, sy, T.inputDot, 4);
+    label(ctxPhi, sx, sy, `s (${sx}, ${sy})`, T.inputDot);
+    dot(ctxPhi, px, py, T.phiOutput, 5);
+    label(ctxPhi, px, py, `\u03c6(s) (${px.toFixed(1)}, ${py.toFixed(1)})`, T.phiOutput);
 }
 
 cvPhi.addEventListener('mousemove', (e) => {
@@ -288,7 +334,10 @@ cvPhi.addEventListener('mouseleave', () => { curPhi = [-1, -1]; drawBgPhi(); });
 // ══════════════════════════════════════════
 // タブ切り替え
 // ══════════════════════════════════════════
+let activeTab = 'S';
+
 function switchTab(name) {
+    activeTab = name;
     document.getElementById('tabS').classList.toggle('active', name === 'S');
     document.getElementById('tabPhi').classList.toggle('active', name === 'phi');
     document.getElementById('panelS').classList.toggle('active', name === 'S');
@@ -296,6 +345,16 @@ function switchTab(name) {
     if (name === 'S') drawBgS();
     else drawBgPhi();
 }
+
+// ══════════════════════════════════════════
+// テーマ変更検知
+// ══════════════════════════════════════════
+mq.addEventListener('change', () => {
+    T = mq.matches ? THEMES.dark : THEMES.light;
+    initBgS(); initBgPhi();
+    if (activeTab === 'S') updateS();
+    else updatePhi();
+});
 
 // 初期化
 initBgS();
