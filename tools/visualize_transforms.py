@@ -1,4 +1,4 @@
-"""変換ビューア: S および φ をインタラクティブに可視化する HTML を生成する。
+"""変換ビューア: S, C, φ をインタラクティブに可視化する HTML を生成する。
 
 readings.csv を読み込み、各変換の入出力対応を
 マウスホバーで確認できるスタンドアロン HTML を出力する。
@@ -6,6 +6,7 @@ readings.csv を読み込み、各変換の入出力対応を
 記号の定義:
     s = (sx, sy) ∈ [0, 255]²  — コントローラの生入力
     m = S(s) = (gx+128, gy+128) — Switch 2 変換後のゲーム受信値
+    C(s) — Oct(125) への放射クランプ（Oct 外の点を境界に射影）
     φ(s) = k·(s − 128) + 128    — 物理→ソフトウェア八角形の線形スケーリング
     k = 100/125 = 4/5           — Oct(125) → Oct(100)
     Oct(a) — 正八角形（GC コントローラのゲートと同じ向き）
@@ -27,7 +28,7 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
-        description="S および φ をインタラクティブに可視化する HTML を生成する"
+        description="S, C, φ をインタラクティブに可視化する HTML を生成する"
     )
     ap.add_argument("--input", required=True, help="readings.csv のパス")
     ap.add_argument("--output", required=True, help="出力 HTML ファイルのパス")
@@ -66,7 +67,7 @@ HTML_TEMPLATE = """\
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>変換ビューア — S / φ</title>
+<title>変換ビューア — S / C / φ</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -76,6 +77,7 @@ HTML_TEMPLATE = """\
     --tab-border: #aaa;
     --canvas-border: #bbb; --info-fg: #666;
     --legend-s-input: #222; --legend-s-output: #cc2222;
+    --legend-c-output: #22884e;
     --legend-phi-output: #0066aa; --legend-oct125: #a07800;
 }
 @media (prefers-color-scheme: dark) {
@@ -86,6 +88,7 @@ HTML_TEMPLATE = """\
         --tab-border: #555;
         --canvas-border: #444; --info-fg: #888;
         --legend-s-input: #fff; --legend-s-output: #ff6b6b;
+        --legend-c-output: #6bffaa;
         --legend-phi-output: #6bcaff; --legend-oct125: #ffd700;
     }
 }
@@ -133,6 +136,7 @@ canvas {
 }
 .legend-input { color: var(--legend-s-input); }
 .legend-s-out { color: var(--legend-s-output); }
+.legend-c-out { color: var(--legend-c-output); }
 .legend-phi-out { color: var(--legend-phi-output); }
 .legend-oct125 { color: var(--legend-oct125); }
 </style>
@@ -141,6 +145,7 @@ canvas {
 <h1>変換ビューア</h1>
 <div class="tabs">
     <button id="tabS" class="active" onclick="switchTab('S')">S</button>
+    <button id="tabC" onclick="switchTab('C')">C</button>
     <button id="tabPhi" onclick="switchTab('phi')">φ</button>
 </div>
 
@@ -150,6 +155,15 @@ canvas {
         <span class="legend-input">●</span> s（入力）
         <span class="legend-s-out">●</span> S(s)（出力）
         &emsp; Oct(100)
+    </div>
+</div>
+
+<div id="panelC" class="tab-panel">
+    <canvas id="cvC" width="512" height="512"></canvas>
+    <div class="info">
+        <span class="legend-input">●</span> s（入力）
+        <span class="legend-c-out">●</span> C(s)（出力）
+        &emsp; <span class="legend-oct125">━</span> Oct(125)
     </div>
 </div>
 
@@ -181,7 +195,7 @@ const THEMES = {
         oct125Zone: [248,235,215],
         centerLine: 'rgba(0,0,0,0.08)',
         oct100Line: 'rgba(0,0,0,0.3)', oct125Line: 'rgba(160,120,0,0.45)',
-        inputDot: '#222', sOutput: '#cc2222', phiOutput: '#0066aa',
+        inputDot: '#222', sOutput: '#cc2222', cOutput: '#22884e', phiOutput: '#0066aa',
         dashLine: 'rgba(0,0,0,0.2)',
     },
     dark: {
@@ -189,7 +203,7 @@ const THEMES = {
         oct125Zone: [38,30,22],
         centerLine: 'rgba(255,255,255,0.08)',
         oct100Line: 'rgba(255,255,255,0.35)', oct125Line: 'rgba(255,215,0,0.4)',
-        inputDot: '#ffffff', sOutput: '#ff6b6b', phiOutput: '#6bcaff',
+        inputDot: '#ffffff', sOutput: '#ff6b6b', cOutput: '#6bffaa', phiOutput: '#6bcaff',
         dashLine: 'rgba(255,255,255,0.2)',
     },
 };
@@ -318,6 +332,88 @@ cvS.addEventListener('mousemove', (e) => {
 cvS.addEventListener('mouseleave', () => { curS = [-1, -1]; drawBgS(); });
 
 // ══════════════════════════════════════════
+// C タブ — Oct(125) への放射クランプ
+// ══════════════════════════════════════════
+const cvC = document.getElementById('cvC');
+const ctxC = cvC.getContext('2d');
+
+const CLAMP_A = 125;
+const CLAMP_H = CLAMP_A * C8;
+
+// Oct(a) への放射クランプ: Oct 外の点を中心からの方向を保って境界に射影
+function clampOct(sx, sy) {
+    const px = sx - 128, py = sy - 128;
+    if (px === 0 && py === 0) return [128, 128];
+    const t = Math.max(
+        Math.abs(C8*px + S8*py) / CLAMP_H,
+        Math.abs(C8*px - S8*py) / CLAMP_H,
+        Math.abs(S8*px + C8*py) / CLAMP_H,
+        Math.abs(S8*px - C8*py) / CLAMP_H
+    );
+    if (t <= 1) return [sx, sy];
+    return [px / t + 128, py / t + 128];
+}
+
+let bgC = null;
+
+function initBgC() {
+    const img = ctxC.createImageData(SZ, SZ);
+    for (let mx = 0; mx < N; mx++)
+        for (let my = 0; my < N; my++) {
+            const inside = inOctA(mx - 128, my - 128, 125);
+            const [r, g, b] = inside ? T.octInside : T.octOutside;
+            for (let px = 0; px < PX; px++)
+                for (let py = 0; py < PX; py++) {
+                    const i = ((N-1-my)*PX+py) * SZ + mx*PX+px;
+                    img.data[i*4]=r; img.data[i*4+1]=g;
+                    img.data[i*4+2]=b; img.data[i*4+3]=255;
+                }
+        }
+    bgC = img;
+}
+
+function drawBgC() {
+    ctxC.putImageData(bgC, 0, 0);
+    drawCenterLines(ctxC);
+    drawOctOutline(ctxC, OCT125_VERTS, T.oct125Line, 1.5);
+}
+
+let curC = [-1, -1];
+
+function updateC() {
+    drawBgC();
+    if (curC[0] < 0) return;
+    const [sx, sy] = curC;
+    const [cx, cy] = clampOct(sx, sy);
+
+    const [x1, y1] = g2c(sx, sy);
+    const [x2, y2] = g2c(cx, cy);
+    ctxC.strokeStyle = T.dashLine;
+    ctxC.lineWidth = 1;
+    ctxC.setLineDash([3, 3]);
+    ctxC.beginPath();
+    ctxC.moveTo(x1, y1); ctxC.lineTo(x2, y2);
+    ctxC.stroke();
+    ctxC.setLineDash([]);
+
+    dot(ctxC, sx, sy, T.inputDot, 4);
+    label(ctxC, sx, sy, `s (${sx}, ${sy})`, T.inputDot);
+    dot(ctxC, cx, cy, T.cOutput, 5);
+    label(ctxC, cx, cy, `C(s) (${cx.toFixed(1)}, ${cy.toFixed(1)})`, T.cOutput);
+}
+
+cvC.addEventListener('mousemove', (e) => {
+    const r = cvC.getBoundingClientRect();
+    const sx = Math.floor((e.clientX - r.left) / PX);
+    const sy = N - 1 - Math.floor((e.clientY - r.top) / PX);
+    if (sx >= 0 && sx < N && sy >= 0 && sy < N) {
+        curC = [sx, sy];
+        updateC();
+    }
+});
+cvC.addEventListener('mouseleave', () => { curC = [-1, -1]; drawBgC(); });
+
+// ══════════════════════════════════════════
 // φ タブ
 // ══════════════════════════════════════════
 const cvPhi = document.getElementById('cvPhi');
@@ -402,11 +498,14 @@ let activeTab = 'S';
 
 function switchTab(name) {
     activeTab = name;
-    document.getElementById('tabS').classList.toggle('active', name === 'S');
-    document.getElementById('tabPhi').classList.toggle('active', name === 'phi');
-    document.getElementById('panelS').classList.toggle('active', name === 'S');
-    document.getElementById('panelPhi').classList.toggle('active', name === 'phi');
+    for (const id of ['tabS', 'tabC', 'tabPhi'])
+        document.getElementById(id).classList.toggle('active',
+            id === 'tab' + (name === 'phi' ? 'Phi' : name));
+    for (const id of ['panelS', 'panelC', 'panelPhi'])
+        document.getElementById(id).classList.toggle('active',
+            id === 'panel' + (name === 'phi' ? 'Phi' : name));
     if (name === 'S') drawBgS();
+    else if (name === 'C') drawBgC();
     else drawBgPhi();
 }
 
@@ -415,13 +514,15 @@ function switchTab(name) {
 // ══════════════════════════════════════════
 mq.addEventListener('change', () => {
     T = mq.matches ? THEMES.dark : THEMES.light;
-    initBgS(); initBgPhi();
+    initBgS(); initBgC(); initBgPhi();
     if (activeTab === 'S') updateS();
+    else if (activeTab === 'C') updateC();
     else updatePhi();
 });
 
 // 初期化
 initBgS();
+initBgC();
 initBgPhi();
 drawBgS();
 </script>
