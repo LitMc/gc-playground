@@ -84,8 +84,8 @@ flowchart LR
 
 ## コントローラから来る線
 コントローラ側ハーネス: `5V, 3.3V, DATA, GND, GND`
-- コントローラ 5V → 5V_BUS
-- コントローラ 3.3V → 3V3_BUS
+- 5V_BUS → コントローラ 5V
+- 3V3_BUS → コントローラ 3.3V
 - コントローラ DATA → PAD_DATA_BUS
 - コントローラ GND(2本) → GND_BUS
 
