@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE: ghcr.io/${{ github.repository }}/builder
+  IMAGE: ghcr.io/litmc/gc-playground/builder
 
 jobs:
   build-and-push:
