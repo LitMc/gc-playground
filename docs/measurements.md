@@ -97,14 +97,14 @@ CRC自体は8ビット。
 - ROIの切り出し(dump): `tools/dump_measurement_rois.py`
 - テンプレート作成(ラベリング): `tools/make_templates_from_dump.py`
 - CSV生成(バーコード + テンプレートマッチ): `tools/generate_measurement_csv.py`
-- 可視化デバッグ: `tools/read_values.py`
+- 可視化デバッグ: `tools/debug_template_match.py`
 
 ## 1) ROI dump の作成
 計測動画から、ゲーム側入力値の各ROI画像を保存する。
 
 ```bash
 uv run tools/dump_measurement_rois.py \
-  --video resources/videos/2026-02-06\ 21-46-02.mp4 \
+  --video resources/videos/<video>.mp4 \
   --rois resources/rois/rois.json \
   --out-dir resources/templates/raw
 ```
@@ -113,7 +113,7 @@ uv run tools/dump_measurement_rois.py \
 
 ```bash
 uv run tools/dump_measurement_rois.py \
-  --video resources/videos/2026-02-06\ 21-46-02.mp4 \
+  --video resources/videos/<video>.mp4 \
   --rois resources/rois/rois.json \
   --out-dir resources/templates/raw \
   --frames-file resources/templates/frames_to_dump.txt
@@ -179,7 +179,7 @@ uv run tools/make_templates_from_dump.py \
 
 ```bash
 uv run tools/generate_measurement_csv.py \
-  --video resources/videos/2026-02-06\ 21-46-02.mp4 \
+  --video resources/videos/<video>.mp4 \
   --rois resources/rois/rois.json \
   --templates-dir resources/templates/game_digits \
   --out-csv resources/switch2/readings.csv \
@@ -228,12 +228,12 @@ uv run tools/generate_measurement_csv.py \
 この手順により、一時的な読み取り揺れや表示遅延の影響を受けにくくする。
 
 ## 可視化デバッグ
-`tools/read_values.py` は可視化/デバッグ専用。
+`tools/debug_template_match.py` は可視化/デバッグ専用。
 CSV生成やdumpはこのスクリプトでは行わない。
 
 ```bash
-uv run tools/read_values.py \
-  --video resources/videos/2026-02-06\ 21-46-02.mp4 \
+uv run tools/debug_template_match.py \
+  --video resources/videos/<video>.mp4 \
   --rois resources/rois/rois.json \
   --templates-dir resources/templates/game_digits
 ```
