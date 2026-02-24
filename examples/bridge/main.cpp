@@ -300,8 +300,8 @@ int main() {
                 // S(tx): コンソールが実際に受け取る期待値
                 const auto [stx_x, stx_y] = forward_lut(tx_sx, tx_sy);
 
-                printf("DBG [%s] origin=(%u,%u) raw=(%u,%u) norm=(%u,%u) clamp=(%u,%u) "
-                       "scale=(%u,%u) lut=(%u,%u) tx=(%u,%u) S(tx)=(%u,%u)\n",
+                printf("DBG [%s] origin=(%3u,%3u) raw=(%3u,%3u) norm=(%3u,%3u) clamp=(%3u,%3u) "
+                       "scale=(%3u,%3u) lut=(%3u,%3u) tx=(%3u,%3u) S(tx)=(%3u,%3u)\n",
                        mode == BridgeMode::Correction ? "COR" : "FIX", ox, oy, raw_x, raw_y,
                        norm_x, norm_y, clamp_x, clamp_y, scale_x, scale_y, lut_x, lut_y, tx_sx,
                        tx_sy, stx_x, stx_y);
