@@ -1,4 +1,4 @@
-"""変換ビューア: S, C, φ をインタラクティブに可視化する HTML を生成する。
+"""変換ビューア: S, S⁻¹, S⁻¹+, C, φ をインタラクティブに可視化する HTML を生成する。
 
 readings.csv を読み込み、各変換の入出力対応を
 マウスホバーで確認できるスタンドアロン HTML を出力する。
@@ -6,6 +6,8 @@ readings.csv を読み込み、各変換の入出力対応を
 記号の定義:
     s = (sx, sy) ∈ [0, 255]²  — コントローラの生入力
     m = S(s) = (gx+128, gy+128) — Switch 2 変換後のゲーム受信値
+    S⁻¹(m) — S の逆変換（S(s)=m となる s を返す）
+    S⁻¹+(m) — 最近傍補間付き逆変換（原像がない点は BFS で最近傍を割当）
     C(s) — Oct(125) への放射クランプ（Oct 外の点を境界に射影）
     φ(s) = k·(s − 128) + 128    — 物理→ソフトウェア八角形の線形スケーリング
     k = 100/125 = 4/5           — Oct(125) → Oct(100)
@@ -28,7 +30,7 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
-        description="S, C, φ をインタラクティブに可視化する HTML を生成する"
+        description="S, S⁻¹, S⁻¹+, C, φ をインタラクティブに可視化する HTML を生成する"
     )
     ap.add_argument("--input", required=True, help="readings.csv のパス")
     ap.add_argument("--output", required=True, help="出力 HTML ファイルのパス")
@@ -67,7 +69,7 @@ HTML_TEMPLATE = """\
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>変換ビューア — S / C / φ</title>
+<title>変換ビューア — S / S⁻¹ / C / φ</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -77,6 +79,7 @@ HTML_TEMPLATE = """\
     --tab-border: #aaa;
     --canvas-border: #bbb; --info-fg: #666;
     --legend-s-input: #222; --legend-s-output: #cc2222;
+    --legend-sinv-output: #cc7700;
     --legend-c-output: #22884e;
     --legend-phi-output: #0066aa; --legend-oct125: #a07800;
 }
@@ -88,6 +91,7 @@ HTML_TEMPLATE = """\
         --tab-border: #555;
         --canvas-border: #444; --info-fg: #888;
         --legend-s-input: #fff; --legend-s-output: #ff6b6b;
+        --legend-sinv-output: #ffaa44;
         --legend-c-output: #6bffaa;
         --legend-phi-output: #6bcaff; --legend-oct125: #ffd700;
     }
@@ -138,6 +142,7 @@ canvas {
 .legend-s-out { color: var(--legend-s-output); }
 .legend-c-out { color: var(--legend-c-output); }
 .legend-phi-out { color: var(--legend-phi-output); }
+.legend-sinv-out { color: var(--legend-sinv-output); }
 .legend-oct125 { color: var(--legend-oct125); }
 </style>
 </head>
@@ -145,6 +150,8 @@ canvas {
 <h1>変換ビューア</h1>
 <div class="tabs">
     <button id="tabS" class="active" onclick="switchTab('S')">S</button>
+    <button id="tabSinv" onclick="switchTab('sinv')">S⁻¹</button>
+    <button id="tabSinvF" onclick="switchTab('sinvF')">S⁻¹+</button>
     <button id="tabC" onclick="switchTab('C')">C</button>
     <button id="tabPhi" onclick="switchTab('phi')">φ</button>
 </div>
@@ -154,6 +161,24 @@ canvas {
     <div class="info">
         <span class="legend-input">●</span> s（入力）
         <span class="legend-s-out">●</span> S(s)（出力）
+        &emsp; Oct(100)
+    </div>
+</div>
+
+<div id="panelSinv" class="tab-panel">
+    <canvas id="cvSinv" width="512" height="512"></canvas>
+    <div class="info">
+        <span class="legend-input">●</span> m（入力）
+        <span class="legend-sinv-out">●</span> S⁻¹(m)（原像）
+        &emsp; Oct(100)
+    </div>
+</div>
+
+<div id="panelSinvF" class="tab-panel">
+    <canvas id="cvSinvF" width="512" height="512"></canvas>
+    <div class="info">
+        <span class="legend-input">●</span> m（入力）
+        <span class="legend-sinv-out">●</span> S⁻¹(m)（原像／補間）
         &emsp; Oct(100)
     </div>
 </div>
@@ -192,20 +217,20 @@ const OCT125_VERTS = __OCT125_VERTS__;
 const THEMES = {
     light: {
         octInside: [220,225,240], octOutside: [240,240,248],
-        oct125Zone: [248,235,215],
+        oct125Zone: [248,235,215], sinvGap: [240,218,218],
         centerLine: 'rgba(0,0,0,0.08)',
         oct100Line: 'rgba(0,0,0,0.3)', oct125Line: 'rgba(160,120,0,0.45)',
-        inputDot: '#222', sOutput: '#cc2222', cOutput: '#22884e',
-        phiOutput: '#0066aa',
+        inputDot: '#222', sOutput: '#cc2222', sinvOutput: '#cc7700',
+        cOutput: '#22884e', phiOutput: '#0066aa',
         dashLine: 'rgba(0,0,0,0.2)',
     },
     dark: {
         octInside: [28,33,52], octOutside: [18,18,28],
-        oct125Zone: [38,30,22],
+        oct125Zone: [38,30,22], sinvGap: [42,25,28],
         centerLine: 'rgba(255,255,255,0.08)',
         oct100Line: 'rgba(255,255,255,0.35)', oct125Line: 'rgba(255,215,0,0.4)',
-        inputDot: '#ffffff', sOutput: '#ff6b6b', cOutput: '#6bffaa',
-        phiOutput: '#6bcaff',
+        inputDot: '#ffffff', sOutput: '#ff6b6b', sinvOutput: '#ffaa44',
+        cOutput: '#6bffaa', phiOutput: '#6bcaff',
         dashLine: 'rgba(255,255,255,0.2)',
     },
 };
@@ -494,11 +519,194 @@ cvPhi.addEventListener('mousemove', (e) => {
 cvPhi.addEventListener('mouseleave', () => { curPhi = [-1, -1]; drawBgPhi(); });
 
 // ══════════════════════════════════════════
+// S⁻¹ タブ — S の逆引き
+// ══════════════════════════════════════════
+const cvSinv = document.getElementById('cvSinv');
+const ctxSinv = cvSinv.getContext('2d');
+
+// 逆引きテーブル: INV_S[mx][my] = [sx, sy] or null
+const INV_S = Array.from({length: N}, () => Array.from({length: N}, () => null));
+for (let sx = 0; sx < N; sx++)
+    for (let sy = 0; sy < N; sy++) {
+        const [mx, my] = S_DATA[sx][sy];
+        if (mx >= 0 && mx < N && my >= 0 && my < N)
+            INV_S[mx][my] = [sx, sy];
+    }
+
+// 最近傍補間で全ギャップを埋めた逆引きテーブル (BFS)
+const INV_SF = Array.from({length: N}, (_, i) =>
+    Array.from({length: N}, (_, j) => INV_S[i][j]));
+const EXACT = Array.from({length: N}, (_, i) =>
+    Array.from({length: N}, (_, j) => INV_S[i][j] !== null));
+{
+    const q = [];
+    for (let mx = 0; mx < N; mx++)
+        for (let my = 0; my < N; my++)
+            if (INV_S[mx][my]) q.push([mx, my]);
+    let qi = 0;
+    while (qi < q.length) {
+        const [mx, my] = q[qi++];
+        for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+            const nx = mx + dx, ny = my + dy;
+            if (nx >= 0 && nx < N && ny >= 0 && ny < N && !INV_SF[nx][ny]) {
+                INV_SF[nx][ny] = INV_SF[mx][my];
+                q.push([nx, ny]);
+            }
+        }
+    }
+}
+
+let bgSinv = null;
+
+function initBgSinv() {
+    const img = ctxSinv.createImageData(SZ, SZ);
+    for (let mx = 0; mx < N; mx++)
+        for (let my = 0; my < N; my++) {
+            const inside = inOctA(mx - 128, my - 128, 100);
+            const hasPre = INV_S[mx][my] !== null;
+            let rgb;
+            if (inside && hasPre)  rgb = T.octInside;
+            else if (inside)       rgb = T.sinvGap;
+            else                   rgb = T.octOutside;
+            const [r, g, b] = rgb;
+            for (let px = 0; px < PX; px++)
+                for (let py = 0; py < PX; py++) {
+                    const i = ((N-1-my)*PX+py) * SZ + mx*PX+px;
+                    img.data[i*4]=r; img.data[i*4+1]=g;
+                    img.data[i*4+2]=b; img.data[i*4+3]=255;
+                }
+        }
+    bgSinv = img;
+}
+
+function drawBgSinv() {
+    ctxSinv.putImageData(bgSinv, 0, 0);
+    drawCenterLines(ctxSinv);
+    drawOctOutline(ctxSinv, OCT100_VERTS, T.oct100Line, 1.5);
+}
+
+let curSinv = [-1, -1];
+
+function updateSinv() {
+    drawBgSinv();
+    if (curSinv[0] < 0) return;
+    const [mx, my] = curSinv;
+    const pre = INV_S[mx][my];
+
+    dot(ctxSinv, mx, my, T.inputDot, 4);
+    label(ctxSinv, mx, my, `m (${mx}, ${my})`, T.inputDot);
+
+    if (pre) {
+        const [sx, sy] = pre;
+        const [x1, y1] = g2c(mx, my);
+        const [x2, y2] = g2c(sx, sy);
+        ctxSinv.strokeStyle = T.dashLine;
+        ctxSinv.lineWidth = 1;
+        ctxSinv.setLineDash([3, 3]);
+        ctxSinv.beginPath();
+        ctxSinv.moveTo(x1, y1); ctxSinv.lineTo(x2, y2);
+        ctxSinv.stroke();
+        ctxSinv.setLineDash([]);
+
+        dot(ctxSinv, sx, sy, T.sinvOutput, 5);
+        label(ctxSinv, sx, sy, `S\\u207b\\u00b9(m) (${sx}, ${sy})`, T.sinvOutput);
+    } else {
+        label(ctxSinv, mx, my + 12, '\\u539f\\u50cf\\u306a\\u3057', T.sinvOutput);
+    }
+}
+
+cvSinv.addEventListener('mousemove', (e) => {
+    const r = cvSinv.getBoundingClientRect();
+    const mx = Math.floor((e.clientX - r.left) / PX);
+    const my = N - 1 - Math.floor((e.clientY - r.top) / PX);
+    if (mx >= 0 && mx < N && my >= 0 && my < N) {
+        curSinv = [mx, my];
+        updateSinv();
+    }
+});
+cvSinv.addEventListener('mouseleave', () => { curSinv = [-1, -1]; drawBgSinv(); });
+
+// ══════════════════════════════════════════
+// S⁻¹+ タブ — 最近傍補間付き逆引き
+// ══════════════════════════════════════════
+const cvSinvF = document.getElementById('cvSinvF');
+const ctxSinvF = cvSinvF.getContext('2d');
+
+let bgSinvF = null;
+
+function initBgSinvF() {
+    const img = ctxSinvF.createImageData(SZ, SZ);
+    for (let mx = 0; mx < N; mx++)
+        for (let my = 0; my < N; my++) {
+            const inside = inOctA(mx - 128, my - 128, 100);
+            const exact = EXACT[mx][my];
+            let rgb;
+            if (inside && exact)   rgb = T.octInside;
+            else if (inside)       rgb = T.sinvGap;
+            else                   rgb = T.octOutside;
+            const [r, g, b] = rgb;
+            for (let px = 0; px < PX; px++)
+                for (let py = 0; py < PX; py++) {
+                    const i = ((N-1-my)*PX+py) * SZ + mx*PX+px;
+                    img.data[i*4]=r; img.data[i*4+1]=g;
+                    img.data[i*4+2]=b; img.data[i*4+3]=255;
+                }
+        }
+    bgSinvF = img;
+}
+
+function drawBgSinvF() {
+    ctxSinvF.putImageData(bgSinvF, 0, 0);
+    drawCenterLines(ctxSinvF);
+    drawOctOutline(ctxSinvF, OCT100_VERTS, T.oct100Line, 1.5);
+}
+
+let curSinvF = [-1, -1];
+
+function updateSinvF() {
+    drawBgSinvF();
+    if (curSinvF[0] < 0) return;
+    const [mx, my] = curSinvF;
+    const pre = INV_SF[mx][my];
+
+    dot(ctxSinvF, mx, my, T.inputDot, 4);
+    label(ctxSinvF, mx, my, `m (${mx}, ${my})`, T.inputDot);
+
+    if (pre) {
+        const [sx, sy] = pre;
+        const [x1, y1] = g2c(mx, my);
+        const [x2, y2] = g2c(sx, sy);
+        ctxSinvF.strokeStyle = T.dashLine;
+        ctxSinvF.lineWidth = 1;
+        ctxSinvF.setLineDash([3, 3]);
+        ctxSinvF.beginPath();
+        ctxSinvF.moveTo(x1, y1); ctxSinvF.lineTo(x2, y2);
+        ctxSinvF.stroke();
+        ctxSinvF.setLineDash([]);
+
+        const suffix = EXACT[mx][my] ? '' : ' (\\u88dc\\u9593)';
+        dot(ctxSinvF, sx, sy, T.sinvOutput, 5);
+        label(ctxSinvF, sx, sy, `S\\u207b\\u00b9(m) (${sx}, ${sy})${suffix}`, T.sinvOutput);
+    }
+}
+
+cvSinvF.addEventListener('mousemove', (e) => {
+    const r = cvSinvF.getBoundingClientRect();
+    const mx = Math.floor((e.clientX - r.left) / PX);
+    const my = N - 1 - Math.floor((e.clientY - r.top) / PX);
+    if (mx >= 0 && mx < N && my >= 0 && my < N) {
+        curSinvF = [mx, my];
+        updateSinvF();
+    }
+});
+cvSinvF.addEventListener('mouseleave', () => { curSinvF = [-1, -1]; drawBgSinvF(); });
+
+// ══════════════════════════════════════════
 // タブ切り替え
 // ══════════════════════════════════════════
 let activeTab = 'S';
 
-const TAB_MAP = {S:'S', C:'C', phi:'Phi'};
+const TAB_MAP = {S:'S', sinv:'Sinv', sinvF:'SinvF', C:'C', phi:'Phi'};
 
 function switchTab(name) {
     activeTab = name;
@@ -507,6 +715,8 @@ function switchTab(name) {
         document.getElementById('panel' + v).classList.toggle('active', k === name);
     }
     if (name === 'S') drawBgS();
+    else if (name === 'sinv') drawBgSinv();
+    else if (name === 'sinvF') drawBgSinvF();
     else if (name === 'C') drawBgC();
     else drawBgPhi();
 }
@@ -516,14 +726,18 @@ function switchTab(name) {
 // ══════════════════════════════════════════
 mq.addEventListener('change', () => {
     T = mq.matches ? THEMES.dark : THEMES.light;
-    initBgS(); initBgC(); initBgPhi();
+    initBgS(); initBgSinv(); initBgSinvF(); initBgC(); initBgPhi();
     if (activeTab === 'S') updateS();
+    else if (activeTab === 'sinv') updateSinv();
+    else if (activeTab === 'sinvF') updateSinvF();
     else if (activeTab === 'C') updateC();
     else updatePhi();
 });
 
 // 初期化
 initBgS();
+initBgSinv();
+initBgSinvF();
 initBgC();
 initBgPhi();
 drawBgS();
