@@ -185,7 +185,7 @@ canvas {
     <canvas id="cvSinvF" width="512" height="512"></canvas>
     <div class="info">
         <span class="legend-input">●</span> m（入力）
-        <span class="legend-sinv-out">●</span> S⁻¹(m)（原像／補間）
+        <span class="legend-sinv-out">●</span> S⁻¹⁺(m)（原像／補間）
         &emsp; Oct(100)
     </div>
 </div>
