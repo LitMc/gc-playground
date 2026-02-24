@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: pico-sdk
-          key: pico-sdk-${{ hashFiles('.github/workflows/build.yaml') }}
+          key: pico-sdk-v1-${{ hashFiles('.github/workflows/build.yaml') }}
 
       - name: Checkout pico-sdk
         if: steps.changes.outputs.code == 'true' && steps.cache-pico-sdk.outputs.cache-hit != 'true'
