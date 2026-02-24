@@ -9,25 +9,78 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            code:
+              - 'examples/**'
+              - 'CMakeLists.txt'
+              - 'pico_sdk_import.cmake'
+              - 'CMakePresets.json'
+              - '.github/workflows/build.yaml'
+
       - name: Install build dependencies
+        if: steps.changes.outputs.code == 'true'
         run: |
             sudo apt-get update
             sudo apt-get install -y \
               cmake python3 build-essential ninja-build \
-              gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+              gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib \
+              ccache
+
+      - name: Cache pico-sdk
+        if: steps.changes.outputs.code == 'true'
+        id: cache-pico-sdk
+        uses: actions/cache@v4
+        with:
+          path: pico-sdk
+          key: pico-sdk-${{ hashFiles('.github/workflows/build.yaml') }}
+
       - name: Checkout pico-sdk
+        if: steps.changes.outputs.code == 'true' && steps.cache-pico-sdk.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git "${{ github.workspace }}/pico-sdk"
           cd "${{ github.workspace }}/pico-sdk"
           git submodule update --init --depth 1
-      - name: Configure (root)
+
+      - name: Restore ccache
+        if: steps.changes.outputs.code == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ runner.os }}-${{ hashFiles('.github/workflows/build.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ hashFiles('.github/workflows/build.yaml') }}-
+
+      - name: Configure ccache
+        if: steps.changes.outputs.code == 'true'
         run: |
-          cmake -S . -B build -G Ninja -DPICO_SDK_PATH="${GITHUB_WORKSPACE}/pico-sdk"
+          ccache --set-config=max_size=200M
+          ccache --set-config=compression=true
+          ccache --set-config=compiler_check=content
+          ccache --zero-stats
+
+      - name: Configure (root)
+        if: steps.changes.outputs.code == 'true'
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DPICO_SDK_PATH="${GITHUB_WORKSPACE}/pico-sdk" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
       - name: Build all targets
+        if: steps.changes.outputs.code == 'true'
         run: |
           cmake --build build --parallel
+
+      - name: Show ccache statistics
+        if: always() && steps.changes.outputs.code == 'true'
+        run: ccache --show-stats
+
       - name: Upload build artifacts
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.code == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: pico-build-artifacts
