@@ -16,10 +16,10 @@ Joybus(DATA)を中継・加工する構成。
 flowchart LR
   CONSOLE[本体]
   PAD[GCコントローラ]
-  PICO[Pico (RP2040)]
+  PICO["Pico (RP2040)"]
   VBUS[USB VBUS]
-  OR5V[CH213K OR(5V)]
-  OR33[CH213K OR(3.3V)]
+  OR5V["CH213K OR(5V)"]
+  OR33["CH213K OR(3.3V)"]
 
   CONSOLE -- DATA --> CONDATA[CONSOLE_DATA_BUS]
   PICO -- GP16 --> CONDATA
@@ -32,7 +32,7 @@ flowchart LR
   BUS5 --> PICO
 
   CONSOLE -- 3.3V --> OR33
-  PICO -- 3V3(OUT) --> OR33
+  PICO -- "3V3(OUT)" --> OR33
   OR33 --> BUS33[3V3_BUS]
   BUS33 --> PAD
 
