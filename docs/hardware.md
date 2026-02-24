@@ -30,6 +30,7 @@ flowchart LR
   VBUS -- 5V --> OR5V
   OR5V --> BUS5[5V_BUS]
   BUS5 --> PICO
+  BUS5 --> PAD
 
   CONSOLE -- 3.3V --> OR33
   PICO -- "3V3(OUT)" --> OR33
