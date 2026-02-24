@@ -20,7 +20,8 @@ GCコントローラ（Joybus）通信を RP2040（Raspberry Pi Pico）で解析
 2. **commit を重ねる**: 日本語コミットメッセージで意図を記述
 3. **push して PR を作成**: `gh pr create` でタイトル・本文を日本語で記述
 4. **Copilot レビューへの対応**:
-   - PR への push ごとに Copilot のレビューコメントを `gh api` で確認する
+   - Claude Code Action が自動で Copilot レビューを評価・対応する（`.github/workflows/claude-review.yaml`）
+   - 自動対応で解決しない場合は、手動で `gh api` を使い Copilot のレビューコメントを確認する
    - Copilot が提案 PR を作成した場合は内容をレビューする
      - 有用な変更があればマージし、リモートブランチを削除する
      - 変更が不要・空であればクローズし、リモートブランチを削除する

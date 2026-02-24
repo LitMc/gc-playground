@@ -1,0 +1,33 @@
+name: Claude Review Response
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  respond-to-copilot:
+    if: >
+      github.event.review.user.login == 'copilot-pull-request-reviewer' ||
+      github.event.comment.user.login == 'copilot-pull-request-reviewer'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Copilot からのレビューコメントを確認し、以下の手順で対応してください:
+
+            1. 各指摘の妥当性を評価する
+            2. 妥当な指摘にはコード修正を行い、commit & push する
+            3. 既に対応済み、または妥当でない指摘にはその理由をコメントで説明する
+            4. Copilot が提案 PR を作成した場合、内容をレビューし、
+               有用であればマージ、不要であればクローズする
+            5. 修正を push した場合、gh pr edit で PR 概要を更新する
+
+            コミットメッセージは日本語で記述すること。
