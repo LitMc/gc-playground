@@ -22,8 +22,22 @@ constexpr uint BOOT_BTN_PIN = 26; // GP26
 constexpr uint PIN_TO_REAL_PAD = 15;
 constexpr uint PIN_TO_REAL_CONSOLE = 16;
 
+// BOOTSELボタン押下をIRQからメインループへ伝えるためのフラグ
+volatile bool g_boot_btn_requested = false;
+
 void boot_btn_irq(uint gpio, uint32_t events) {
-    // ちょいデバウンス（押しっぱなし連打対策）
+    (void)gpio;
+    (void)events;
+    g_boot_btn_requested = true;
+}
+
+void handle_boot_btn_if_requested() {
+    if (!g_boot_btn_requested) {
+        return;
+    }
+    g_boot_btn_requested = false;
+
+    // デバウンス: 依然として押下中かを確認
     busy_wait_ms(100);
     if (gpio_get(BOOT_BTN_PIN) == 0) {
         printf("BOOTSEL button pressed. Entering USB boot mode...\n");
@@ -184,6 +198,8 @@ int main() {
     constexpr uint32_t DEBUG_LOG_INTERVAL_US = 500'000; // 500ms間隔
 
     while (true) {
+        handle_boot_btn_if_requested();
+
         const uint32_t now_us = time_us_32();
         auto console_state = client_link.shared_console().load();
         const auto rumble = rumble_override.tick(now_us);
@@ -284,8 +300,8 @@ int main() {
                 // S(tx): コンソールが実際に受け取る期待値
                 const auto [stx_x, stx_y] = forward_lut(tx_sx, tx_sy);
 
-                printf("DBG [%s] origin=(%u,%u) raw=(%u,%u) norm=(%u,%u) clamp=(%u,%u) "
-                       "scale=(%u,%u) lut=(%u,%u) tx=(%u,%u) S(tx)=(%u,%u)\n",
+                printf("DBG [%s] origin=(%3u,%3u) raw=(%3u,%3u) norm=(%3u,%3u) clamp=(%3u,%3u) "
+                       "scale=(%3u,%3u) lut=(%3u,%3u) tx=(%3u,%3u) S(tx)=(%3u,%3u)\n",
                        mode == BridgeMode::Correction ? "COR" : "FIX", ox, oy, raw_x, raw_y,
                        norm_x, norm_y, clamp_x, clamp_y, scale_x, scale_y, lut_x, lut_y, tx_sx,
                        tx_sy, stx_x, stx_y);

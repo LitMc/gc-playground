@@ -25,15 +25,22 @@ def read_s_data(path: Path) -> list[list[tuple[int, int] | None]]:
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
         count = 0
-        for row in reader:
+        skipped = 0
+        for line_no, row in enumerate(reader, start=2):
             sx = int(row["sx"])
             sy = int(row["sy"])
+            if not (0 <= sx < N and 0 <= sy < N):
+                print(f"警告: 行{line_no} の sx/sy が範囲外です (sx={sx}, sy={sy})。スキップします", file=sys.stderr)
+                skipped += 1
+                continue
             gx = int(row["gx"])
             gy = int(row["gy"])
             mx = gx + 128
             my = gy + 128
             s_data[sx][sy] = (mx, my)
             count += 1
+    if skipped > 0:
+        print(f"警告: {skipped} 行をスキップしました（範囲外の sx/sy）", file=sys.stderr)
     print(f"読み込み: {count} 行 ({path})")
     return s_data
 
@@ -210,6 +217,10 @@ def main() -> None:
     exact_count = sum(1 for row in inv_s for cell in row if cell is not None)
     gap_count = N * N - exact_count
     print(f"INV_S: 正確な原像 {exact_count}, ギャップ {gap_count}")
+
+    if exact_count == 0:
+        print("エラー: 逆変換テーブルにシードが1つもありません。入力CSVが空か全欠損です", file=sys.stderr)
+        sys.exit(1)
 
     # BFS 補間
     inv_sf, exact, max_distance = bfs_fill(inv_s)
