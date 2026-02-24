@@ -89,6 +89,7 @@ canvas {
     <button id="tabSinv" onclick="switchTab('sinv')">S⁻¹</button>
     <button id="tabSinvF" onclick="switchTab('sinvF')">S⁻¹+</button>
     <button id="tabVerify" onclick="switchTab('verify')">S∘S⁻¹+</button>
+    <button id="tabP" onclick="switchTab('P')">P</button>
     <button id="tabC" onclick="switchTab('C')">C</button>
     <button id="tabPhi" onclick="switchTab('phi')">φ</button>
 </div>
@@ -126,6 +127,18 @@ canvas {
         <span class="legend-input">●</span> m（入力）
         <span class="legend-verify-out">●</span> S(S⁻¹+(m))（往復）
         &emsp; 背景色 = 誤差ヒートマップ
+    </div>
+</div>
+
+<div id="panelP" class="tab-panel">
+    <canvas id="cvP" width="512" height="512"></canvas>
+    <div class="info">
+        <span class="legend-input">●</span> s
+        <span class="legend-c-out">●</span> C(s)
+        <span class="legend-phi-out">●</span> φ(C(s))（目標）
+        <span class="legend-sinv-out">●</span> P(s)
+        <span class="legend-verify-out">●</span> S(P(s))（実際）
+        &emsp; <span class="legend-oct125">━</span> Oct(125)
     </div>
 </div>
 
@@ -742,11 +755,112 @@ cvVerify.addEventListener('mousemove', (e) => {
 cvVerify.addEventListener('mouseleave', () => { curVerify = [-1, -1]; drawBgVerify(); });
 
 // ══════════════════════════════════════════
+// P タブ — 補正パイプライン P = S⁻¹+ ∘ φ ∘ C
+// ══════════════════════════════════════════
+const cvP = document.getElementById('cvP');
+const ctxP = cvP.getContext('2d');
+
+let bgP = null;
+
+function initBgP() {
+    const img = ctxP.createImageData(SZ, SZ);
+    for (let mx = 0; mx < N; mx++)
+        for (let my = 0; my < N; my++) {
+            const cx = mx - 128, cy = my - 128;
+            const in100 = inOctA(cx, cy, 100);
+            const in125 = inOctA(cx, cy, 125);
+            let rgb;
+            if (in100)      rgb = T.octInside;
+            else if (in125) rgb = T.oct125Zone;
+            else            rgb = T.octOutside;
+            const [r, g, b] = rgb;
+            for (let px = 0; px < PX; px++)
+                for (let py = 0; py < PX; py++) {
+                    const i = ((N-1-my)*PX+py) * SZ + mx*PX+px;
+                    img.data[i*4]=r; img.data[i*4+1]=g;
+                    img.data[i*4+2]=b; img.data[i*4+3]=255;
+                }
+        }
+    bgP = img;
+}
+
+function drawBgP() {
+    ctxP.putImageData(bgP, 0, 0);
+    drawCenterLines(ctxP);
+    drawOctOutline(ctxP, OCT100_VERTS, T.oct100Line, 1.5);
+    drawOctOutline(ctxP, OCT125_VERTS, T.oct125Line, 1.5);
+}
+
+function drawChain(ctx, pts, colors) {
+    for (let i = 0; i < pts.length - 1; i++) {
+        const [x1, y1] = g2c(pts[i][0], pts[i][1]);
+        const [x2, y2] = g2c(pts[i+1][0], pts[i+1][1]);
+        ctx.strokeStyle = T.dashLine;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    for (let i = 0; i < pts.length; i++) {
+        dot(ctx, pts[i][0], pts[i][1], colors[i], i === 0 ? 4 : 5);
+    }
+}
+
+let curP = [-1, -1];
+
+function updateP() {
+    drawBgP();
+    if (curP[0] < 0) return;
+    const [sx, sy] = curP;
+
+    // Step 1: C(s)
+    const [cx, cy] = clampOct(sx, sy);
+    // Step 2: φ(C(s))
+    const [px, py] = phi(cx, cy);
+    // Step 3: S⁻¹+(φ(C(s)))
+    const imx = Math.round(px), imy = Math.round(py);
+    const pre = (imx >= 0 && imx < N && imy >= 0 && imy < N) ? INV_SF[imx][imy] : null;
+
+    if (pre) {
+        const [rx, ry] = pre;
+        // Step 4: S(P(s)) — Switch 2 が実際に受け取る値
+        const [mx2, my2] = S_DATA[rx][ry];
+        const errE = Math.sqrt((mx2 - px) * (mx2 - px) + (my2 - py) * (my2 - py));
+
+        drawChain(ctxP,
+            [[sx, sy], [cx, cy], [px, py], [rx, ry], [mx2, my2]],
+            [T.inputDot, T.cOutput, T.phiOutput, T.sinvOutput, T.verifyOutput]);
+
+        label(ctxP, sx, sy, `s (${sx},${sy})`, T.inputDot);
+        label(ctxP, cx, cy, `C (${cx.toFixed(1)},${cy.toFixed(1)})`, T.cOutput);
+        label(ctxP, px, py, `\u03c6\u2218C (${px.toFixed(1)},${py.toFixed(1)})`, T.phiOutput);
+        label(ctxP, rx, ry, `P(s) (${rx},${ry})`, T.sinvOutput);
+        label(ctxP, mx2, my2, `S(P) (${mx2},${my2}) err=${errE.toFixed(1)}`, T.verifyOutput);
+    } else {
+        dot(ctxP, sx, sy, T.inputDot, 4);
+        label(ctxP, sx, sy, `s (${sx},${sy})`, T.inputDot);
+    }
+}
+
+cvP.addEventListener('mousemove', (e) => {
+    const r = cvP.getBoundingClientRect();
+    const sx = Math.floor((e.clientX - r.left) / PX);
+    const sy = N - 1 - Math.floor((e.clientY - r.top) / PX);
+    if (sx >= 0 && sx < N && sy >= 0 && sy < N) {
+        curP = [sx, sy];
+        updateP();
+    }
+});
+cvP.addEventListener('mouseleave', () => { curP = [-1, -1]; drawBgP(); });
+
+// ══════════════════════════════════════════
 // タブ切り替え
 // ══════════════════════════════════════════
 let activeTab = 'S';
 
-const TAB_MAP = {S:'S', sinv:'Sinv', sinvF:'SinvF', verify:'Verify', C:'C', phi:'Phi'};
+const TAB_MAP = {S:'S', sinv:'Sinv', sinvF:'SinvF', verify:'Verify', P:'P', C:'C', phi:'Phi'};
 
 function switchTab(name) {
     activeTab = name;
@@ -758,6 +872,7 @@ function switchTab(name) {
     else if (name === 'sinv') drawBgSinv();
     else if (name === 'sinvF') drawBgSinvF();
     else if (name === 'verify') drawBgVerify();
+    else if (name === 'P') drawBgP();
     else if (name === 'C') drawBgC();
     else drawBgPhi();
 }
@@ -767,11 +882,12 @@ function switchTab(name) {
 // ══════════════════════════════════════════
 mq.addEventListener('change', () => {
     T = mq.matches ? THEMES.dark : THEMES.light;
-    initBgS(); initBgSinv(); initBgSinvF(); initBgVerify(); initBgC(); initBgPhi();
+    initBgS(); initBgSinv(); initBgSinvF(); initBgVerify(); initBgP(); initBgC(); initBgPhi();
     if (activeTab === 'S') updateS();
     else if (activeTab === 'sinv') updateSinv();
     else if (activeTab === 'sinvF') updateSinvF();
     else if (activeTab === 'verify') updateVerify();
+    else if (activeTab === 'P') updateP();
     else if (activeTab === 'C') updateC();
     else updatePhi();
 });
@@ -781,6 +897,7 @@ initBgS();
 initBgSinv();
 initBgSinvF();
 initBgVerify();
+initBgP();
 initBgC();
 initBgPhi();
 drawBgS();
