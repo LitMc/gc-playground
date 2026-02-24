@@ -10,6 +10,7 @@ GameCube コントローラ（Joybus）通信を、RP2040（Raspberry Pi Pico）
 - 構成の考え方: [docs/repo_structure.md](docs/repo_structure.md)
 - 配線・電源注意点: [docs/hardware.md](docs/hardware.md)
 - 測定手順とデータ化: [docs/measurements.md](docs/measurements.md)
+- 補正変換パイプライン: [docs/transforms.md](docs/transforms.md)
 
 ## 測定ワークフロー（最短）
 計測動画から `frame,sx,sy,gx,gy` を作る流れです。

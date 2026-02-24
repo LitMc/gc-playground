@@ -32,6 +32,7 @@ GCコントローラ（Joybus）通信を RP2040（Raspberry Pi Pico）で解析
 - `docs/repo_structure.md` — なぜこの構成か（「2回コピペしたら共通化」ルール）
 - `docs/hardware.md` — 配線・電源（OR 回路）・ピン割当
 - `docs/measurements.md` — 計測フロー全体（バーコード形式、ROI dump、テンプレートマッチ、CSV 生成）
+- `docs/transforms.md` — 補正変換パイプライン（S, S⁻¹, C, φ の数学的定義と可視化）
 
 ## 技術スタック
 
@@ -108,6 +109,7 @@ Entire はセッションごとにプロンプト・作業要約・コンテキ�
   - 配線・ピン割当の変更 → `docs/hardware.md`
   - 計測パイプラインの変更 → `docs/measurements.md`
   - プロジェクト目標・背景の変更 → `docs/project_overview.md`
+  - 補正変換パイプラインの変更 → `docs/transforms.md`
 - **README.md**: ビルド手順・クイックスタートに影響する変更があれば更新する
 - **CMakeLists.txt**: `examples/` の追加時は `add_subdirectory` を追加する
 - **.github/copilot-instructions.md**: CLAUDE.md と矛盾する記述が生じないよう同期する
