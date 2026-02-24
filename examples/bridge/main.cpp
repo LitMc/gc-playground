@@ -22,8 +22,22 @@ constexpr uint BOOT_BTN_PIN = 26; // GP26
 constexpr uint PIN_TO_REAL_PAD = 15;
 constexpr uint PIN_TO_REAL_CONSOLE = 16;
 
+// BOOTSELボタン押下をIRQからメインループへ伝えるためのフラグ
+volatile bool g_boot_btn_requested = false;
+
 void boot_btn_irq(uint gpio, uint32_t events) {
-    // ちょいデバウンス（押しっぱなし連打対策）
+    (void)gpio;
+    (void)events;
+    g_boot_btn_requested = true;
+}
+
+void handle_boot_btn_if_requested() {
+    if (!g_boot_btn_requested) {
+        return;
+    }
+    g_boot_btn_requested = false;
+
+    // デバウンス: 依然として押下中かを確認
     busy_wait_ms(100);
     if (gpio_get(BOOT_BTN_PIN) == 0) {
         printf("BOOTSEL button pressed. Entering USB boot mode...\n");
@@ -184,6 +198,8 @@ int main() {
     constexpr uint32_t DEBUG_LOG_INTERVAL_US = 500'000; // 500ms間隔
 
     while (true) {
+        handle_boot_btn_if_requested();
+
         const uint32_t now_us = time_us_32();
         auto console_state = client_link.shared_console().load();
         const auto rumble = rumble_override.tick(now_us);

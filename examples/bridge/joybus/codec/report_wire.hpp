@@ -47,7 +47,6 @@ decode_report_from_status_word(std::span<const uint8_t, 2> byte2) {
 // IDレスポンスの3バイト目を共通形式のレポートに変換
 // UseControllerOriginはIDレスポンスに存在しないので触らない
 inline constexpr void update_report_from_id_byte3(domain::PadReport &report, uint8_t byte3) {
-    const auto prev_report = report;
     report.origin_sent = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::OriginNotSent)) == 0;
     report.error_latched = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::ErrorLatched)) != 0;
     report.error_last = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::ErrorLast)) != 0;

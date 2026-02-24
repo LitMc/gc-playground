@@ -9,7 +9,7 @@ struct PadReport {
     // 本体へOriginコマンド送信済み。ここがfalseだと本体からOriginが送られてくる
     // trueにしないといつまでもOriginが来るので送ったら速やかに反映したほうがいい
     // FIXME:
-    // 本来はfalse初期化ののちtrueにすべき。状状態管が面倒なのでtrue固定してしまっているのを直す
+    // 本来はfalse初期化ののちtrueにすべき。状態管理が面倒なのでtrue固定してしまっているのを直す
     bool origin_sent{true};
 
     bool error_latched{false}; // これまでの通信のどこかでエラーがあった
