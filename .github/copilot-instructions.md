@@ -23,3 +23,12 @@
 - docs/repo_structure.md   : なぜこの構成か（開発単位の考え方）
 - docs/hardware.md         : 配線・電源(OR回路)・注意点
 - docs/measurements.md      : 補正の根拠となるデータ測定手順と測定結果のフォーマット
+
+## ドキュメント保守ルール
+コードを変更する際は、関連ドキュメントの同期更新が必要か確認すること:
+
+- `examples/` の追加・削除 → `docs/repo_structure.md`、ルートの `CMakeLists.txt`
+- 配線・ピン割当の変更 → `docs/hardware.md`
+- 計測パイプラインの変更 → `docs/measurements.md`
+- ビルド手順の変更 → `README.md`
+- `CLAUDE.md` と本ファイルの間で矛盾する記述が生じないよう注意すること
