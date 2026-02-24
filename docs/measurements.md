@@ -277,3 +277,7 @@ uv run tools/visualize_measurement_map_interactive.py \
 - `interactive_scatter_pairs.html`
 - `interactive_slices.html`
 - `interactive_diagnostics.html` (`--diagnostics` 指定時)
+
+## 補正変換の構築
+
+readings.csv から補正変換 P(s) を構築する数学的パイプラインについては [docs/transforms.md](transforms.md) を参照。
