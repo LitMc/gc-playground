@@ -1,4 +1,4 @@
-"""変換ビューア: S, S⁻¹, S⁻¹+, C, φ をインタラクティブに可視化する HTML を生成する。
+"""変換ビューア: S, S⁻¹, S⁻¹+, S∘S⁻¹+, C, φ をインタラクティブに可視化する HTML を生成する。
 
 readings.csv を読み込み、各変換の入出力対応を
 マウスホバーで確認できるスタンドアロン HTML を出力する。
@@ -8,6 +8,7 @@ readings.csv を読み込み、各変換の入出力対応を
     m = S(s) = (gx+128, gy+128) — Switch 2 変換後のゲーム受信値
     S⁻¹(m) — S の逆変換（S(s)=m となる s を返す）
     S⁻¹+(m) — 最近傍補間付き逆変換（原像がない点は BFS で最近傍を割当）
+    S∘S⁻¹+(m) — 往復検証（S⁻¹+ で逆変換した結果に S を再適用し誤差を確認）
     C(s) — Oct(125) への放射クランプ（Oct 外の点を境界に射影）
     φ(s) = k·(s − 128) + 128    — 物理→ソフトウェア八角形の線形スケーリング
     k = 100/125 = 4/5           — Oct(125) → Oct(100)
@@ -30,7 +31,7 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
-        description="S, S⁻¹, S⁻¹+, C, φ をインタラクティブに可視化する HTML を生成する"
+        description="S, S⁻¹, S⁻¹+, S∘S⁻¹+, C, φ をインタラクティブに可視化する HTML を生成する"
     )
     ap.add_argument("--input", required=True, help="readings.csv のパス")
     ap.add_argument("--output", required=True, help="出力 HTML ファイルのパス")
@@ -82,6 +83,7 @@ HTML_TEMPLATE = """\
     --legend-sinv-output: #cc7700;
     --legend-c-output: #22884e;
     --legend-phi-output: #0066aa; --legend-oct125: #a07800;
+    --legend-verify-output: #228844;
 }
 @media (prefers-color-scheme: dark) {
     :root {
@@ -94,6 +96,7 @@ HTML_TEMPLATE = """\
         --legend-sinv-output: #ffaa44;
         --legend-c-output: #6bffaa;
         --legend-phi-output: #6bcaff; --legend-oct125: #ffd700;
+        --legend-verify-output: #66dd88;
     }
 }
 body {
@@ -143,6 +146,7 @@ canvas {
 .legend-c-out { color: var(--legend-c-output); }
 .legend-phi-out { color: var(--legend-phi-output); }
 .legend-sinv-out { color: var(--legend-sinv-output); }
+.legend-verify-out { color: var(--legend-verify-output); }
 .legend-oct125 { color: var(--legend-oct125); }
 </style>
 </head>
@@ -152,6 +156,7 @@ canvas {
     <button id="tabS" class="active" onclick="switchTab('S')">S</button>
     <button id="tabSinv" onclick="switchTab('sinv')">S⁻¹</button>
     <button id="tabSinvF" onclick="switchTab('sinvF')">S⁻¹+</button>
+    <button id="tabVerify" onclick="switchTab('verify')">S∘S⁻¹+</button>
     <button id="tabC" onclick="switchTab('C')">C</button>
     <button id="tabPhi" onclick="switchTab('phi')">φ</button>
 </div>
@@ -180,6 +185,15 @@ canvas {
         <span class="legend-input">●</span> m（入力）
         <span class="legend-sinv-out">●</span> S⁻¹(m)（原像／補間）
         &emsp; Oct(100)
+    </div>
+</div>
+
+<div id="panelVerify" class="tab-panel">
+    <canvas id="cvVerify" width="512" height="512"></canvas>
+    <div class="info">
+        <span class="legend-input">●</span> m（入力）
+        <span class="legend-verify-out">●</span> S(S⁻¹+(m))（往復）
+        &emsp; 背景色 = 誤差ヒートマップ
     </div>
 </div>
 
@@ -218,18 +232,22 @@ const THEMES = {
     light: {
         octInside: [220,225,240], octOutside: [240,240,248],
         oct125Zone: [248,235,215], sinvGap: [240,218,218],
+        verifyGood: [210,235,210], verifyBad: [245,200,200],
         centerLine: 'rgba(0,0,0,0.08)',
         oct100Line: 'rgba(0,0,0,0.3)', oct125Line: 'rgba(160,120,0,0.45)',
         inputDot: '#222', sOutput: '#cc2222', sinvOutput: '#cc7700',
+        verifyOutput: '#228844',
         cOutput: '#22884e', phiOutput: '#0066aa',
         dashLine: 'rgba(0,0,0,0.2)',
     },
     dark: {
         octInside: [28,33,52], octOutside: [18,18,28],
         oct125Zone: [38,30,22], sinvGap: [42,25,28],
+        verifyGood: [22,38,28], verifyBad: [48,22,22],
         centerLine: 'rgba(255,255,255,0.08)',
         oct100Line: 'rgba(255,255,255,0.35)', oct125Line: 'rgba(255,215,0,0.4)',
         inputDot: '#ffffff', sOutput: '#ff6b6b', sinvOutput: '#ffaa44',
+        verifyOutput: '#66dd88',
         cOutput: '#6bffaa', phiOutput: '#6bcaff',
         dashLine: 'rgba(255,255,255,0.2)',
     },
@@ -702,11 +720,101 @@ cvSinvF.addEventListener('mousemove', (e) => {
 cvSinvF.addEventListener('mouseleave', () => { curSinvF = [-1, -1]; drawBgSinvF(); });
 
 // ══════════════════════════════════════════
+// S∘S⁻¹+ タブ — 往復検証（誤差ヒートマップ）
+// ══════════════════════════════════════════
+const cvVerify = document.getElementById('cvVerify');
+const ctxVerify = cvVerify.getContext('2d');
+
+let bgVerify = null;
+
+function initBgVerify() {
+    const img = ctxVerify.createImageData(SZ, SZ);
+    for (let mx = 0; mx < N; mx++)
+        for (let my = 0; my < N; my++) {
+            const inside = inOctA(mx - 128, my - 128, 100);
+            const pre = INV_SF[mx][my];
+            let rgb;
+            if (!inside || !pre) {
+                rgb = T.octOutside;
+            } else {
+                const [sx, sy] = pre;
+                const [mx2, my2] = S_DATA[sx][sy];
+                const err = Math.max(Math.abs(mx2 - mx), Math.abs(my2 - my));
+                const t = Math.min(err / 5, 1);
+                const gd = T.verifyGood, bd = T.verifyBad;
+                rgb = [
+                    Math.round(gd[0] + (bd[0] - gd[0]) * t),
+                    Math.round(gd[1] + (bd[1] - gd[1]) * t),
+                    Math.round(gd[2] + (bd[2] - gd[2]) * t),
+                ];
+            }
+            const [r, g, b] = rgb;
+            for (let px = 0; px < PX; px++)
+                for (let py = 0; py < PX; py++) {
+                    const i = ((N-1-my)*PX+py) * SZ + mx*PX+px;
+                    img.data[i*4]=r; img.data[i*4+1]=g;
+                    img.data[i*4+2]=b; img.data[i*4+3]=255;
+                }
+        }
+    bgVerify = img;
+}
+
+function drawBgVerify() {
+    ctxVerify.putImageData(bgVerify, 0, 0);
+    drawCenterLines(ctxVerify);
+    drawOctOutline(ctxVerify, OCT100_VERTS, T.oct100Line, 1.5);
+}
+
+let curVerify = [-1, -1];
+
+function updateVerify() {
+    drawBgVerify();
+    if (curVerify[0] < 0) return;
+    const [mx, my] = curVerify;
+    const pre = INV_SF[mx][my];
+
+    dot(ctxVerify, mx, my, T.inputDot, 4);
+    label(ctxVerify, mx, my, `m (${mx}, ${my})`, T.inputDot);
+
+    if (pre) {
+        const [sx, sy] = pre;
+        const [mx2, my2] = S_DATA[sx][sy];
+        const err = Math.hypot(mx2 - mx, my2 - my);
+
+        const [x1, y1] = g2c(mx, my);
+        const [x2, y2] = g2c(mx2, my2);
+        ctxVerify.strokeStyle = T.dashLine;
+        ctxVerify.lineWidth = 1;
+        ctxVerify.setLineDash([3, 3]);
+        ctxVerify.beginPath();
+        ctxVerify.moveTo(x1, y1); ctxVerify.lineTo(x2, y2);
+        ctxVerify.stroke();
+        ctxVerify.setLineDash([]);
+
+        dot(ctxVerify, mx2, my2, T.verifyOutput, 5);
+        label(ctxVerify, mx2, my2,
+            `S(S\\u207b\\u00b9\\u207a(m)) (${mx2},${my2}) err=${err.toFixed(1)}`,
+            T.verifyOutput);
+    }
+}
+
+cvVerify.addEventListener('mousemove', (e) => {
+    const r = cvVerify.getBoundingClientRect();
+    const mx = Math.floor((e.clientX - r.left) / PX);
+    const my = N - 1 - Math.floor((e.clientY - r.top) / PX);
+    if (mx >= 0 && mx < N && my >= 0 && my < N) {
+        curVerify = [mx, my];
+        updateVerify();
+    }
+});
+cvVerify.addEventListener('mouseleave', () => { curVerify = [-1, -1]; drawBgVerify(); });
+
+// ══════════════════════════════════════════
 // タブ切り替え
 // ══════════════════════════════════════════
 let activeTab = 'S';
 
-const TAB_MAP = {S:'S', sinv:'Sinv', sinvF:'SinvF', C:'C', phi:'Phi'};
+const TAB_MAP = {S:'S', sinv:'Sinv', sinvF:'SinvF', verify:'Verify', C:'C', phi:'Phi'};
 
 function switchTab(name) {
     activeTab = name;
@@ -717,6 +825,7 @@ function switchTab(name) {
     if (name === 'S') drawBgS();
     else if (name === 'sinv') drawBgSinv();
     else if (name === 'sinvF') drawBgSinvF();
+    else if (name === 'verify') drawBgVerify();
     else if (name === 'C') drawBgC();
     else drawBgPhi();
 }
@@ -726,10 +835,11 @@ function switchTab(name) {
 // ══════════════════════════════════════════
 mq.addEventListener('change', () => {
     T = mq.matches ? THEMES.dark : THEMES.light;
-    initBgS(); initBgSinv(); initBgSinvF(); initBgC(); initBgPhi();
+    initBgS(); initBgSinv(); initBgSinvF(); initBgVerify(); initBgC(); initBgPhi();
     if (activeTab === 'S') updateS();
     else if (activeTab === 'sinv') updateSinv();
     else if (activeTab === 'sinvF') updateSinvF();
+    else if (activeTab === 'verify') updateVerify();
     else if (activeTab === 'C') updateC();
     else updatePhi();
 });
@@ -738,6 +848,7 @@ mq.addEventListener('change', () => {
 initBgS();
 initBgSinv();
 initBgSinvF();
+initBgVerify();
 initBgC();
 initBgPhi();
 drawBgS();
