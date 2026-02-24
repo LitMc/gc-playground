@@ -71,7 +71,7 @@ HTML_TEMPLATE = """\
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>変換ビューア — S / S⁻¹ / C / φ</title>
+<title>変換ビューア — 補正変換パイプライン</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
