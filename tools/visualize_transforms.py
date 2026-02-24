@@ -793,7 +793,9 @@ function updateVerify() {
     if (pre) {
         const [sx, sy] = pre;
         const [mx2, my2] = S_DATA[sx][sy];
-        const err = Math.hypot(mx2 - mx, my2 - my);
+        const dx = mx2 - mx;
+        const dy = my2 - my;
+        const err = Math.max(Math.abs(dx), Math.abs(dy));
 
         const [x1, y1] = g2c(mx, my);
         const [x2, y2] = g2c(mx2, my2);
