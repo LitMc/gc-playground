@@ -113,7 +113,9 @@ def parse_pio(text: str) -> Program:
         parts = line.strip().split(None, 1)
         op = parts[0]
         args = parts[1] if len(parts) > 1 else ""
-        instrs.append(Instr(pc=pc, op=op, args=args, delay=delay, raw=line.strip(), lineno=lineno))
+        instrs.append(
+            Instr(pc=pc, op=op, args=args, delay=delay, raw=line.strip(), lineno=lineno)
+        )
         pc += 1
 
     if wrap < 0:
@@ -123,6 +125,7 @@ def parse_pio(text: str) -> Program:
 
 
 # ---------- Waveform / State / Simulator ----------
+
 
 def u32(v: int) -> int:
     return v & 0xFFFFFFFF
@@ -134,6 +137,7 @@ class Waveform:
     segments: [(duration_cycles, level), ...]
     After end, holds last level. If empty, uses default.
     """
+
     segments: List[Tuple[int, int]] = field(default_factory=list)
     default: int = 0
 
@@ -260,25 +264,25 @@ def step(prog: Program, st: State, wave: Waveform) -> Event:
         if cond is None:
             take = True
         elif cond == "pin":
-            take = (pin == 1)
+            take = pin == 1
         elif cond == "!pin":
-            take = (pin == 0)
+            take = pin == 0
         elif cond == "!x":
-            take = (st.x == 0)
+            take = st.x == 0
         elif cond == "!y":
-            take = (st.y == 0)
+            take = st.y == 0
         elif cond == "x--":
             prev = st.x
             st.x = u32(st.x - 1)
             if prev == 0 and not note:
                 note = "WARNING: x underflow (x was 0 before x--)"
-            take = (st.x != 0)
+            take = st.x != 0
         elif cond == "y--":
             prev = st.y
             st.y = u32(st.y - 1)
             if prev == 0 and not note:
                 note = "WARNING: y underflow (y was 0 before y--)"
-            take = (st.y != 0)
+            take = st.y != 0
         else:
             note = note or f"WARNING: unsupported jmp cond '{cond}'"
 
@@ -314,8 +318,15 @@ def step(prog: Program, st: State, wave: Waveform) -> Event:
             st.pc = prog.wrap_target
 
     return Event(
-        start=start, end=end, pc=ins.pc, instr=ins.raw + (f" [{ins.delay}]" if ins.delay else ""),
-        pin=pin, x=st.x, y=st.y, pindirs=st.pindirs, note=note
+        start=start,
+        end=end,
+        pc=ins.pc,
+        instr=ins.raw + (f" [{ins.delay}]" if ins.delay else ""),
+        pin=pin,
+        x=st.x,
+        y=st.y,
+        pindirs=st.pindirs,
+        note=note,
     )
 
 
@@ -340,6 +351,7 @@ def parse_waveform(s: str) -> Waveform:
 
 # ---------- CLI / Reports ----------
 
+
 def fmt_time(cycles: int, clock_hz: float) -> str:
     us = cycles / clock_hz * 1e6
     return f"{cycles} cyc ({us:.3f} us)"
@@ -348,12 +360,18 @@ def fmt_time(cycles: int, clock_hz: float) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("file", help="PIO asm file")
-    ap.add_argument("--clock", type=float, default=16_000_000, help="PIO clock Hz (default: 16MHz)")
+    ap.add_argument(
+        "--clock", type=float, default=16_000_000, help="PIO clock Hz (default: 16MHz)"
+    )
     ap.add_argument("--entry", default=None, help="entry label (default: first label)")
     ap.add_argument("--osr", default="0", help="initial OSR value (e.g., 0xAAAAAAAA)")
     ap.add_argument("--pin", default="", help="pin waveform: '0:20,1:10,0:5' in cycles")
-    ap.add_argument("--max_cycles", type=int, default=500, help="stop after this many cycles")
-    ap.add_argument("--watch", default="pindirs", help="watch signal transitions: pindirs|none")
+    ap.add_argument(
+        "--max_cycles", type=int, default=500, help="stop after this many cycles"
+    )
+    ap.add_argument(
+        "--watch", default="pindirs", help="watch signal transitions: pindirs|none"
+    )
     ap.add_argument("--trace", action="store_true", help="print full trace")
     args = ap.parse_args()
 
@@ -382,11 +400,18 @@ def main() -> None:
                 last_pindirs = st.pindirs
 
         if args.trace:
-            print(f"{fmt_time(ev.start, args.clock):>18}  pc={ev.pc:02d}  {ev.instr:<30}  "
-                  f"x={ev.x:08X} y={ev.y:08X} pin={ev.pin} pindirs={ev.pindirs}  {ev.note}")
+            print(
+                f"{fmt_time(ev.start, args.clock):>18}  pc={ev.pc:02d}  {ev.instr:<30}  "
+                f"x={ev.x:08X} y={ev.y:08X} pin={ev.pin} pindirs={ev.pindirs}  {ev.note}"
+            )
 
         # crude stop condition: if we hit wrap_target again and have some history, break
-        if len(events) > 5 and st.pc == prog.wrap_target and st.cycles > 0 and not args.trace:
+        if (
+            len(events) > 5
+            and st.pc == prog.wrap_target
+            and st.cycles > 0
+            and not args.trace
+        ):
             # don't break too aggressively; let max_cycles control normally
             pass
 
@@ -408,7 +433,9 @@ def main() -> None:
                 else:
                     dt = t - prev[0]
                     dus = dt / args.clock * 1e6
-                    print(f"t={t:6d}  ({us:9.3f} us)  pindirs={v}   (+{dt} cyc / {dus:.3f} us)")
+                    print(
+                        f"t={t:6d}  ({us:9.3f} us)  pindirs={v}   (+{dt} cyc / {dus:.3f} us)"
+                    )
                 prev = (t, v)
 
 

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Measurement Interactive Dashboard</title>
+    <style>
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1f2937; }
+        header { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+        h1 { margin: 0; font-size: 18px; }
+        .layout { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 53px); }
+        .sidebar { border-right: 1px solid #e5e7eb; overflow: auto; padding: 12px; }
+        .tabs { display: grid; gap: 8px; }
+        .tab { text-align: left; border: 1px solid #d1d5db; background: #ffffff; border-radius: 8px; padding: 8px 10px; cursor: pointer; }
+        .tab:hover { background: #f9fafb; }
+        .tab.active { background: #eef2ff; border-color: #818cf8; }
+        .links { margin-top: 14px; font-size: 13px; color: #4b5563; }
+        .links ul { margin: 6px 0 0; padding-left: 18px; }
+        .content { height: 100%; }
+        iframe { width: 100%; height: 100%; border: 0; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Measurement Interactive Dashboard</h1>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="tabs"><button class="tab" data-src="interactive_surface_gx.html">Surface GX</button>
+<button class="tab" data-src="interactive_surface_gy.html">Surface GY</button>
+<button class="tab" data-src="interactive_surface_residual_mag.html">Surface Residual |R|</button>
+<button class="tab" data-src="interactive_heatmaps_raw.html">Heatmaps Raw</button>
+<button class="tab" data-src="interactive_heatmaps_centered.html">Heatmaps Centered</button>
+<button class="tab" data-src="interactive_residuals.html">Residuals</button>
+<button class="tab" data-src="interactive_scatter_pairs.html">Scatter Pairs</button>
+<button class="tab" data-src="interactive_slices.html">Slices</button>
+<button class="tab" data-src="interactive_diagnostics.html">Diagnostics</button></div>
+            <div class="links">
+                <div>Open directly in new tab:</div>
+                <ul><li><a href="interactive_surface_gx.html" target="_blank" rel="noopener">Surface GX</a></li>
+<li><a href="interactive_surface_gy.html" target="_blank" rel="noopener">Surface GY</a></li>
+<li><a href="interactive_surface_residual_mag.html" target="_blank" rel="noopener">Surface Residual |R|</a></li>
+<li><a href="interactive_heatmaps_raw.html" target="_blank" rel="noopener">Heatmaps Raw</a></li>
+<li><a href="interactive_heatmaps_centered.html" target="_blank" rel="noopener">Heatmaps Centered</a></li>
+<li><a href="interactive_residuals.html" target="_blank" rel="noopener">Residuals</a></li>
+<li><a href="interactive_scatter_pairs.html" target="_blank" rel="noopener">Scatter Pairs</a></li>
+<li><a href="interactive_slices.html" target="_blank" rel="noopener">Slices</a></li>
+<li><a href="interactive_diagnostics.html" target="_blank" rel="noopener">Diagnostics</a></li></ul>
+            </div>
+        </aside>
+        <main class="content">
+            <iframe id="viewer" src="interactive_surface_gx.html"></iframe>
+        </main>
+    </div>
+    <script>
+        const buttons = [...document.querySelectorAll('.tab')];
+        const viewer = document.getElementById('viewer');
+        const activate = (button) => {
+            buttons.forEach((b) => b.classList.remove('active'));
+            button.classList.add('active');
+            const src = button.getAttribute('data-src');
+            if (src) viewer.setAttribute('src', src);
+        };
+        buttons.forEach((button) => button.addEventListener('click', () => activate(button)));
+        if (buttons.length > 0) activate(buttons[0]);
+    </script>
+</body>
+</html>

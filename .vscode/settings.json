@@ -11,18 +11,27 @@
         "editor.formatOnSave": true
     },
     "triggerTaskOnSave.tasks": {
-        "format pio": ["**/*.pio"]
+        "format pio": [
+            "**/*.pio"
+        ]
     },
     "cmake.buildDirectory": "${workspaceFolder}/build",
     "cmake.generator": "Unix Makefiles",
-
     "cmake.environment": {
         "PICO_SDK_PATH": "/Users/jgoto/pico/pico-sdk",
         "PATH": "/Applications/ARM/bin:${env:PATH}"
     },
-
     "cmake.configureOnOpen": true,
     "cmake.configureArgs": [
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-    ]
+    ],
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+        },
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "python-envs.pythonProjects": []
 }

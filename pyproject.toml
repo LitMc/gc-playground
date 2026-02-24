@@ -7,4 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "pyserial",
     "aiohttp",
+    "opencv-python",
+    "matplotlib",
+    "plotly"
 ]
