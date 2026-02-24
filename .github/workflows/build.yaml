@@ -7,6 +7,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/litmc/gc-playground/builder:latest
+      options: --user root
     steps:
       - uses: actions/checkout@v5
 
@@ -20,15 +23,8 @@ jobs:
               - 'pico_sdk_import.cmake'
               - 'CMakePresets.json'
               - '.github/workflows/build.yaml'
-
-      - name: Install build dependencies
-        if: steps.changes.outputs.code == 'true'
-        run: |
-            sudo apt-get update
-            sudo apt-get install -y \
-              cmake python3 build-essential ninja-build \
-              gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib \
-              ccache
+              - '.github/docker/Dockerfile'
+              - '.github/workflows/publish-builder.yaml'
 
       - name: Cache pico-sdk
         if: steps.changes.outputs.code == 'true'
@@ -41,8 +37,8 @@ jobs:
       - name: Checkout pico-sdk
         if: steps.changes.outputs.code == 'true' && steps.cache-pico-sdk.outputs.cache-hit != 'true'
         run: |
-          git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git "${{ github.workspace }}/pico-sdk"
-          cd "${{ github.workspace }}/pico-sdk"
+          git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git "${GITHUB_WORKSPACE}/pico-sdk"
+          cd "${GITHUB_WORKSPACE}/pico-sdk"
           git submodule update --init --depth 1
 
       - name: Restore ccache
