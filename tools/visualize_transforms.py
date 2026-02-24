@@ -718,7 +718,7 @@ function updateSinvF() {
 
         const suffix = EXACT[mx][my] ? '' : ' (\\u88dc\\u9593)';
         dot(ctxSinvF, sx, sy, T.sinvOutput, 5);
-        label(ctxSinvF, sx, sy, `S\\u207b\\u00b9(m) (${sx}, ${sy})${suffix}`, T.sinvOutput);
+        label(ctxSinvF, sx, sy, `S\\u207b\\u00b9\\u207a(m) (${sx}, ${sy})${suffix}`, T.sinvOutput);
     }
 }
 
