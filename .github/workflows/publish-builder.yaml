@@ -32,3 +32,5 @@ jobs:
           context: .github/docker
           push: true
           tags: ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
