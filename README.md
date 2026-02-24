@@ -18,7 +18,7 @@ GameCube コントローラ（Joybus）通信を、RP2040（Raspberry Pi Pico）
 1. ROI を動画から dump
 ```bash
 uv run tools/dump_measurement_rois.py \
-  --video resources/videos/2026-02-06\ 21-46-02.mp4 \
+  --video resources/videos/<video>.mp4 \
   --rois resources/rois/rois.json \
   --out-dir resources/templates/raw
 ```
@@ -26,7 +26,7 @@ uv run tools/dump_measurement_rois.py \
 特定フレームを一括dumpする例（1行1フレームのテキストファイルを使用）:
 ```bash
 uv run tools/dump_measurement_rois.py \
-  --video resources/videos/2026-02-06\ 21-46-02.mp4 \
+  --video resources/videos/<video>.mp4 \
   --rois resources/rois/rois.json \
   --out-dir resources/templates/raw \
   --frames-file resources/templates/frames_to_dump.txt
@@ -54,7 +54,7 @@ uv run tools/make_templates_from_dump.py \
 3. テンプレートマッチで CSV 生成
 ```bash
 uv run tools/generate_measurement_csv.py \
-  --video resources/videos/2026-02-06\ 21-46-02.mp4 \
+  --video resources/videos/<video>.mp4 \
   --rois resources/rois/rois.json \
   --templates-dir resources/templates/game_digits \
   --out-csv resources/switch2/readings.csv \
@@ -73,20 +73,22 @@ uv run tools/generate_measurement_csv.py \
 
 補足:
 - 同期ずれ対策として、同一 barcode frame 内で最長継続した `(sx,sy,gx,gy)` を採用します。
-- 可視化確認用は [tools/read_values.py](tools/read_values.py)（CSV生成責務なし）です。
+- 可視化確認用は [tools/debug_template_match.py](tools/debug_template_match.py)（CSV生成責務なし）です。
 
 可視化デバッグ例:
 ```bash
-uv run tools/read_values.py \
-  --video resources/videos/2026-02-06\ 21-46-02.mp4 \
+uv run tools/debug_template_match.py \
+  --video resources/videos/<video>.mp4 \
   --rois resources/rois/rois.json \
   --templates-dir resources/templates/game_digits
 ```
 
 操作キー:
-- `space`: 再生/停止
+- `r` / `R` / `Enter`: 再生/停止
 - `.` `,`: 1フレーム送り/戻し
 - `e` `f`: 10フレーム送り/戻し
+- `[` `]`: 1000フレーム送り/戻し
+- `g`: 任意フレームへジャンプ
 - `p`: 現在の読取値を標準出力へ表示
 - `q` or `Esc`: 終了
 
