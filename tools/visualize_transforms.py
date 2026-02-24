@@ -195,7 +195,8 @@ const THEMES = {
         oct125Zone: [248,235,215],
         centerLine: 'rgba(0,0,0,0.08)',
         oct100Line: 'rgba(0,0,0,0.3)', oct125Line: 'rgba(160,120,0,0.45)',
-        inputDot: '#222', sOutput: '#cc2222', cOutput: '#22884e', phiOutput: '#0066aa',
+        inputDot: '#222', sOutput: '#cc2222', cOutput: '#22884e',
+        phiOutput: '#0066aa',
         dashLine: 'rgba(0,0,0,0.2)',
     },
     dark: {
@@ -203,7 +204,8 @@ const THEMES = {
         oct125Zone: [38,30,22],
         centerLine: 'rgba(255,255,255,0.08)',
         oct100Line: 'rgba(255,255,255,0.35)', oct125Line: 'rgba(255,215,0,0.4)',
-        inputDot: '#ffffff', sOutput: '#ff6b6b', cOutput: '#6bffaa', phiOutput: '#6bcaff',
+        inputDot: '#ffffff', sOutput: '#ff6b6b', cOutput: '#6bffaa',
+        phiOutput: '#6bcaff',
         dashLine: 'rgba(255,255,255,0.2)',
     },
 };
@@ -496,14 +498,14 @@ cvPhi.addEventListener('mouseleave', () => { curPhi = [-1, -1]; drawBgPhi(); });
 // ══════════════════════════════════════════
 let activeTab = 'S';
 
+const TAB_MAP = {S:'S', C:'C', phi:'Phi'};
+
 function switchTab(name) {
     activeTab = name;
-    for (const id of ['tabS', 'tabC', 'tabPhi'])
-        document.getElementById(id).classList.toggle('active',
-            id === 'tab' + (name === 'phi' ? 'Phi' : name));
-    for (const id of ['panelS', 'panelC', 'panelPhi'])
-        document.getElementById(id).classList.toggle('active',
-            id === 'panel' + (name === 'phi' ? 'Phi' : name));
+    for (const [k, v] of Object.entries(TAB_MAP)) {
+        document.getElementById('tab' + v).classList.toggle('active', k === name);
+        document.getElementById('panel' + v).classList.toggle('active', k === name);
+    }
     if (name === 'S') drawBgS();
     else if (name === 'C') drawBgC();
     else drawBgPhi();
