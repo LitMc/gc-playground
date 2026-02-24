@@ -37,8 +37,8 @@ jobs:
       - name: Checkout pico-sdk
         if: steps.changes.outputs.code == 'true' && steps.cache-pico-sdk.outputs.cache-hit != 'true'
         run: |
-          git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git "${{ github.workspace }}/pico-sdk"
-          cd "${{ github.workspace }}/pico-sdk"
+          git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git "${GITHUB_WORKSPACE}/pico-sdk"
+          cd "${GITHUB_WORKSPACE}/pico-sdk"
           git submodule update --init --depth 1
 
       - name: Restore ccache
