@@ -21,23 +21,24 @@ flowchart LR
   OR5V["CH213K OR(5V)"]
   OR33["CH213K OR(3.3V)"]
 
-  CONSOLE -- DATA --> CONDATA[CONSOLE_DATA_BUS]
-  PICO -- GP16 --> CONDATA
-  PICO -- GP15 --> PADDATA[PAD_DATA_BUS]
-  PAD -- DATA --> PADDATA
+  CONSOLE <-- DATA --> CONDATA[CONSOLE_DATA_BUS]
+  PICO <-- GP16 --> CONDATA
+  PICO <-- GP15 --> PADDATA[PAD_DATA_BUS]
+  PAD <-- DATA --> PADDATA
 
   CONSOLE -- 5V --> OR5V
   VBUS -- 5V --> OR5V
   OR5V --> BUS5[5V_BUS]
   BUS5 --> PICO
-  BUS5 --> PAD
+  BUS5 -- 5V --> PAD
 
   CONSOLE -- 3.3V --> OR33
   PICO -- "3V3(OUT)" --> OR33
   OR33 --> BUS33[3V3_BUS]
-  BUS33 --> PAD
+  BUS33 -- 3.3V --> PAD
 
-  CONSOLE --- GND_BUS --- PICO --- GND_BUS --- PAD
+  CONSOLE -- GND --> GND_BUS --- PICO
+  PAD -- GND --> GND_BUS
 ```
 
 ※DATA線はそれぞれシリーズ抵抗あり（後述）。
