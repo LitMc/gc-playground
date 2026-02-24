@@ -77,40 +77,13 @@ body {
     min-height: 100vh;
     padding: 16px;
 }
-h1 { font-size: 18px; margin-bottom: 12px; color: #a0c4ff; }
-.canvases {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-.canvas-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-.canvas-wrapper h2 {
-    font-size: 14px;
-    margin-bottom: 4px;
-    color: #ccc;
-}
+h1 { font-size: 18px; margin-bottom: 16px; color: #a0c4ff; }
 canvas {
     border: 1px solid #444;
     cursor: crosshair;
 }
 .info {
-    margin-top: 16px;
-    font-size: 14px;
-    line-height: 2.0;
-    background: #16213e;
-    padding: 12px 20px;
-    border-radius: 6px;
-    min-width: 460px;
-}
-.s-val { color: #ff6b6b; }
-.dim { color: #666; }
-.legend {
-    margin-top: 8px;
+    margin-top: 12px;
     font-size: 12px;
     color: #888;
 }
@@ -118,22 +91,11 @@ canvas {
 </head>
 <body>
 <h1>S — Switch 2 実測変換</h1>
-
-<div class="canvases">
-    <div class="canvas-wrapper">
-        <h2>入力 s = (sx, sy)</h2>
-        <canvas id="cvIn" width="512" height="512"></canvas>
-    </div>
-    <div class="canvas-wrapper">
-        <h2>出力 m = S(s)</h2>
-        <canvas id="cvOut" width="512" height="512"></canvas>
-    </div>
-</div>
-
-<div class="info" id="info">マウスを左キャンバス上に移動してください</div>
-<div class="legend">
-    <span style="color:#ff6b6b">●</span> S(s)
-    &emsp; 白線: Oct(100)（頂点が縦横・斜めを向く正八角形）
+<canvas id="cv" width="512" height="512"></canvas>
+<div class="info">
+    <span style="color:#fff">●</span> s（入力）
+    <span style="color:#ff6b6b">●</span> S(s)（出力）
+    &emsp; 白線: Oct(100)
 </div>
 
 <script>
@@ -142,27 +104,16 @@ const N = 256;
 const PX = 2;
 const SZ = N * PX;
 
-const cvIn  = document.getElementById('cvIn');
-const cvOut = document.getElementById('cvOut');
-const ctxIn  = cvIn.getContext('2d');
-const ctxOut = cvOut.getContext('2d');
-const info = document.getElementById('info');
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
 
 // ── 正八角形 Oct(a) ──
 // 頂点が 0°, 45°, 90°, ... の 8 方向に距離 a
-// 辺は 22.5°, 67.5°, ... の方向（水平・垂直な辺はない）
-// 辺の法線は 22.5° 間隔、中心から辺までの距離（apothem） = a·cos(π/8)
-//
-// 判定: 4 つの制約（各 ±で 8 辺をカバー）
-//   |cx·cos22.5° + cy·sin22.5°| ≤ h
-//   |cx·cos22.5° − cy·sin22.5°| ≤ h
-//   |cx·sin22.5° + cy·cos22.5°| ≤ h
-//   |cx·sin22.5° − cy·cos22.5°| ≤ h
-// ここで h = a·cos(π/8) = a·cos22.5°
+// 辺の法線は 22.5° 間隔、apothem = a·cos(π/8)
 const OCT_A = 100;
-const C8 = Math.cos(Math.PI / 8);  // cos(22.5°) ≈ 0.9239
-const S8 = Math.sin(Math.PI / 8);  // sin(22.5°) ≈ 0.3827
-const OCT_H = OCT_A * C8;          // apothem ≈ 92.39
+const C8 = Math.cos(Math.PI / 8);
+const S8 = Math.sin(Math.PI / 8);
+const OCT_H = OCT_A * C8;
 
 function inOct(cx, cy) {
     return Math.abs(C8*cx + S8*cy) <= OCT_H
@@ -171,15 +122,14 @@ function inOct(cx, cy) {
         && Math.abs(S8*cx - C8*cy) <= OCT_H;
 }
 
-// Oct(a) の 8 頂点 (centered): 0°, 45°, 90°, ... に距離 a
 const OCT_VERTS = __OCT_VERTS__;
 
-// grid → canvas pixel
+// grid (0..255) → canvas pixel。Y 反転（0 が下）
 function g2c(gx, gy) {
     return [gx * PX + PX / 2, (N - 1 - gy) * PX + PX / 2];
 }
 
-function dot(ctx, gx, gy, color, r) {
+function dot(gx, gy, color, r) {
     const [x, y] = g2c(gx, gy);
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -187,48 +137,23 @@ function dot(ctx, gx, gy, color, r) {
     ctx.fill();
 }
 
-function cross(ctx, gx, gy, color) {
+function label(gx, gy, text, color) {
     const [x, y] = g2c(gx, gy);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(x, 0); ctx.lineTo(x, SZ);
-    ctx.moveTo(0, y); ctx.lineTo(SZ, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.font = '11px monospace';
+    ctx.fillStyle = color;
+    // ラベルの位置をキャンバス端に応じて調整
+    const metrics = ctx.measureText(text);
+    const tw = metrics.width;
+    let lx = x + 8;
+    let ly = y - 8;
+    if (lx + tw > SZ) lx = x - tw - 8;
+    if (ly < 12) ly = y + 16;
+    ctx.fillText(text, lx, ly);
 }
 
-function drawOctBoundary(ctx) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    const [x0, y0] = g2c(128 + OCT_VERTS[0][0], 128 + OCT_VERTS[0][1]);
-    ctx.moveTo(x0, y0);
-    for (let i = 1; i < OCT_VERTS.length; i++) {
-        const [x, y] = g2c(128 + OCT_VERTS[i][0], 128 + OCT_VERTS[i][1]);
-        ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-    ctx.stroke();
-}
-
-// ── 背景描画 ──
-function drawInBg() {
-    ctxIn.fillStyle = '#1e1e3a';
-    ctxIn.fillRect(0, 0, SZ, SZ);
-    // 中心線
-    ctxIn.strokeStyle = 'rgba(255,255,255,0.1)';
-    ctxIn.lineWidth = 1;
-    const [cx, cy] = g2c(128, 128);
-    ctxIn.beginPath();
-    ctxIn.moveTo(cx, 0); ctxIn.lineTo(cx, SZ);
-    ctxIn.moveTo(0, cy); ctxIn.lineTo(SZ, cy);
-    ctxIn.stroke();
-}
-
-function drawOutBg() {
-    const img = ctxOut.createImageData(SZ, SZ);
+function drawBg() {
+    // Oct₁₂₈ 領域を塗り分け
+    const img = ctx.createImageData(SZ, SZ);
     for (let mx = 0; mx < N; mx++)
         for (let my = 0; my < N; my++) {
             const inside = inOct(mx - 128, my - 128);
@@ -242,35 +167,63 @@ function drawOutBg() {
                     img.data[i*4+2]=b; img.data[i*4+3]=255;
                 }
         }
-    ctxOut.putImageData(img, 0, 0);
-    drawOctBoundary(ctxOut);
+    ctx.putImageData(img, 0, 0);
+
+    // 中心線
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    const [cx, cy] = g2c(128, 128);
+    ctx.beginPath();
+    ctx.moveTo(cx, 0); ctx.lineTo(cx, SZ);
+    ctx.moveTo(0, cy); ctx.lineTo(SZ, cy);
+    ctx.stroke();
+
+    // Oct 境界
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const [x0, y0] = g2c(128 + OCT_VERTS[0][0], 128 + OCT_VERTS[0][1]);
+    ctx.moveTo(x0, y0);
+    for (let i = 1; i < OCT_VERTS.length; i++) {
+        const [x, y] = g2c(128 + OCT_VERTS[i][0], 128 + OCT_VERTS[i][1]);
+        ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
 }
 
 // ── インタラクション ──
 let curSx = -1, curSy = -1;
 
 function update() {
+    drawBg();
     if (curSx < 0) return;
+
     const sx = curSx, sy = curSy;
     const [mx, my] = S[sx][sy];
 
-    drawInBg();
-    cross(ctxIn, sx, sy, 'rgba(255,255,255,0.4)');
-    dot(ctxIn, sx, sy, '#fff', 4);
+    // s → S(s) の線
+    const [x1, y1] = g2c(sx, sy);
+    const [x2, y2] = g2c(mx, my);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-    drawOutBg();
-    cross(ctxOut, mx, my, 'rgba(255,107,107,0.3)');
-    dot(ctxOut, mx, my, '#ff6b6b', 5);
+    // 点とラベル
+    dot(sx, sy, '#ffffff', 4);
+    label(sx, sy, `s (${sx}, ${sy})`, '#ffffff');
 
-    info.innerHTML =
-        `s = (${sx}, ${sy})` +
-        `<span class="dim"> = center + (${sx-128}, ${sy-128})</span>` +
-        `<br>S(s) = <span class="s-val">(${mx}, ${my})</span>` +
-        `<span class="dim"> = center + (${mx-128}, ${my-128})</span>`;
+    dot(mx, my, '#ff6b6b', 5);
+    label(mx, my, `S(s) (${mx}, ${my})`, '#ff6b6b');
 }
 
-cvIn.addEventListener('mousemove', (e) => {
-    const r = cvIn.getBoundingClientRect();
+cv.addEventListener('mousemove', (e) => {
+    const r = cv.getBoundingClientRect();
     const sx = Math.floor((e.clientX - r.left) / PX);
     const sy = N - 1 - Math.floor((e.clientY - r.top) / PX);
     if (sx >= 0 && sx < N && sy >= 0 && sy < N) {
@@ -279,14 +232,12 @@ cvIn.addEventListener('mousemove', (e) => {
     }
 });
 
-cvIn.addEventListener('mouseleave', () => {
+cv.addEventListener('mouseleave', () => {
     curSx = -1; curSy = -1;
-    drawInBg(); drawOutBg();
-    info.textContent = 'マウスを左キャンバス上に移動してください';
+    drawBg();
 });
 
-drawInBg();
-drawOutBg();
+drawBg();
 </script>
 </body>
 </html>
