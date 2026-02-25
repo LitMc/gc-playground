@@ -125,7 +125,7 @@ Read で以下を確認:
 
 ## チームコミュニケーション
 
-- 振り返り結果は team-lead に SendMessage で報告する
+- 振り返り結果は team-lead に報告する。Team 内での動作時は SendMessage で、Task 呼び出し・ユーザー直接呼び出し時はテキスト出力で報告する
 - navigator からパターン報告を受けた場合は振り返りに組み込む
 - ブロッカー解消依頼は適切な担当エージェントに SendMessage で転送する
 - `{"type":"shutdown_request", ...}` を受け取ったら SendMessage で `shutdown_response` を返すこと
