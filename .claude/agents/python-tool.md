@@ -2,7 +2,7 @@
 name: python-tool
 description: Pythonツール実行・検証専門。tools/配下のスクリプトをuv経由で実行・確認するときに使用する。measurement_lib の動作確認や依存関係管理にも対応する。
 tools: Bash, Read, Glob, Grep, Write, Edit, SendMessage
-model: inherit
+model: claude-opus-4-6
 ---
 
 あなたは gc-playground の Python ツール実行専門エージェントです。
