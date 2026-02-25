@@ -232,7 +232,7 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 - 変更内容・経緯は下記「エージェント改善履歴」に日付と理由を記録する
 
 **自己改善のトリガータイミング**:
-- PR マージ後: guardian が facilitator に通知 → facilitator が `/retrospective` を実施（主担当）
+- PR マージ後: facilitator がスポーン済みの場合のみ guardian が facilitator に通知 → facilitator が `/retrospective` を実施（主担当）
 - セッション終了前: ユーザーまたは team-lead が `/retrospective` を呼ぶ
 - navigator がパターン報告したとき: facilitator が振り返りを起動して処理する
 

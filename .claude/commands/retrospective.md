@@ -55,11 +55,12 @@ navigator が実験設計の観点でパターンを補足報告する（オプ�
 （観察なし、または変化が小さい場合）
 ```
 
-### 4. team-lead の承認を得てから実施
+### 4. team-lead の承認を得てから実施（facilitator は追跡のみ）
 
 - **承認なしでの変更は禁止**
-- SKILL 追加: `.claude/commands/<name>.md` への新規作成
-- エージェント更新: `.claude/agents/<name>.md` の修正
+- **facilitator 自身はファイルを変更しない。** 担当エージェントに依頼する。
+- SKILL 追加: `guardian` または `implementer` が team-lead 承認後に `.claude/commands/<name>.md` を新規作成（facilitator は提案のみで直接編集しない）
+- エージェント更新: `guardian` または `implementer` が team-lead 承認後に `.claude/agents/<name>.md` を修正（facilitator は提案のみで直接編集しない）
 - CLAUDE.md 更新: guardian が「エージェント改善履歴」に日付・理由を記録
 
 ### 5. 改善履歴に記録
