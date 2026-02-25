@@ -204,3 +204,4 @@ PR をレビューするために、セキュリティ・タイミング・コ�
 
 - 2026-02-25: 初期セット 4 エージェントを追加（cpp-builder, python-tool, pr-workflow, doc-sync）
 - 2026-02-25: SKILL 2 種を追加（skill-new, agents-review）
+- 2026-02-25: 全エージェントに SendMessage ツールとシャットダウン対応を追加（Agent Teams での TeamDelete がブロックされる問題を修正）
