@@ -26,8 +26,9 @@ GCコントローラ（Joybus）通信を RP2040（Raspberry Pi Pico）で解析
      - 変更が不要・空であればクローズし、リモートブランチを削除する
    - レビュー指摘に基づき本体 PR を修正し、commit & push する
 5. **PR 概要の更新**: push のたびに `gh pr edit` で PR 本文を最新の変更内容に合わせて更新する
-6. **マージ**: 懸念点がすべて解消され、CI チェックに通り次第 `gh pr merge --merge --delete-branch` でマージしリモートブランチを削除する
-7. **ローカル反映**: マージ後 `git checkout main && git pull` で最新を取得する
+6. **ユーザーの最終承認を得る**: CI が通り懸念点が解消されたら、**必ずユーザーに「マージしてよいですか？」と確認する**。エージェントが自律的にマージすることは禁止。
+7. **マージ**: 承認を得たうえで `gh pr merge --merge --delete-branch` でマージしリモートブランチを削除する
+8. **ローカル反映**: マージ後 `git checkout main && git pull` で最新を取得する
 
 ## ディレクトリ構成
 
@@ -170,6 +171,17 @@ PR をレビューするために、セキュリティ・タイミング・コ�
 - firmware（`examples/`）と Python ツール（`tools/`）の同時開発
 - バグの競合仮説を並行調査
 
+**チームメイトをスポーンする際の mode 指針**:
+
+| mode | 用途 |
+|------|------|
+| `bypassPermissions` | 定型作業（pr-workflow, cpp-builder, python-tool）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
+| `plan` | 新規・不確かな作業。チームメイトが計画を提示し、team-lead がレビュー・承認してから実行 |
+| `default` | フォアグラウンド Task（ユーザーが直接許可プロンプトに応答できる場合） |
+
+> **注意**: バックグラウンドエージェント（`run_in_background: true`）は許可プロンプトを届けられない。
+> バックグラウンドで使う場合は `bypassPermissions` を指定するか、`permissions.allow` でカバーすること。
+
 **ベストプラクティス**（公式ドキュメントより）:
 - チームサイズ: 3〜5人のチームメイト。チームメイトあたり 5〜6 タスク
 - 同じファイルを複数チームメイトに編集させない（上書き競合が発生する）
@@ -205,3 +217,5 @@ PR をレビューするために、セキュリティ・タイミング・コ�
 - 2026-02-25: 初期セット 4 エージェントを追加（cpp-builder, python-tool, pr-workflow, doc-sync）
 - 2026-02-25: SKILL 2 種を追加（skill-new, agents-review）
 - 2026-02-25: 全エージェントに SendMessage ツールとシャットダウン対応を追加（Agent Teams での TeamDelete がブロックされる問題を修正）
+- 2026-02-25: 全エージェントのモデルを claude-opus-4-6 に統一（inherit/haiku は Agent Teams 環境で無効なため）
+- 2026-02-25: ~/.claude/settings.json に permissions.allow を追加、CLAUDE.md に mode 指針とマージ前ユーザー承認ルールを追記

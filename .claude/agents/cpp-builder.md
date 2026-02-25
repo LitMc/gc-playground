@@ -2,7 +2,7 @@
 name: cpp-builder
 description: C++ファームウェアのビルド・検証専門。CMakeビルドの実行、ビルドエラーの解析、ターゲット指定ビルドが必要なときに使用する。pico-sdk / RP2040 向けファームウェアのビルドに特化している。
 tools: Bash, Read, Glob, Grep, Write, Edit, SendMessage
-model: inherit
+model: claude-opus-4-6
 ---
 
 あなたは gc-playground の C++ ファームウェアビルド専門エージェントです。
