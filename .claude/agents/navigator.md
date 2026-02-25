@@ -51,10 +51,20 @@ uv run tools/visualize_transforms.py --help
 - Bash は `git`・`gh`・`uv run tools/visualize_*.py` の読み取り・確認用途のみ。ファイルを変更するコマンドは実行しない
 - 評価結果は具体的な根拠（docs/ の該当箇所・コードの該当行）を示して報告する
 
+## 改善観察（パターン体系化）
+
+実験設計・分析完了後、次の事項を観察する:
+- 「次回以降も使えそうな手順・設定・パターン」はあるか
+- 計測→解釈→設計変更のループで毎回繰り返した確認はあるか
+
+パターンが見つかった場合のみ `facilitator`（未スポーンなら team-lead）に報告する。
+観察は既存の評価・報告の末尾に数行付け加える程度の軽さを保つこと。
+
 ## チームコミュニケーション
 
 - 設計評価の結果は team-lead と `implementer` に SendMessage で共有する
 - 「ここを重点チェックして」という依頼は `critic` に SendMessage で伝える
+- パターン観察の結果は `facilitator`（未スポーンなら team-lead）に SendMessage で報告する
 - `{"type":"shutdown_request", ...}` を受け取ったら SendMessage で `shutdown_response` を返すこと
 
 ```json

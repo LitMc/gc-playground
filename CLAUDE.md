@@ -156,6 +156,7 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 | `critic` | 「評価する」 | タイミング安全性・ISR・コーディング規約レビュー（読み取り専用） |
 | `guardian` | 「守る」 | PRワークフロー・ドキュメント整合・マージ前承認 |
 | `navigator` | 「俯瞰する」 | 実験設計・変換パイプライン検証・計測データ解釈 |
+| `facilitator` | 「つなぐ」 | 振り返り主導・改善提案・ブロッカー解消支援 |
 
 定義ファイル: `.claude/agents/<name>.md`
 
@@ -165,6 +166,7 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 |---------|------|
 | `/skill-new` | 新しい SKILL を `.claude/commands/` に追加するフローを案内する |
 | `/agents-review` | エージェント構成を見直し、改善案を提案・適用する |
+| `/retrospective` | 作業後の振り返りを行い、SKILL化・エージェント更新の改善案を提案する |
 
 ### Agent Teams の使い方
 
@@ -229,6 +231,14 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 - 作業完了後にエージェント構成を振り返り、改善があれば即反映する（`/agents-review` を参照）
 - 変更内容・経緯は下記「エージェント改善履歴」に日付と理由を記録する
 
+**自己改善のトリガータイミング**:
+- PR マージ後: facilitator がスポーン済みの場合のみ guardian が facilitator に通知 → facilitator が `/retrospective` を実施（主担当）
+- セッション終了前: ユーザーまたは team-lead が `/retrospective` を呼ぶ
+- navigator がパターン報告したとき: facilitator が振り返りを起動して処理する
+
+**主担当**: facilitator（つなぐ）が振り返りと改善提案を担当する。
+改善提案はいかなる場合も team-lead またはユーザーの承認後にのみ実施する。
+
 **SKILL 化の基準**:
 - 3 回以上繰り返すフロー → `.claude/commands/<name>.md` に追加
 - 命名規則: 動詞-名詞（例: `build-verify`, `pr-check`, `timing-measure`）
@@ -247,3 +257,4 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 - 2026-02-25: ~/.claude/settings.json に permissions.allow を追加、CLAUDE.md に mode 指針とマージ前ユーザー承認ルールを追記
 - 2026-02-25: 技術スタック別構成から「視点（Lens）モデル」に刷新（旧4体を廃止し implementer・critic・guardian・navigator を新設）。既存4エージェントによる並行自己レビューを経て設計を確定。
 - 2026-02-25: CopilotレビューのTeams中心の運用をルール化（CLAUDE.md/guardian.md/copilot-instructions.md に明記）
+- 2026-02-25: facilitator エージェント新設・/retrospective SKILL 追加・navigator に改善観察セクション追加（自己改善フィードバックループの構築）
