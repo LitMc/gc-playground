@@ -15,6 +15,7 @@ model: claude-opus-4-6
 3. **push して PR を作成**: `gh pr create` でタイトル・本文を日本語で記述
 4. **Copilot レビューへの対応**:
    - PR への push ごとに `gh api` でレビューコメントを確認する
+   - **2回目以降の push 後は `gh pr comment <number> --body "@copilot re-review"` でレビューを依頼する**（初回のみ自動、以降は手動）
    - **指摘の採否は Teams で判断する**: critic に技術的妥当性の評価を依頼し、自身でプロセス整合を確認する
      - 有効な指摘は本体 PR に反映し commit & push する
      - 無効・誤認識（例: 存在しないパスへの言及）は Teams 判断でスキップ可
