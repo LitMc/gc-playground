@@ -36,6 +36,7 @@ GCコントローラ（Joybus）通信を RP2040（Raspberry Pi Pico）で解析
    - Copilot の提案 PR がマージまたはクローズされていること
 7. **マージ**: 承認を得たうえで `gh pr merge --merge --delete-branch` でマージしリモートブランチを削除する
 8. **ローカル反映**: マージ後 `git checkout main && git pull` で最新を取得する
+9. **振り返り**: team-lead（または自分）が `/retrospective` を実行する（PR の大小に関わらず毎回実施）
 
 ## ディレクトリ構成
 
@@ -232,7 +233,7 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 - 変更内容・経緯は下記「エージェント改善履歴」に日付と理由を記録する
 
 **自己改善のトリガータイミング**:
-- PR マージ後: facilitator がスポーン済みの場合のみ guardian が facilitator に通知 → facilitator が `/retrospective` を実施（主担当）
+- **PR マージ後（必須）**: team-lead が毎回 `/retrospective` を実行する（ワークフロー ステップ9）。guardian は facilitator がスポーンされていれば「PR #N マージ完了」と通知する（補助）
 - セッション終了前: ユーザーまたは team-lead が `/retrospective` を呼ぶ
 - navigator がパターン報告したとき: facilitator が振り返りを起動して処理する
 

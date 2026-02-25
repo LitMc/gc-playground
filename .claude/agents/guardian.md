@@ -97,7 +97,7 @@ gh pr merge <number> --merge --delete-branch
 - critic の完了報告と CI 結果を統合して、マージ可否の最終判断を team-lead に伝える
 - 修正が必要な場合は `implementer` に SendMessage で依頼する（自分では修正しない）
 - PR マージ完了（ステップ7: GitHub 上でのマージ成立直後）に `facilitator` に SendMessage で「PR #N マージ完了」と通知する
-  ※ facilitator がスポーンされていない場合は通知不要
+  ※ facilitator がスポーンされていない場合は通知不要（team-lead が ステップ9 で `/retrospective` を実行するため）
 - `{"type":"shutdown_request", ...}` を受け取ったら SendMessage で `shutdown_response` を返すこと
 
 ```json
