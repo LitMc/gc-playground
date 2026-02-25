@@ -1,7 +1,7 @@
 ---
 name: pr-workflow
 description: PRワークフロー管理専門。Copilotレビュー確認・対応、PR本文更新、マージ判断が必要なときに使用する。CLAUDE.mdに定義されたPRワークフローを内蔵しており、手順を確実に実行する。
-tools: Bash, Read, Glob, Grep, Write, Edit
+tools: Bash, Read, Glob, Grep, Write, Edit, SendMessage
 model: inherit
 ---
 
@@ -48,3 +48,19 @@ gh pr merge <number> --merge --delete-branch
 ## 自己改善
 
 - このエージェントの役割・tools・手順に改善余地があると気づいたら、このファイル（`.claude/agents/pr-workflow.md`）を更新し、CLAUDE.md の「エージェント改善履歴」に記録する
+
+## チームコミュニケーション
+
+Agent Teams のチームメイトとして動作している場合、以下を遵守する:
+
+- `{"type":"shutdown_request", ...}` という JSON メッセージを受け取ったら、
+  必ず `SendMessage` ツールで `shutdown_response` を返すこと
+- `request_id` は受け取ったメッセージの `requestId` フィールドから取得する
+
+```json
+{
+  "type": "shutdown_response",
+  "request_id": "<受け取った requestId>",
+  "approve": true
+}
+```

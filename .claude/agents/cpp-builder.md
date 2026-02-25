@@ -1,7 +1,7 @@
 ---
 name: cpp-builder
 description: C++ファームウェアのビルド・検証専門。CMakeビルドの実行、ビルドエラーの解析、ターゲット指定ビルドが必要なときに使用する。pico-sdk / RP2040 向けファームウェアのビルドに特化している。
-tools: Bash, Read, Glob, Grep, Write, Edit
+tools: Bash, Read, Glob, Grep, Write, Edit, SendMessage
 model: inherit
 ---
 
@@ -38,3 +38,19 @@ cmake -B build -S .
 ## 自己改善
 
 - このエージェントの役割・tools・手順に改善余地があると気づいたら、このファイル（`.claude/agents/cpp-builder.md`）を更新し、CLAUDE.md の「エージェント改善履歴」に記録する
+
+## チームコミュニケーション
+
+Agent Teams のチームメイトとして動作している場合、以下を遵守する:
+
+- `{"type":"shutdown_request", ...}` という JSON メッセージを受け取ったら、
+  必ず `SendMessage` ツールで `shutdown_response` を返すこと
+- `request_id` は受け取ったメッセージの `requestId` フィールドから取得する
+
+```json
+{
+  "type": "shutdown_response",
+  "request_id": "<受け取った requestId>",
+  "approve": true
+}
+```
