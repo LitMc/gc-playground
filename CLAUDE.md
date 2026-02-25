@@ -21,10 +21,12 @@ GCコントローラ（Joybus）通信を RP2040（Raspberry Pi Pico）で解析
 3. **push して PR を作成**: `gh pr create` でタイトル・本文を日本語で記述
 4. **Copilot レビューへの対応**:
    - PR への push ごとに Copilot のレビューコメントを `gh api` で確認する
-   - Copilot が提案 PR を作成した場合は内容をレビューする
+   - **指摘の採否は Teams で判断する**: critic が技術的妥当性を評価し、guardian がプロセス整合を確認する
+     - 有効な指摘は本体 PR に反映し commit & push する
+     - 無効・誤認識（例: 存在しないパスへの言及）は Teams 判断でスキップ可
+   - Copilot が提案 PR を作成した場合は **Teams がレビューしてマージまたはクローズ**する（guardian 主担当）
      - 有用な変更があればマージし、リモートブランチを削除する
      - 変更が不要・空であればクローズし、リモートブランチを削除する
-   - レビュー指摘に基づき本体 PR を修正し、commit & push する
 5. **PR 概要の更新**: push のたびに `gh pr edit` で PR 本文を最新の変更内容に合わせて更新する
 6. **ユーザーの最終承認を得る**: CI が通り懸念点が解消されたら、**必ずユーザーに「マージしてよいですか？」と確認する**。エージェントが自律的にマージすることは禁止。
 7. **マージ**: 承認を得たうえで `gh pr merge --merge --delete-branch` でマージしリモートブランチを削除する
@@ -239,3 +241,4 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 - 2026-02-25: 全エージェントのモデルを claude-opus-4-6 に統一（inherit/haiku は Agent Teams 環境で無効なため）
 - 2026-02-25: ~/.claude/settings.json に permissions.allow を追加、CLAUDE.md に mode 指針とマージ前ユーザー承認ルールを追記
 - 2026-02-25: 技術スタック別構成から「視点（Lens）モデル」に刷新（旧4体を廃止し implementer・critic・guardian・navigator を新設）。既存4エージェントによる並行自己レビューを経て設計を確定。
+- 2026-02-25: CopilotレビューのTeams中心の運用をルール化（CLAUDE.md/guardian.md/copilot-instructions.md に明記）

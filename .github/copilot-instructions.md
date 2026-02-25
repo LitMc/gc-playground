@@ -31,7 +31,8 @@
 - ブランチ命名規則: `<種別>/<内容>`（例: `fix/measure-timing`, `add/new-example`）
 - PR は `gh pr create` で作成し、タイトル・本文は日本語で記述する。
 - CI（build-all-examples）が通ることを確認してからマージする。
-- Copilot レビュー指摘や提案 PR が作成された場合は内容を確認し、対応・マージまたはクローズする。
+- Copilot レビュー指摘は **Teams（critic + guardian）が採否を判断**する。有効な指摘は反映し、無効・誤認識はスキップ可。
+- Copilot が提案 PR を作成した場合は **Teams がレビューしてマージまたはクローズ**する（guardian 主担当）。
 - PR への push のたびに PR 概要を最新の変更内容に合わせて更新する。
 
 ## ドキュメント保守ルール
