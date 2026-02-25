@@ -13,7 +13,7 @@ model: claude-opus-4-6
 
 ## 発動トリガー
 
-以下のいずれかの場合に振り返りを実施する:
+以下のいずれかの場合に発動する:
 
 1. guardian から「PR #N マージ完了」の通知を受けたとき
 2. team-lead またはユーザーが `/retrospective` を呼んだとき
