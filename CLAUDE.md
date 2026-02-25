@@ -139,14 +139,16 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 - **カスタムサブエージェント**: `.claude/agents/` に定義済み（Task tool 経由で動作）
 - **Agent Teams（実験的）**: `~/.claude/settings.json` で `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` を設定済み
 
-### カスタムサブエージェント一覧
+### カスタムサブエージェント一覧（「視点モデル」）
 
-| エージェント | 用途 |
-|------------|------|
-| `cpp-builder` | C++ ビルド・検証（cmake、ターゲット指定ビルド、エラー解析） |
-| `python-tool` | Python ツール実行（`uv run`、起動確認、measurement_lib） |
-| `pr-workflow` | PR ワークフロー管理（Copilot レビュー対応、PR 本文更新、マージ） |
-| `doc-sync` | ドキュメント整合性チェック（読み取り専用） |
+同じタスクに複数エージェントが**異なるレンズで同時参加**できる設計。
+
+| エージェント | 視点 | 用途 |
+|------------|------|------|
+| `implementer` | 「動かす」 | C++ ビルド・Python ツール実行・コード実装 |
+| `critic` | 「評価する」 | タイミング安全性・ISR・コーディング規約レビュー（読み取り専用） |
+| `guardian` | 「守る」 | PRワークフロー・ドキュメント整合・マージ前承認 |
+| `navigator` | 「俯瞰する」 | 実験設計・変換パイプライン検証・計測データ解釈 |
 
 定義ファイル: `.claude/agents/<name>.md`
 
@@ -167,15 +169,32 @@ PR をレビューするために、セキュリティ・タイミング・コ�
 ```
 
 **このプロジェクトでのユースケース**:
-- PR の並行レビュー（セキュリティ・タイミング・コーディング規約を別チームメイトが担当）
-- firmware（`examples/`）と Python ツール（`tools/`）の同時開発
-- バグの競合仮説を並行調査
+
+PR レビュー（3体並行）:
+```
+team-lead → critic    「PR #N のコードレビュー」       ─┐
+team-lead → guardian  「CI・ドキュメント整合の確認」    ─┤（同時）
+team-lead → navigator 「設計目標との整合を評価」        ─┘
+→ 全員が SendMessage で知見を共有 → guardian がマージ可否を集約
+```
+
+新規 example 追加（並行→直列）:
+```
+team-lead → navigator 「設計方針を評価して」  ─┐（同時）
+team-lead → critic    「既存の注意点を列挙」  ─┘
+→ navigator → implementer に設計方針を共有
+→ implementer が実装・ビルド → critic に ISR チェック依頼
+→ critic → guardian に「コード OK」報告 → guardian が PR 作成
+```
+
+他のユースケース:
+- バグの競合仮説を navigator + critic が並行調査
 
 **チームメイトをスポーンする際の mode 指針**:
 
 | mode | 用途 |
 |------|------|
-| `bypassPermissions` | 定型作業（pr-workflow, cpp-builder, python-tool）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
+| `bypassPermissions` | 定型作業（implementer, guardian）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
 | `plan` | 新規・不確かな作業。チームメイトが計画を提示し、team-lead がレビュー・承認してから実行 |
 | `default` | フォアグラウンド Task（ユーザーが直接許可プロンプトに応答できる場合） |
 
@@ -219,3 +238,4 @@ PR をレビューするために、セキュリティ・タイミング・コ�
 - 2026-02-25: 全エージェントに SendMessage ツールとシャットダウン対応を追加（Agent Teams での TeamDelete がブロックされる問題を修正）
 - 2026-02-25: 全エージェントのモデルを claude-opus-4-6 に統一（inherit/haiku は Agent Teams 環境で無効なため）
 - 2026-02-25: ~/.claude/settings.json に permissions.allow を追加、CLAUDE.md に mode 指針とマージ前ユーザー承認ルールを追記
+- 2026-02-25: 技術スタック別構成から「視点（Lens）モデル」に刷新（旧4体を廃止し implementer・critic・guardian・navigator を新設）。既存4エージェントによる並行自己レビューを経て設計を確定。
