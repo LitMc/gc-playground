@@ -1,7 +1,7 @@
 ---
 name: doc-sync
 description: ドキュメント整合性チェック専門。CLAUDE.mdとcopilot-instructions.mdの矛盾確認、examples/変更後のdocs更新確認が必要なときに使用する。読み取り専用で動作し、不整合を報告する。軽量なチェックに適している。
-tools: Read, Glob, Grep
+tools: Read, Glob, Grep, SendMessage
 model: haiku
 ---
 
@@ -34,3 +34,19 @@ model: haiku
 
 - ファイルの読み取りのみ行う（変更は絶対に行わない）
 - 修正の実行は呼び出し元または他のエージェントに委ねる
+
+## チームコミュニケーション
+
+Agent Teams のチームメイトとして動作している場合、以下を遵守する:
+
+- `{"type":"shutdown_request", ...}` という JSON メッセージを受け取ったら、
+  必ず `SendMessage` ツールで `shutdown_response` を返すこと
+- `request_id` は受け取ったメッセージの `requestId` フィールドから取得する
+
+```json
+{
+  "type": "shutdown_response",
+  "request_id": "<受け取った requestId>",
+  "approve": true
+}
+```
