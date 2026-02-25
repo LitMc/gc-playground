@@ -147,6 +147,41 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 - **カスタムサブエージェント**: `.claude/agents/` に定義済み（Task tool 経由で動作）
 - **Agent Teams（実験的）**: `~/.claude/settings.json` で `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` を設定済み
 
+### チーム作業の開始フロー（work initiation）
+
+ユーザーから実装・変更を伴う作業依頼を受けたとき、team-lead は以下の手順で動く:
+
+1. **タスク分解**: タスクを分解し、担当エージェントを決める（plan = what + who）
+2. **plan レビュー**: facilitator に plan を Task 経由で提出し、承認を得る
+3. **エージェントスポーン**: 承認後、担当エージェントを一斉スポーンして委譲する
+
+#### team-lead の禁止事項
+
+以下の作業は**必ず他エージェントに委譲し、team-lead 自身は行わない**:
+
+| 禁止事項 | 委譲先 |
+|---------|--------|
+| ファイル作成・編集 | implementer |
+| コミット | implementer |
+| push・PR 作成・CI 確認・Copilot レビュー確認 | guardian |
+| コードレビュー・タイミング評価 | critic |
+| 設計妥当性の評価 | navigator |
+
+**例外**: 純粋な読み取り・ユーザーへの説明・plan の作成は team-lead が行う。
+
+#### タスク種別とデフォルト担当
+
+| タスク種別 | 担当エージェント |
+|-----------|---------------|
+| C++ / Python コード実装 | implementer |
+| ファイル編集・コミット（ドキュメント含む） | implementer |
+| コードレビュー（タイミング/ISR/品質） | critic |
+| 設計妥当性・実験設計の評価 | navigator |
+| PR 作成〜マージ（push/CI/Copilot/承認確認） | guardian |
+| plan レビュー | facilitator |
+| 振り返り・改善提案 | facilitator |
+| 純粋な読み取り・ユーザーへの説明 | team-lead |
+
 ### カスタムサブエージェント一覧（「視点モデル」）
 
 同じタスクに複数エージェントが**異なるレンズで同時参加**できる設計。
@@ -199,6 +234,18 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 
 他のユースケース:
 - バグの競合仮説を navigator + critic が並行調査
+
+**チームメイトのスポーンタイミング（フェーズ別）**:
+
+| フェーズ | 担当 | スポーンタイミング |
+|---------|------|-----------------|
+| 設計・実装・コミット | team-lead（+ implementer / navigator） | 作業開始時 |
+| **コミット完了 → PRマージまで（ステップ3〜8）** | **guardian**（例外なし） | **コミット直後に必ずスポーン** |
+| コードレビュー（タイミング/ISR/品質） | critic | guardian と同時にスポーン |
+| 設計妥当性の確認 | navigator | 必要に応じて追加スポーン |
+| 純粋な読み取り・説明のみ | team-lead（Teams 不要） | — |
+
+> **重要**: コミットが完了した時点で guardian のスポーンを行うこと。team-lead 自身が push・PR作成・CI確認・Copilotレビュー確認を行うことは原則禁止。
 
 **チームメイトをスポーンする際の mode 指針**:
 
@@ -259,3 +306,4 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 - 2026-02-25: 技術スタック別構成から「視点（Lens）モデル」に刷新（旧4体を廃止し implementer・critic・guardian・navigator を新設）。既存4エージェントによる並行自己レビューを経て設計を確定。
 - 2026-02-25: CopilotレビューのTeams中心の運用をルール化（CLAUDE.md/guardian.md/copilot-instructions.md に明記）
 - 2026-02-25: facilitator エージェント新設・/retrospective SKILL 追加・navigator に改善観察セクション追加（自己改善フィードバックループの構築）
+- 2026-02-26: team-lead を委譲専門に特化。work initiation フロー（plan → facilitator レビュー → スポーン）を新設。facilitator の役割を振り返り専門から plan レビュー主担当に拡張。
