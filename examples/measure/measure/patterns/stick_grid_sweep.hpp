@@ -27,6 +27,7 @@ class StickGridSweep {
     enum class Target : uint8_t {
         Joystick,
         Cstick,
+        Trigger, // x → l_analog, y → r_analog
     };
 
     struct Config {
@@ -97,6 +98,10 @@ class StickGridSweep {
         case Target::Cstick:
             out.input.analog.c_stick_x = static_cast<uint8_t>(x);
             out.input.analog.c_stick_y = static_cast<uint8_t>(y);
+            break;
+        case Target::Trigger:
+            out.input.analog.l_analog = static_cast<uint8_t>(x);
+            out.input.analog.r_analog = static_cast<uint8_t>(y);
             break;
         }
         return true;

@@ -62,6 +62,34 @@ static uint8_t crc8(const std::array<uint8_t, 4> &data) {
     }
     return crc;
 }
+struct WireByteOffsets {
+    uint8_t first;
+    uint8_t second;
+};
+
+constexpr WireByteOffsets
+wire_offsets_for_target(gcinput::measure::StickGridSweep::Target target) {
+    using Target = gcinput::measure::StickGridSweep::Target;
+    switch (target) {
+    case Target::Joystick: return {2, 3}; // stick_x, stick_y
+    case Target::Cstick:   return {4, 5}; // c_stick_x, c_stick_y
+    case Target::Trigger:  return {6, 7}; // l_analog, r_analog
+    }
+    return {2, 3};
+}
+
+// 計測対象の選択（コンパイル時）
+// ターゲットを変えたらリビルドするだけで走査対象が切り替わる
+constexpr auto kMeasureTarget = gcinput::measure::StickGridSweep::Target::Joystick;
+
+// --- 構成例 ---
+// スティック 2D 全走査:        target=Joystick, x=[0,255], y=[0,255]  (65536点)
+// Cスティック 2D 全走査:       target=Cstick,   x=[0,255], y=[0,255]  (65536点)
+// Lトリガー 1D 走査 (R=0固定): target=Trigger,  x=[0,255], y=[0,0]    (256点)
+// Rトリガー 1D 走査 (L=0固定): target=Trigger,  x=[0,0],   y=[0,255]  (256点)
+// LRトリガー 2D 全走査:        target=Trigger,  x=[0,255], y=[0,255]  (65536点)
+
+constexpr auto kWireOffsets = wire_offsets_for_target(kMeasureTarget);
 } // namespace
 
 int main() {
@@ -125,7 +153,7 @@ int main() {
         .x = {.begin = 0, .end = 255, .step = 1},
         .y = {.begin = 0, .end = 255, .step = 1},
         .loop = true,
-        .target = gcinput::measure::StickGridSweep::Target::Joystick,
+        .target = kMeasureTarget,
     }};
 
     gcinput::measure::PadInjector pad_injector(client_link, schedule, pattern);
@@ -145,7 +173,7 @@ int main() {
     uint32_t last_measure_epoch = client_link.load_measure_epoch();
 
     uint32_t frame_count = 0;
-    std::pair<uint8_t, uint8_t> last_stick{128, 128};
+    std::pair<uint8_t, uint8_t> last_analog{128, 128};
 
     while (true) {
         pad_client.tick(time_us_32(), client_link.shared_console().load());
@@ -180,24 +208,24 @@ int main() {
             const auto command = raw.command();
             if (command == gcinput::joybus::Command::Status && client_link.is_measure_enabled()) {
                 const auto status = modified.view();
-                if (status.size() < 4) {
+                if (status.size() < 8) {
                     continue;
                 }
-                std::pair<uint8_t, uint8_t> current_stick{
-                    status[2], // スティックX
-                    status[3]  // スティックY
+                std::pair<uint8_t, uint8_t> current_analog{
+                    status[kWireOffsets.first],
+                    status[kWireOffsets.second],
                 };
-                if (current_stick != last_stick) {
-                    last_stick = current_stick;
+                if (current_analog != last_analog) {
+                    last_analog = current_analog;
                     std::array<uint8_t, 4> crc_data{
                         static_cast<uint8_t>((frame_count >> 8) & 0xFF),
                         static_cast<uint8_t>(frame_count & 0xFF),
-                        current_stick.first,
-                        current_stick.second,
+                        current_analog.first,
+                        current_analog.second,
                     };
                     const uint8_t crc = crc8(crc_data);
-                    printf("D,%u,%u,%u,%02X\n", frame_count, current_stick.first,
-                           current_stick.second, crc);
+                    printf("D,%u,%u,%u,%02X\n", frame_count, current_analog.first,
+                           current_analog.second, crc);
                     frame_count = (frame_count + 1) % 65536;
                 }
             }
