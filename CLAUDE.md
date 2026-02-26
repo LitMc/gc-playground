@@ -154,7 +154,7 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 > **前提条件**: タスク規模に応じてスポーン方針を選択する。小規模（ドキュメント修正・タイポ等）は maker のみ（Teams 不要）、中規模以上は TeamCreate でチームを作成して開始すること。詳細は [`.claude/AGENT_TEAMS.md`](.claude/AGENT_TEAMS.md) の「タスク規模に応じたスポーン方針」を参照。
 
 1. **タスク分解**: タスクを分解し、担当エージェントを決める（plan = what + who）
-2. **エージェントスポーン**: steward + maker + reviewer を一括スポーンして委譲する
+2. **エージェントスポーン**: 規模に応じてエージェントをスポーンして委譲する（方針は [AGENT_TEAMS.md](.claude/AGENT_TEAMS.md) を参照）
 3. **plan レビュー**: steward が plan の妥当性を確認する（問題があれば team-lead に報告）
 
 #### team-lead の禁止事項

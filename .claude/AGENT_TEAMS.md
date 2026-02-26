@@ -112,7 +112,7 @@ maker / reviewer は気づきを steward に SendMessage で共有する。stewa
 - 変更内容・経緯は CLAUDE.md の「エージェント改善履歴」に日付と理由を記録する
 
 **自己改善のトリガータイミング**:
-- **PR マージ後（必須）**: steward が振り返りを実施する（ワークフロー ステップ9）。observations.md を収集し、生きているエージェントにヒアリングする
+- **PR マージ後（必須）**: steward が振り返りを実施する（Phase 3 の振り返りステップ）。observations.md を収集し、生きているエージェントにヒアリングする
 - セッション終了前: ユーザーまたは team-lead が `/retrospective` を呼ぶ
 
 **主担当**: steward（守り育てる）が振り返りと改善提案を担当する。
