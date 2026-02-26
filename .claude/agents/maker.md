@@ -70,20 +70,7 @@ git checkout main && git pull
 
 ## 観察ログ
 
-作業中の気づきを `~/.claude/teams/{team-name}/observations.md` に記録する。
-
-**記録する内容**:
-- 自身の定義と実際の動きにずれがあった
-- ルールや手順と実際の作業が噛み合わなかった
-- 同じ手順を繰り返した（SKILL 化候補）
-- ツールの不足・過剰を感じた
-- 「こうした方がよいのでは」という改善案
-
-**記録フォーマット**:
-```
-### maker — <タイミング>
-- <気づきの内容>
-```
+作業中の気づき（定義と実際の乖離・繰り返し手順・ツール不足等）は steward に SendMessage で共有する。steward が `~/.claude/teams/{team-name}/observations.md` に一元記録する。
 
 ## 自己点検
 
@@ -95,12 +82,4 @@ git checkout main && git pull
 - PR 作成後: `steward` に SendMessage でプロセスチェック依頼
 - reviewer からのフィードバックを受けて修正する
 - 設計に迷ったら `reviewer` に相談する
-- `{"type":"shutdown_request", ...}` を受け取ったら SendMessage で `shutdown_response` を返すこと
-
-```json
-{
-  "type": "shutdown_response",
-  "request_id": "<受け取った requestId>",
-  "approve": true
-}
-```
+- `shutdown_request` を受け取ったら SendMessage の `shutdown_response` タイプで応答する

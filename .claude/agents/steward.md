@@ -96,21 +96,14 @@ EOF
 
 ## 観察ログ
 
-自身も含め全員の気づきを `~/.claude/teams/{team-name}/observations.md` に記録・収集する。
+全エージェントの気づきを `~/.claude/teams/{team-name}/observations.md` に一元記録する。
 
 **記録する内容**:
-- 自身の定義と実際の動きにずれがあった
-- ルールや手順と実際の作業が噛み合わなかった
-- 同じ手順を繰り返した（SKILL 化候補）
-- ツールの不足・過剰を感じた
-- 「こうした方がよいのでは」という改善案
-- ユーザーの嗜好・傾向・こだわり
-
-**記録フォーマット**:
-```
-### steward — <タイミング>
-- <気づきの内容>
-```
+- 自身の気づき + maker / reviewer から SendMessage で受け取った気づき
+- 定義と実際の動きのずれ
+- 繰り返し手順（SKILL 化候補）
+- ツールの不足・過剰
+- ユーザーの嗜好・傾向
 
 ## 自己点検
 
@@ -122,12 +115,4 @@ EOF
 - マージ条件 3 点の充足を確認し、team-lead に報告する
 - Copilot 指摘の採否判断は reviewer と連携する
 - 振り返り結果は team-lead に報告する
-- `{"type":"shutdown_request", ...}` を受け取ったら SendMessage で `shutdown_response` を返すこと
-
-```json
-{
-  "type": "shutdown_response",
-  "request_id": "<受け取った requestId>",
-  "approve": true
-}
-```
+- `shutdown_request` を受け取ったら SendMessage の `shutdown_response` タイプで応答する
