@@ -5,5 +5,5 @@
 namespace gcinput::policy {
 // Pico -> Padでのポーリングに使用するモードはMode3に固定
 // Mode3なら未使用のAとBのアナログ入力が犠牲になるだけなので都合がいい
-constexpr joybus::PollMode kPadPollModeForQuery = joybus::PollMode::Mode3;
+constexpr domain::PollMode kPadPollModeForQuery = domain::PollMode::Mode3;
 } // namespace gcinput::policy

@@ -14,7 +14,7 @@ class ConsoleClient {
     static std::size_t callback(void *user, const uint8_t *rx, std::size_t rx_len, uint8_t *tx,
                                 std::size_t tx_max);
 
-    static std::size_t write_tx(const JoybusReply &reply, uint8_t *tx, std::size_t tx_max);
+    static std::size_t write_tx(const joybus::JoybusReply &reply, uint8_t *tx, std::size_t tx_max);
 
   private:
     PadConsoleLink &link_;

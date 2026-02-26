@@ -114,7 +114,5 @@ struct PipelineSet {
     Pipeline status{};
     Pipeline origin{};
     Pipeline recalibrate{};
-    Pipeline id{};
-    Pipeline reset{};
 };
 } // namespace gcinput::domain::transform

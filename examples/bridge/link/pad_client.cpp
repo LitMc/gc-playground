@@ -44,7 +44,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
 
     // 最近応答があったならまだ生きている
     const bool pad_alive =
-        (last_seen_us_ != 0) && !is_timeout_reached(now_us, last_seen_us_ + PAD_TIMEOUT_US);
+        (last_seen_us_ != 0) && !is_timeout_reached(now_us, last_seen_us_ + kPadTimeoutUs);
 
     // 繋がっていたコントローラとの接続が切れた
     if (!pad_alive && state_ != State::Disconnected) {
@@ -69,7 +69,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     case State::Disconnected: {
         // 応答待ちでなければID取得から始める
         if (!waiting_response_()) {
-            send_request_(joybus::Id, now_us, BOOT_TIMEOUT_US);
+            send_request_(joybus::Id, now_us, kBootTimeoutUs);
             break;
         }
 
@@ -84,7 +84,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     // 再初期化
     case State::Resetting: {
         if (!waiting_response_()) {
-            send_request_(joybus::Reset, now_us, BOOT_TIMEOUT_US);
+            send_request_(joybus::Reset, now_us, kBootTimeoutUs);
             break;
         }
 
@@ -99,7 +99,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     // 初回ID取得
     case State::BootId: {
         if (!waiting_response_()) {
-            send_request_(joybus::Id, now_us, BOOT_TIMEOUT_US);
+            send_request_(joybus::Id, now_us, kBootTimeoutUs);
             break;
         }
         if (got(joybus::Command::Id)) {
@@ -112,7 +112,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     // 初回Origin取得
     case State::BootOrigin: {
         if (!waiting_response_()) {
-            send_request_(joybus::Origin, now_us, BOOT_TIMEOUT_US);
+            send_request_(joybus::Origin, now_us, kBootTimeoutUs);
             break;
         }
         if (got(joybus::Command::Origin)) {
@@ -125,7 +125,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     // 初回Recalibrate取得
     case State::BootRecalibrate: {
         if (!waiting_response_()) {
-            send_request_(joybus::Recalibrate, now_us, BOOT_TIMEOUT_US);
+            send_request_(joybus::Recalibrate, now_us, kBootTimeoutUs);
             break;
         }
         if (got(joybus::Command::Recalibrate)) {
@@ -141,13 +141,13 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
             // スティックとLRトリガーの分解能を重視してMode3に固定
             // Mode3ではアナログAとBが犠牲になるが実機で使われていないので都合がいい
             const auto req = joybus::Status(policy::kPadPollModeForQuery, console.rumble_mode);
-            send_request_(req, now_us, BOOT_TIMEOUT_US);
+            send_request_(req, now_us, kBootTimeoutUs);
             break;
         }
 
         if (got(joybus::Command::Status)) {
             enter_state_(State::Ready);
-            next_status_due_us_ = now_us + STATUS_PERIOD_US;
+            next_status_due_us_ = now_us + kStatusPeriodUs;
         } else if (is_timeout_reached(now_us, response_deadline_us_)) {
             abort_wait_();
         }
@@ -163,10 +163,10 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
 
         if (waiting_response_()) {
             if (got(joybus::Command::Status)) {
-                next_status_due_us_ = now_us + STATUS_PERIOD_US;
+                next_status_due_us_ = now_us + kStatusPeriodUs;
                 abort_wait_();
             } else if (is_timeout_reached(now_us, response_deadline_us_)) {
-                next_status_due_us_ = now_us + RETRY_DELAY_US;
+                next_status_due_us_ = now_us + kRetryDelayUs;
                 abort_wait_();
             }
             break;
@@ -175,12 +175,12 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
         if (next_status_due_us_ == 0 || is_timeout_reached(now_us, next_status_due_us_)) {
             // Mode3固定
             const auto req = joybus::Status(policy::kPadPollModeForQuery, console.rumble_mode);
-            if (send_request_(req, now_us, BOOT_TIMEOUT_US)) {
+            if (send_request_(req, now_us, kBootTimeoutUs)) {
                 // 送信できたら次の送信予定をセット
-                next_status_due_us_ = now_us + STATUS_PERIOD_US;
+                next_status_due_us_ = now_us + kStatusPeriodUs;
             } else {
                 // 送信できなかったら次のtickで再試行
-                next_status_due_us_ = now_us + RETRY_DELAY_US;
+                next_status_due_us_ = now_us + kRetryDelayUs;
             }
         }
         break;

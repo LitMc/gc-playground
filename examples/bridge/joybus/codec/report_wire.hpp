@@ -1,7 +1,7 @@
 #pragma once
 #include "domain/report.hpp"
 #include "domain/state.hpp"
-#include "joybus/codec/common.hpp"
+#include "util/endian.hpp"
 #include <cstdint>
 #include <span>
 
@@ -32,14 +32,14 @@ inline constexpr domain::PadReport
 decode_report_from_status_word(std::span<const uint8_t, 2> byte2) {
     domain::PadReport out{};
 
-    const uint16_t status_word = common::read_u16_le(byte2);
+    const uint16_t status_word = util::read_u16_le(byte2);
     out.origin_sent =
-        (status_word & static_cast<uint16_t>(report::StatusWordBits::OriginNotSent)) == 0;
+        (status_word & report::to_mask(report::StatusWordBits::OriginNotSent)) == 0;
     out.error_latched =
-        (status_word & static_cast<uint16_t>(report::StatusWordBits::ErrorLatched)) != 0;
-    out.error_last = (status_word & static_cast<uint16_t>(report::StatusWordBits::Always1)) != 0;
+        (status_word & report::to_mask(report::StatusWordBits::ErrorLatched)) != 0;
+    out.error_last = (status_word & report::to_mask(report::StatusWordBits::Always1)) != 0;
     out.use_controller_origin =
-        (status_word & static_cast<uint16_t>(report::StatusWordBits::UseControllerOrigin)) != 0;
+        (status_word & report::to_mask(report::StatusWordBits::UseControllerOrigin)) != 0;
 
     return out;
 }
@@ -47,8 +47,8 @@ decode_report_from_status_word(std::span<const uint8_t, 2> byte2) {
 // IDレスポンスの3バイト目を共通形式のレポートに変換
 // UseControllerOriginはIDレスポンスに存在しないので触らない
 inline constexpr void update_report_from_id_byte3(domain::PadReport &report, uint8_t byte3) {
-    report.origin_sent = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::OriginNotSent)) == 0;
-    report.error_latched = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::ErrorLatched)) != 0;
-    report.error_last = (byte3 & static_cast<uint8_t>(report::IdByte3Bits::ErrorLast)) != 0;
+    report.origin_sent = (byte3 & report::to_mask(report::IdByte3Bits::OriginNotSent)) == 0;
+    report.error_latched = (byte3 & report::to_mask(report::IdByte3Bits::ErrorLatched)) != 0;
+    report.error_last = (byte3 & report::to_mask(report::IdByte3Bits::ErrorLast)) != 0;
 }
 } // namespace gcinput::joybus::report
