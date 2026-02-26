@@ -20,7 +20,7 @@ team-lead → steward + maker + reviewer を一括スポーン
 steward: plan を確認（問題があれば team-lead に報告）
 maker ←→ reviewer: 実装しながら品質を議論
 steward: 横でプロセスを監視し、逸脱があれば介入
-全員が observations.md に気づきを記録
+気づきは steward に共有 → observations.md に一元記録
 → steward が振り返りを実施 → 全員シャットダウン
 ```
 

@@ -208,7 +208,6 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 
 ### エージェント改善履歴
 
-- 2026-02-25: facilitator エージェント新設・/retrospective SKILL 追加・navigator に改善観察セクション追加（自己改善フィードバックループの構築）
 - 2026-02-26: team-lead を委譲専門に特化。work initiation フロー（plan → facilitator レビュー → スポーン）を新設。facilitator の役割を振り返り専門から plan レビュー主担当に拡張。
 - 2026-02-26: PR #57 振り返り: work initiation フロー必須化を明記、navigator にリファクタリング時の設計意図確認を追加、facilitator の plan レビュー観点を拡充、/retrospective に全エージェントヒアリングを追加（前半の運用ルール違反と active_pad_hub() 誤削除の教訓）
 - 2026-02-26: モデル選択ルールを CLAUDE.md に明記。Task ツールの model パラメータはユーザー指示がない限り指定しない（Opus 4.6 を継承）
