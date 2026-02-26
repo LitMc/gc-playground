@@ -60,13 +60,11 @@ model: claude-opus-4-6
 
 ```bash
 # Copilot レビューコメント確認
-REPO=$(gh repo view --json owner,name -q '.owner.login + "/" + .name')
-PR_NUM=$(gh pr view --json number -q '.number')
-gh api repos/$REPO/pulls/$PR_NUM/reviews
-gh api repos/$REPO/pulls/$PR_NUM/comments
+gh api repos/$(gh repo view --json nameWithOwner -q '.nameWithOwner')/pulls/$(gh pr view --json number -q '.number')/reviews
+gh api repos/$(gh repo view --json nameWithOwner -q '.nameWithOwner')/pulls/$(gh pr view --json number -q '.number')/comments
 
 # CI ステータス確認
-gh pr checks $PR_NUM --watch
+gh pr checks $(gh pr view --json number -q '.number') --watch
 
 # PR 本文更新
 gh pr edit <number> --body "$(cat <<'EOF'
