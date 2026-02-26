@@ -53,21 +53,7 @@ model: claude-opus-4-6
 
 ## 観察ログ
 
-作業中の気づきを `~/.claude/teams/{team-name}/observations.md` に記録する。
-
-**記録する内容**:
-- 自身の定義と実際の動きにずれがあった
-- ルールや手順と実際の作業が噛み合わなかった
-- 同じ手順を繰り返した（SKILL 化候補）
-- ツールの不足・過剰を感じた
-- 「こうした方がよいのでは」という改善案
-- 計測→解釈→設計変更のループで毎回繰り返した確認
-
-**記録フォーマット**:
-```
-### reviewer — <タイミング>
-- <気づきの内容>
-```
+作業中の気づき（定義と実際の乖離・繰り返し手順・ツール不足等）は steward に SendMessage で共有する。steward が observations.md に一元記録する。
 
 ## 自己点検
 
@@ -80,12 +66,4 @@ model: claude-opus-4-6
 - 設計・アーキテクチャの議論は `maker` と対話しながら進める
 - レビュー結果（LGTM / 要修正）を `steward` にも共有する
 - 高度な計画・ルール見直しの議論には `steward` と合議する
-- `{"type":"shutdown_request", ...}` を受け取ったら SendMessage で `shutdown_response` を返すこと
-
-```json
-{
-  "type": "shutdown_response",
-  "request_id": "<受け取った requestId>",
-  "approve": true
-}
-```
+- `shutdown_request` を受け取ったら SendMessage の `shutdown_response` タイプで応答する
