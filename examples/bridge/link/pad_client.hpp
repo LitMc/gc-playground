@@ -77,7 +77,7 @@ class PadClient {
     void abort_wait_();
 
     // コマンド送信後の応答待ち時間が経過したか
-    static bool is_timeout_reached(uint32_t now_us, uint32_t deadline_us) {
+    static bool is_timeout_reached_(uint32_t now_us, uint32_t deadline_us) {
         // deadline_us = deadline設定時のnow + timeout_us
         // timeout_usが2^31未満なら判定時点のnow_usがラップしていても正しく判定できる
         // reach前の差分 = ラップ直前の大きな値をとるnow_us - ラップ直後の小さな値をとるdeadline_us
@@ -89,7 +89,7 @@ class PadClient {
     }
 
     // コンソール側クライアントへパッド状態を公開
-    void publish_pad_state_to_link() {
+    void publish_pad_state_to_link_() {
         switch (state_) {
         case State::Ready:
             link_.publish_pad_state_from_main(PadConsoleLink::PadConnectionState::Ready);
