@@ -71,6 +71,7 @@ Claude Code の複数エージェント機能を活用して並行・協調作�
 | `/skill-new` | 新しい SKILL を追加するフローを案内する |
 | `/agents-review` | エージェント構成を見直し、改善案を提案・適用する |
 | `/retrospective` | 作業後の振り返りを行い、SKILL化・エージェント更新の改善案を提案する |
+| `/commit-notify` | コミット・PR 作成後のチームメイト通知手順 |
 
 エージェントは運用の中で自身の定義を改善し、改善内容は `CLAUDE.md` の「エージェント改善履歴」に記録する。
 Agent Teams の詳細設定（作業フロー・mode 指針・自己改善等）は `.claude/AGENT_TEAMS.md` を参照。
