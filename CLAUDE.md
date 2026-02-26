@@ -213,3 +213,4 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 - 2026-02-26: PR #57 振り返り: work initiation フロー必須化を明記、navigator にリファクタリング時の設計意図確認を追加、facilitator の plan レビュー観点を拡充、/retrospective に全エージェントヒアリングを追加（前半の運用ルール違反と active_pad_hub() 誤削除の教訓）
 - 2026-02-26: モデル選択ルールを CLAUDE.md に明記。Task ツールの model パラメータはユーザー指示がない限り指定しない（Opus 4.6 を継承）
 - 2026-02-27: エージェント体制を刷新: 5体構成(implementer/critic/guardian/navigator/facilitator)から3体構成(maker/reviewer/steward)に再編。ハンドオフ最小化・エージェント間対話・観察ログ・自己点検を導入（/retrospective で発見、ユーザー承認済み）
+- 2026-02-27: エージェント構造の軽量化: CLAUDE.md 詳細を .claude/AGENT_TEAMS.md に外部化、steward 振り返り手順を /retrospective 参照化、観察ログ SendMessage 一元化、shutdown テンプレ重複排除、規模別スポーン方針追加、ワークフロー3フェーズ化
