@@ -13,11 +13,11 @@ namespace gcinput {
 
 class JoybusPioPort {
   public:
-    static constexpr std::size_t JOYBUS_MAX_FRAME_BYTES = 16;
+    static constexpr std::size_t kMaxFrameBytes = 16;
     // RX: stop(0x01) を末尾に 1byte 追加で受け取る
-    static constexpr std::size_t RX_BUFFER_SIZE = JOYBUS_MAX_FRAME_BYTES + 1;
+    static constexpr std::size_t kRxBufferSize = kMaxFrameBytes + 1;
     // TX: stopはPIO側で生成するのでデータ分のみ
-    static constexpr std::size_t TX_BUFFER_SIZE = JOYBUS_MAX_FRAME_BYTES;
+    static constexpr std::size_t kTxBufferSize = kMaxFrameBytes;
 
     struct Config {
         PIO pio = nullptr;
@@ -92,9 +92,9 @@ class JoybusPioPort {
 
     std::atomic<bool> tx_busy_{false};
 
-    std::array<uint8_t, RX_BUFFER_SIZE> rx_work_buffer_{};
-    std::array<uint8_t, RX_BUFFER_SIZE> received_frame_{};
-    std::array<uint8_t, TX_BUFFER_SIZE> tx_buffer_{};
+    std::array<uint8_t, kRxBufferSize> rx_work_buffer_{};
+    std::array<uint8_t, kRxBufferSize> received_frame_{};
+    std::array<uint8_t, kTxBufferSize> tx_buffer_{};
 
     volatile uint32_t rx_length_ = 0;
     volatile bool rx_ready_ = false;

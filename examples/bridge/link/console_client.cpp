@@ -5,7 +5,7 @@
 
 namespace gcinput {
 
-std::size_t ConsoleClient::write_tx(const JoybusReply &reply, uint8_t *tx, std::size_t tx_max) {
+std::size_t ConsoleClient::write_tx(const joybus::JoybusReply &reply, uint8_t *tx, std::size_t tx_max) {
     const auto view = reply.view();
     const auto length = view.size();
     if (length == 0 || tx_max < length) {
@@ -38,8 +38,8 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
     joybus::PollMode host_poll_mode = host_console.poll_mode;
     joybus::RumbleMode host_rumble_mode = host_console.rumble_mode;
 
-    JoybusReply original_reply;
-    JoybusReply modified_reply;
+    joybus::JoybusReply original_reply;
+    joybus::JoybusReply modified_reply;
 
     const auto &pipelines = self->link_.transform_pipelines();
     switch (cmd) {
@@ -72,8 +72,8 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         domain::PadIdentity identity = original_snapshot.identity;
         // 直近のコンソールから指定されたPollModeとRumbleModeを反映する
         // パッドへのポーリングはMode3固定でコンソールへの応答はコンソールからの指示に従う仕様のため
-        identity.runtime.poll_mode = joybus::common::to_domain_poll_mode(host_poll_mode);
-        identity.runtime.rumble_mode = joybus::common::to_domain_rumble_mode(host_rumble_mode);
+        identity.runtime.poll_mode = host_poll_mode;
+        identity.runtime.rumble_mode = host_rumble_mode;
         original_reply = joybus::identity::encode_identity(identity);
         // Identityは変換する意義が薄いのでそのまま返す
         modified_reply = original_reply;
@@ -85,8 +85,8 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
 
         // Idと同じ
         domain::PadIdentity identity = original_snapshot.identity;
-        identity.runtime.poll_mode = joybus::common::to_domain_poll_mode(host_poll_mode);
-        identity.runtime.rumble_mode = joybus::common::to_domain_rumble_mode(host_rumble_mode);
+        identity.runtime.poll_mode = host_poll_mode;
+        identity.runtime.rumble_mode = host_rumble_mode;
         original_reply = joybus::identity::encode_reset_as_id(identity);
         modified_reply = original_reply;
         break;

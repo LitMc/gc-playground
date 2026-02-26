@@ -11,7 +11,7 @@
 #include "link/shared/shared_pad_hub.hpp"
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
-#include <stdio.h>
+#include <cstdio>
 
 namespace {
 // 通電確認用のオンボードLED
@@ -76,9 +76,9 @@ struct RumbleOverride {
         phase_start_us = now_us;
     }
 
-    gcinput::joybus::RumbleMode tick(uint32_t now_us) {
+    gcinput::domain::RumbleMode tick(uint32_t now_us) {
         if (!motor_on && remaining_pulses == 0) {
-            return gcinput::joybus::RumbleMode::Off;
+            return gcinput::domain::RumbleMode::Off;
         }
         const uint32_t elapsed = now_us - phase_start_us;
         if (motor_on) {
@@ -89,14 +89,14 @@ struct RumbleOverride {
                     --remaining_pulses;
                 }
             }
-            return gcinput::joybus::RumbleMode::On;
+            return gcinput::domain::RumbleMode::On;
         }
         // motor_on == false, remaining_pulses > 0 → OFF ギャップ中
         if (elapsed >= kOffDurationUs) {
             motor_on = true;
             phase_start_us = now_us;
         }
-        return gcinput::joybus::RumbleMode::Off;
+        return gcinput::domain::RumbleMode::Off;
     }
 };
 } // namespace
@@ -195,7 +195,7 @@ int main() {
     uint32_t last_origin_publish_count = 0;
     uint32_t last_tx_publish_count = 0;
     uint32_t last_debug_log_us = 0;
-    constexpr uint32_t DEBUG_LOG_INTERVAL_US = 500'000; // 500ms間隔
+    constexpr uint32_t kDebugLogIntervalUs = 500'000; // 500ms間隔
 
     while (true) {
         handle_boot_btn_if_requested();
@@ -203,7 +203,7 @@ int main() {
         const uint32_t now_us = time_us_32();
         auto console_state = client_link.shared_console().load();
         const auto rumble = rumble_override.tick(now_us);
-        if (rumble != gcinput::joybus::RumbleMode::Off) {
+        if (rumble != gcinput::domain::RumbleMode::Off) {
             console_state.rumble_mode = rumble;
         }
         pad_client.tick(now_us, console_state);
@@ -257,7 +257,7 @@ int main() {
         gcinput::TxPair last_tx{};
         if (client_link.active_pad_hub().consume_tx_if_new(last_tx_publish_count, last_tx)) {
             if (last_tx.raw.command() == gcinput::joybus::Command::Status &&
-                (int32_t)(now_us - last_debug_log_us) >= (int32_t)DEBUG_LOG_INTERVAL_US) {
+                (int32_t)(now_us - last_debug_log_us) >= (int32_t)kDebugLogIntervalUs) {
                 last_debug_log_us = now_us;
 
                 // ISR が送った最終値（ワイヤフォーマットから読み取り）

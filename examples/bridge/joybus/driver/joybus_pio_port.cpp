@@ -184,13 +184,13 @@ void JoybusPioPort::start_receive() {
     dma_channel_abort(dma_channel_);
     dma_channel_set_config(dma_channel_, &dma_rx_config_, false);
     dma_channel_set_read_addr(dma_channel_, &config_.pio->rxf[config_.state_machine], false);
-    dma_channel_transfer_to_buffer_now(dma_channel_, rx_work_buffer_.data(), RX_BUFFER_SIZE);
+    dma_channel_transfer_to_buffer_now(dma_channel_, rx_work_buffer_.data(), kRxBufferSize);
 }
 
 void JoybusPioPort::finish_receive_from_irq() {
     dma_channel_hw_t *dma = dma_channel_hw_addr(dma_channel_);
     // dma->transfer_countは残りの転送数なので元のサイズから引いて受信済みバイト数を得る
-    uint32_t received = RX_BUFFER_SIZE - dma->transfer_count;
+    uint32_t received = kRxBufferSize - dma->transfer_count;
 
     dma_channel_abort(dma_channel_);
 
@@ -237,9 +237,9 @@ void JoybusPioPort::on_pio_irq() {
     if (callback_ && rx_ready_ && rx_length_ > 0) {
         tx_length =
             callback_(callback_user_, received_frame_.data(), static_cast<std::size_t>(rx_length_),
-                      tx_buffer_.data(), TX_BUFFER_SIZE);
-        if (tx_length > TX_BUFFER_SIZE) {
-            tx_length = TX_BUFFER_SIZE;
+                      tx_buffer_.data(), kTxBufferSize);
+        if (tx_length > kTxBufferSize) {
+            tx_length = kTxBufferSize;
         }
     }
 
@@ -253,7 +253,7 @@ void JoybusPioPort::on_pio_irq() {
 }
 
 bool JoybusPioPort::send_now(const uint8_t *data, std::size_t nbytes) {
-    if (nbytes == 0 || nbytes > TX_BUFFER_SIZE) {
+    if (nbytes == 0 || nbytes > kTxBufferSize) {
         return false;
     }
 

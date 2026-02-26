@@ -1,5 +1,5 @@
 #pragma once
-#include "joybus/protocol/reply.hpp"
+#include "joybus/protocol/protocol.hpp"
 #include "link/shared/shared_pad.hpp"
 #include "util/latch.hpp"
 
@@ -7,8 +7,8 @@ namespace gcinput {
 struct TxPair {
     uint32_t publish_count{0};
     uint32_t raw_publish_count{0};
-    JoybusReply raw{};
-    JoybusReply modified{};
+    joybus::JoybusReply raw{};
+    joybus::JoybusReply modified{};
 };
 
 class SharedPadHub {
@@ -22,8 +22,8 @@ class SharedPadHub {
     PadSnapshot load_original_snapshot() const { return rx_.load(); }
 
     // コンソールへ送信する変換済みパッド応答を書き込む: Consoleクライアント向け
-    void publish_tx_from_isr(uint32_t raw_publish_count, const JoybusReply &raw,
-                             const JoybusReply &modified) {
+    void publish_tx_from_isr(uint32_t raw_publish_count, const joybus::JoybusReply &raw,
+                             const joybus::JoybusReply &modified) {
         TxPair p{
             .publish_count{++tx_publish_count_},
             .raw_publish_count{raw_publish_count},

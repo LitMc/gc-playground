@@ -6,8 +6,8 @@
 namespace gcinput {
 
 struct ConsoleState {
-    joybus::PollMode poll_mode = joybus::PollMode::Default;
-    joybus::RumbleMode rumble_mode = joybus::RumbleMode::Off;
+    domain::PollMode poll_mode = domain::PollMode::Mode3;
+    domain::RumbleMode rumble_mode = domain::RumbleMode::Off;
     uint16_t reset_count = 0;
 };
 

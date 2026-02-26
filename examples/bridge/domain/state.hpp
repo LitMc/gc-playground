@@ -155,17 +155,6 @@ struct PadInput {
     constexpr void clear(PadButton button) { set(button, false); }
 
     constexpr void clear_buttons() { buttons = ButtonInput{}; }
-
-    constexpr void set_analog_neutral() {
-        analog.stick_x = AnalogInput::kAxisCenter;
-        analog.stick_y = AnalogInput::kAxisCenter;
-        analog.c_stick_x = AnalogInput::kAxisCenter;
-        analog.c_stick_y = AnalogInput::kAxisCenter;
-        analog.l_analog = AnalogInput::kTriggerReleased;
-        analog.r_analog = AnalogInput::kTriggerReleased;
-        analog.a_analog = AnalogInput::kAnalogButtonReleased;
-        analog.b_analog = AnalogInput::kAnalogButtonReleased;
-    }
 };
 
 // Status, Origin, Recalibrateレスポンスの共通形式。PollModeに依存しない。

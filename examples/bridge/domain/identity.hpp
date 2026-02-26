@@ -1,14 +1,10 @@
 #pragma once
+#include "domain/mode.hpp"
 #include "domain/report.hpp"
 #include <cstdint>
 #include <type_traits>
 
 namespace gcinput::domain {
-
-// Joybusに依存しない（ことになっている）プロジェクト固有のポーリングモード
-enum class PollMode : uint8_t { Mode0 = 0, Mode1 = 1, Mode2 = 2, Mode3 = 3, Mode4 = 4 };
-// Joybusに依存しない（ことになっている）コントローラ振動モード
-enum class RumbleMode : uint8_t { Off = 0, On = 1, Brake = 2 };
 
 // コントローラのサポートする機能（不変）
 struct PadIdentityCapabilities {

@@ -77,7 +77,7 @@ class PadClient {
     void abort_wait_();
 
     // コマンド送信後の応答待ち時間が経過したか
-    static bool is_timeout_reached(uint32_t now_us, uint32_t deadline_us) {
+    static bool is_timeout_reached_(uint32_t now_us, uint32_t deadline_us) {
         // deadline_us = deadline設定時のnow + timeout_us
         // timeout_usが2^31未満なら判定時点のnow_usがラップしていても正しく判定できる
         // reach前の差分 = ラップ直前の大きな値をとるnow_us - ラップ直後の小さな値をとるdeadline_us
@@ -89,7 +89,7 @@ class PadClient {
     }
 
     // コンソール側クライアントへパッド状態を公開
-    void publish_pad_state_to_link() {
+    void publish_pad_state_to_link_() {
         switch (state_) {
         case State::Ready:
             link_.publish_pad_state_from_main(PadConsoleLink::PadConnectionState::Ready);
@@ -108,7 +108,6 @@ class PadClient {
         }
     }
 
-  private:
     PadConsoleLink &link_;
     JoybusPioPort host_to_pad_;
 
@@ -143,15 +142,15 @@ class PadClient {
     uint32_t next_status_due_us_{0};
 
     // 最後の応答からこれ以上経過するとパッド切断とみなす時間
-    static constexpr uint32_t PAD_TIMEOUT_US = 100'000;
+    static constexpr uint32_t kPadTimeoutUs = 100'000;
 
     // 初回接続時の応答待ちタイムアウト時間
-    static constexpr uint32_t BOOT_TIMEOUT_US = 30'000;
+    static constexpr uint32_t kBootTimeoutUs = 30'000;
 
     // 二重送信の心配はないので送信可能になるまで最速でポーリングをかけ続ける（入力遅延を減らすため）
     // Statusのポーリング周期
-    static constexpr uint32_t STATUS_PERIOD_US = 0;
+    static constexpr uint32_t kStatusPeriodUs = 0;
     // 送信失敗後にリトライするまでの待ち時間
-    static constexpr uint32_t RETRY_DELAY_US = 0;
+    static constexpr uint32_t kRetryDelayUs = 0;
 };
 } // namespace gcinput

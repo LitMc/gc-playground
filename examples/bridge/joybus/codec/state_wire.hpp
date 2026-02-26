@@ -1,13 +1,11 @@
 #pragma once
 #include "domain/report.hpp"
 #include "domain/state.hpp"
-#include "joybus/codec/common.hpp"
+#include "util/endian.hpp"
 #include "joybus/codec/report_wire.hpp"
 #include "joybus/protocol/protocol.hpp"
-#include "joybus/protocol/reply.hpp"
 #include <array>
 #include <span>
-#include <stdio.h>
 
 // https://jefflongo.dev/posts/gc-controller-reverse-engineering-part-1/#poll-mode
 // コントローラ入力をJoybus形式に変換、復元するための処理群
@@ -35,7 +33,7 @@ inline constexpr domain::ButtonInput
 decode_buttons_from_status_word(std::span<const uint8_t, 2> byte2) {
     domain::ButtonInput buttons{};
 
-    const uint16_t status_word = common::read_u16_le(byte2);
+    const uint16_t status_word = util::read_u16_le(byte2);
     buttons.a = (status_word & domain::to_mask(domain::PadButton::A)) != 0;
     buttons.b = (status_word & domain::to_mask(domain::PadButton::B)) != 0;
     buttons.x = (status_word & domain::to_mask(domain::PadButton::X)) != 0;
@@ -84,19 +82,19 @@ inline constexpr void encode_to_status_word(const domain::PadState &state,
     // OriginNotSentはビットが立っているとOrigin未送信を意味するので反転
     const auto &report = state.report;
     status_word |=
-        report.origin_sent ? 0 : static_cast<uint16_t>(report::StatusWordBits::OriginNotSent);
+        report.origin_sent ? 0 : report::to_mask(report::StatusWordBits::OriginNotSent);
     status_word |=
-        report.error_latched ? static_cast<uint16_t>(report::StatusWordBits::ErrorLatched) : 0;
+        report.error_latched ? report::to_mask(report::StatusWordBits::ErrorLatched) : 0;
 
     // 2バイト目の7ビット目は常に1となる（Longo氏の資料では直近エラーの有無となっているが）
     // ここを1にしないとコントローラが認識されない
-    status_word |= static_cast<uint16_t>(report::StatusWordBits::Always1);
+    status_word |= report::to_mask(report::StatusWordBits::Always1);
 
     status_word |= report.use_controller_origin
-                       ? static_cast<uint16_t>(report::StatusWordBits::UseControllerOrigin)
+                       ? report::to_mask(report::StatusWordBits::UseControllerOrigin)
                        : 0;
 
-    common::write_u16_le(status_word, status_word_bytes);
+    util::write_u16_le(status_word, status_word_bytes);
 }
 
 // JoybusのStatusレスポンスを共通形式に変換
@@ -240,7 +238,7 @@ decode_recalibrate(std::span<const uint8_t, joybus::kRecalibrateResponseSize> rx
 }
 
 inline constexpr std::array<uint8_t, joybus::kOriginResponseSize>
-encode_origin_byte(const domain::PadState &state) {
+encode_origin_bytes(const domain::PadState &state) {
     std::array<uint8_t, joybus::kOriginResponseSize> out{};
 
     // out[0], out[1]: Status word
@@ -260,11 +258,11 @@ encode_origin_byte(const domain::PadState &state) {
 }
 
 inline JoybusReply encode_origin(const domain::PadState &state) {
-    return JoybusReply(joybus::Command::Origin, encode_origin_byte(state));
+    return JoybusReply(joybus::Command::Origin, encode_origin_bytes(state));
 }
 
 inline JoybusReply encode_recalibrate(const domain::PadState &state) {
-    return JoybusReply(joybus::Command::Recalibrate, encode_origin_byte(state));
+    return JoybusReply(joybus::Command::Recalibrate, encode_origin_bytes(state));
 }
 
 static_assert(shrink8bitTo4bit(expand4bitTo8bit(0x0)) == 0x0);
