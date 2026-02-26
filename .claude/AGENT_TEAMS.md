@@ -29,6 +29,14 @@ steward: 横でプロセスを監視し、逸脱があれば介入
 - reviewer のレビューと steward のドキュメント確認は並列
 - CI 待ちの間に steward は Copilot レビューも確認
 
+### タスク規模に応じたスポーン方針
+
+| 規模 | 基準 | スポーン |
+|------|------|---------|
+| 小 | ドキュメント修正・タイポ・設定変更 | maker のみ（Teams 不要、Task ツールで直接） |
+| 中 | 既存コード修正・Python ツール変更 | maker + steward |
+| 大 | C++ ISR変更・新example追加・アーキテクチャ変更 | maker + reviewer + steward（フル） |
+
 **チームメイトのスポーンタイミング**:
 
 | エージェント | スポーンタイミング | 備考 |
@@ -40,36 +48,29 @@ steward: 横でプロセスを監視し、逸脱があれば介入
 
 > **重要**: 3体を一括スポーンし、イベント駆動で連携する。team-lead 自身がファイル編集・コミット・push・PR作成・CI確認を行うことは禁止。
 
-**イベント駆動の作業フロー**:
+### 作業フロー（3フェーズ）
 
-```
-1. ユーザーがタスクを依頼
-2. team-lead が steward + maker + reviewer を一括スポーン
-3. steward が plan を確認（問題があれば team-lead に報告）
-4. maker が実装開始。reviewer と対話しながら進める
-5. maker がコミット → reviewer + steward に通知
-6. reviewer がレビュー → maker に直接フィードバック
-   steward がドキュメント整合を確認（並列）
-7. maker が push + PR 作成 → steward に通知
-8. steward が CI・Copilot・マージ条件を確認 → team-lead に報告
-9. team-lead がユーザーに承認確認 → maker にマージ指示
-10. maker がマージ + ローカル反映
-11. steward が振り返り実施（observations.md + 生きているエージェントとの対話）
-12. 全員シャットダウン → チーム削除
-```
+**Phase 1（準備）**:
+- team-lead がエージェントをスポーン（規模に応じて選択）
+- steward が plan を確認（問題があれば team-lead に報告）
+- maker が準備開始（並列）
+
+**Phase 2（実装〜PR）**:
+- maker が実装。reviewer と対話しながら品質を高める
+- maker がコミット → reviewer にレビュー依頼 + steward に通知
+- reviewer がレビュー → maker にフィードバック（steward にも共有）
+- steward がドキュメント整合を確認（reviewer と並列）
+- maker が push + PR 作成 → steward に通知
+
+**Phase 3（完了）**:
+- steward が CI・Copilot・マージ条件を確認 → team-lead に報告
+- team-lead がユーザーに承認確認 → maker にマージ指示
+- maker がマージ + ローカル反映
+- steward が振り返り実施 → 全員シャットダウン → チーム削除
 
 **観察ログの仕組み**:
 
-各エージェントが作業中の気づきをチーム共有ファイル `~/.claude/teams/{team-name}/observations.md` に記録する。
-
-記録する内容:
-- 自身の定義と実際の動きにずれがあった
-- ルールや手順と実際の作業が噛み合わなかった
-- 同じ手順を繰り返した（SKILL 化候補）
-- ツールの不足・過剰を感じた
-- 「こうした方がよいのでは」という改善案
-
-steward は振り返り時に observations.md を最初に読み、気づきを集約して改善提案にまとめる。
+maker / reviewer は気づきを steward に SendMessage で共有する。steward が `~/.claude/teams/{team-name}/observations.md` に一元記録し、振り返り時に集約して改善提案にまとめる。
 
 **チームメイトをスポーンする際の mode 指針**:
 
