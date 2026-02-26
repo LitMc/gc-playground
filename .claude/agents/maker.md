@@ -78,8 +78,7 @@ git checkout main && git pull
 
 ## チームコミュニケーション
 
-- コミット完了時: `reviewer` に SendMessage でレビュー依頼
-- PR 作成後: `steward` に SendMessage でプロセスチェック依頼
+- コミット完了時・PR 作成後の通知手順は `/commit-notify` を参照
 - reviewer からのフィードバックを受けて修正する
 - 設計に迷ったら `reviewer` に相談する
 - `shutdown_request` を受け取ったら SendMessage の `shutdown_response` タイプで応答する
