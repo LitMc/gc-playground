@@ -65,5 +65,8 @@ class PadConsoleLink {
     SharedConsole shared_console_{};
     domain::transform::PipelineSet pipelines_{};
 
+  public:
+    SharedPadHub &active_pad_hub() { return real_pad_hub_; }
+    const SharedPadHub &active_pad_hub() const { return real_pad_hub_; }
 };
 } // namespace gcinput
