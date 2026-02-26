@@ -73,3 +73,4 @@ Claude Code の複数エージェント機能を活用して並行・協調作�
 | `/retrospective` | 作業後の振り返りを行い、SKILL化・エージェント更新の改善案を提案する |
 
 エージェントは運用の中で自身の定義を改善し、改善内容は `CLAUDE.md` の「エージェント改善履歴」に記録する。
+Agent Teams の詳細設定（作業フロー・mode 指針・自己改善等）は `.claude/AGENT_TEAMS.md` を参照。
