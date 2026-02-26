@@ -22,10 +22,10 @@ GCコントローラ（Joybus）通信を RP2040（Raspberry Pi Pico）で解析
 4. **Copilot レビューへの対応**:
    - PR への push ごとに Copilot のレビューコメントを `gh api` で確認する
    - **2回目以降の push 後は `gh pr comment <number> --body "@copilot re-review"` でレビューを依頼する**（初回のみ自動、以降は手動）
-   - **指摘の採否は Teams で判断する**: critic が技術的妥当性を評価し、guardian がプロセス整合を確認する
+   - **指摘の採否は Teams で判断する**: reviewer が技術的妥当性を評価し、steward がプロセス整合を確認する
      - 有効な指摘は本体 PR に反映し commit & push する
      - 無効・誤認識（例: 存在しないパスへの言及）は Teams 判断でスキップ可
-   - Copilot が**フィーチャーブランチに対して**提案 PR を作成した場合は **Teams がレビューしてマージまたはクローズ**する（guardian 主担当、ユーザー承認不要）
+   - Copilot が**フィーチャーブランチに対して**提案 PR を作成した場合は **Teams がレビューしてマージまたはクローズ**する（steward 主担当、ユーザー承認不要）
      - 有用な変更があればマージし、リモートブランチを削除する
      - 変更が不要・空であればクローズし、リモートブランチを削除する
    - ※ Teams 自身が作成したフィーチャーブランチの PR のマージは、必ずユーザーの承認を得ること（ステップ6参照）
@@ -154,8 +154,8 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 > **前提条件**: ファイル変更を伴う作業では、必ず TeamCreate でチームを作成してから開始すること。Teams なしでの作業開始は禁止。
 
 1. **タスク分解**: タスクを分解し、担当エージェントを決める（plan = what + who）
-2. **plan レビュー**: facilitator に plan を Task 経由で提出し、承認を得る
-3. **エージェントスポーン**: 承認後、担当エージェントを一斉スポーンして委譲する
+2. **エージェントスポーン**: steward + maker + reviewer を一括スポーンして委譲する
+3. **plan レビュー**: steward が plan の妥当性を確認する（問題があれば team-lead に報告）
 
 #### team-lead の禁止事項
 
@@ -163,11 +163,11 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 
 | 禁止事項 | 委譲先 |
 |---------|--------|
-| ファイル作成・編集 | implementer |
-| コミット | implementer |
-| push・PR 作成・CI 確認・Copilot レビュー確認 | guardian |
-| コードレビュー・タイミング評価 | critic |
-| 設計妥当性の評価 | navigator |
+| ファイル作成・編集 | maker |
+| コミット | maker |
+| push・PR 作成 | maker |
+| CI 確認・Copilot レビュー確認 | steward |
+| コードレビュー・タイミング評価・設計妥当性の評価 | reviewer |
 
 **例外**: 純粋な読み取り・ユーザーへの説明・plan の作成は team-lead が行う。
 
@@ -175,26 +175,24 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 
 | タスク種別 | 担当エージェント |
 |-----------|---------------|
-| C++ / Python コード実装 | implementer |
-| ファイル編集・コミット（ドキュメント含む） | implementer |
-| コードレビュー（タイミング/ISR/品質） | critic |
-| 設計妥当性・実験設計の評価 | navigator |
-| PR 作成〜マージ（push/CI/Copilot/承認確認） | guardian |
-| plan レビュー | facilitator |
-| 振り返り・改善提案 | facilitator |
+| C++ / Python コード実装 | maker |
+| ファイル編集・コミット（ドキュメント含む） | maker |
+| push・PR 作成・マージ | maker |
+| コードレビュー（タイミング/ISR/品質） | reviewer |
+| 設計妥当性・実験設計の評価 | reviewer |
+| CI 確認・Copilot レビュー確認・ドキュメント整合 | steward |
+| plan レビュー・振り返り・改善提案 | steward |
 | 純粋な読み取り・ユーザーへの説明 | team-lead |
 
-### カスタムサブエージェント一覧（「視点モデル」）
+### カスタムサブエージェント一覧（3体構成）
 
-同じタスクに複数エージェントが**異なるレンズで同時参加**できる設計。
+機能ベースで再編し、ハンドオフを最小化する設計。エージェント間で直接対話しながら品質を高める。
 
-| エージェント | 視点 | 用途 |
+| エージェント | 機能 | 用途 |
 |------------|------|------|
-| `implementer` | 「動かす」 | C++ ビルド・Python ツール実行・コード実装 |
-| `critic` | 「評価する」 | タイミング安全性・ISR・コーディング規約レビュー（読み取り専用） |
-| `guardian` | 「守る」 | PRワークフロー・ドキュメント整合・マージ前承認 |
-| `navigator` | 「俯瞰する」 | 実験設計・変換パイプライン検証・計測データ解釈 |
-| `facilitator` | 「つなぐ」 | 振り返り主導・改善提案・ブロッカー解消支援 |
+| `maker` | 「作る」 | ファイル編集・ビルド・コミット・push・PR 作成まで end-to-end で担当 |
+| `reviewer` | 「見る」 | コードレビュー・タイミング安全性・設計評価・アーキテクチャ助言（読み取り専用） |
+| `steward` | 「守り育てる」 | プロセス監視・ドキュメント整合・CI/Copilot 確認・振り返り・自己改善推進（常駐） |
 
 定義ファイル: `.claude/agents/<name>.md`
 
@@ -217,44 +215,68 @@ PR をレビューするために、セキュリティ・タイミング・コ�
 
 **このプロジェクトでのユースケース**:
 
-PR レビュー（3体並行）:
+標準的な作業フロー:
 ```
-team-lead → critic    「PR #N のコードレビュー」       ─┐
-team-lead → guardian  「CI・ドキュメント整合の確認」    ─┤（同時）
-team-lead → navigator 「設計目標との整合を評価」        ─┘
-→ 全員が SendMessage で知見を共有 → guardian がマージ可否を集約
-```
-
-新規 example 追加（並行→直列）:
-```
-team-lead → navigator 「設計方針を評価して」  ─┐（同時）
-team-lead → critic    「既存の注意点を列挙」  ─┘
-→ navigator → implementer に設計方針を共有
-→ implementer が実装・ビルド → critic に ISR チェック依頼
-→ critic → guardian に「コード OK」報告 → guardian が PR 作成
+team-lead → steward + maker + reviewer を一括スポーン
+steward: plan を確認（問題があれば team-lead に報告）
+maker ←→ reviewer: 実装しながら品質を議論
+steward: 横でプロセスを監視し、逸脱があれば介入
+全員が observations.md に気づきを記録
+→ steward が振り返りを実施 → 全員シャットダウン
 ```
 
-他のユースケース:
-- バグの競合仮説を navigator + critic が並行調査
+**並列のポイント**:
+- maker と reviewer は対話しながら並行作業
+- reviewer のレビューと steward のドキュメント確認は並列
+- CI 待ちの間に steward は Copilot レビューも確認
 
-**チームメイトのスポーンタイミング（フェーズ別）**:
+**チームメイトのスポーンタイミング**:
 
-| フェーズ | 担当 | スポーンタイミング |
-|---------|------|-----------------|
-| 設計・実装・コミット | implementer（+ navigator） | 作業開始時 |
-| **コミット完了 → PRマージまで（ステップ3〜8）** | **guardian**（例外なし） | **コミット直後に必ずスポーン** |
-| コードレビュー（タイミング/ISR/品質） | critic | guardian と同時にスポーン |
-| 設計妥当性の確認 | navigator | 必要に応じて追加スポーン |
-| リファクタリング（削除・移動を含む） | implementer + navigator | 作業開始時。navigator は削除候補の設計意図確認を担当 |
+| エージェント | スポーンタイミング | 備考 |
+|------------|-----------------|------|
+| steward | **作業開始時に最初にスポーン** | チーム終了まで常駐 |
+| maker | 作業開始時（steward と同時） | 実装〜PR 作成まで一貫して担当 |
+| reviewer | 作業開始時（steward と同時） | maker と対話しながらレビュー |
 | 純粋な読み取り・説明のみ | team-lead（Teams 不要） | — |
 
-> **重要**: コミットが完了した時点で guardian のスポーンを行うこと。team-lead 自身が push・PR作成・CI確認・Copilotレビュー確認を行うことは原則禁止。
+> **重要**: 3体を一括スポーンし、イベント駆動で連携する。team-lead 自身がファイル編集・コミット・push・PR作成・CI確認を行うことは禁止。
+
+**イベント駆動の作業フロー**:
+
+```
+1. ユーザーがタスクを依頼
+2. team-lead が steward + maker + reviewer を一括スポーン
+3. steward が plan を確認（問題があれば team-lead に報告）
+4. maker が実装開始。reviewer と対話しながら進める
+5. maker がコミット → reviewer + steward に通知
+6. reviewer がレビュー → maker に直接フィードバック
+   steward がドキュメント整合を確認（並列）
+7. maker が push + PR 作成 → steward に通知
+8. steward が CI・Copilot・マージ条件を確認 → team-lead に報告
+9. team-lead がユーザーに承認確認 → maker にマージ指示
+10. maker がマージ + ローカル反映
+11. steward が振り返り実施（observations.md + 生きているエージェントとの対話）
+12. 全員シャットダウン → チーム削除
+```
+
+**観察ログの仕組み**:
+
+各エージェントが作業中の気づきをチーム共有ファイル `~/.claude/teams/{team-name}/observations.md` に記録する。
+
+記録する内容:
+- 自身の定義と実際の動きにずれがあった
+- ルールや手順と実際の作業が噛み合わなかった
+- 同じ手順を繰り返した（SKILL 化候補）
+- ツールの不足・過剰を感じた
+- 「こうした方がよいのでは」という改善案
+
+steward は振り返り時に observations.md を最初に読み、気づきを集約して改善提案にまとめる。
 
 **チームメイトをスポーンする際の mode 指針**:
 
 | mode | 用途 |
 |------|------|
-| `bypassPermissions` | 定型作業（implementer, guardian）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
+| `bypassPermissions` | 定型作業（maker, steward）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
 | `plan` | 新規・不確かな作業。チームメイトが計画を提示し、team-lead がレビュー・承認してから実行 |
 | `default` | フォアグラウンド Task（ユーザーが直接許可プロンプトに応答できる場合） |
 
@@ -290,11 +312,10 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 - 変更内容・経緯は下記「エージェント改善履歴」に日付と理由を記録する
 
 **自己改善のトリガータイミング**:
-- **PR マージ後（必須）**: team-lead が毎回 `/retrospective` を実行する（ワークフロー ステップ9）。guardian は facilitator がスポーンされていれば「PR #N マージ完了」と通知する（補助）
+- **PR マージ後（必須）**: steward が振り返りを実施する（ワークフロー ステップ9）。observations.md を収集し、生きているエージェントにヒアリングする
 - セッション終了前: ユーザーまたは team-lead が `/retrospective` を呼ぶ
-- navigator がパターン報告したとき: facilitator が振り返りを起動して処理する
 
-**主担当**: facilitator（つなぐ）が振り返りと改善提案を担当する。
+**主担当**: steward（守り育てる）が振り返りと改善提案を担当する。
 改善提案はいかなる場合も team-lead またはユーザーの承認後にのみ実施する。
 
 **SKILL 化の基準**:
@@ -319,3 +340,4 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 - 2026-02-26: team-lead を委譲専門に特化。work initiation フロー（plan → facilitator レビュー → スポーン）を新設。facilitator の役割を振り返り専門から plan レビュー主担当に拡張。
 - 2026-02-26: PR #57 振り返り: work initiation フロー必須化を明記、navigator にリファクタリング時の設計意図確認を追加、facilitator の plan レビュー観点を拡充、/retrospective に全エージェントヒアリングを追加（前半の運用ルール違反と active_pad_hub() 誤削除の教訓）
 - 2026-02-26: モデル選択ルールを CLAUDE.md に明記。Task ツールの model パラメータはユーザー指示がない限り指定しない（Opus 4.6 を継承）
+- 2026-02-27: エージェント体制を刷新: 5体構成(implementer/critic/guardian/navigator/facilitator)から3体構成(maker/reviewer/steward)に再編。ハンドオフ最小化・エージェント間対話・観察ログ・自己点検を導入（/retrospective で発見、ユーザー承認済み）
