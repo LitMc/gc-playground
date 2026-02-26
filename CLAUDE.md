@@ -258,6 +258,13 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 | `plan` | 新規・不確かな作業。チームメイトが計画を提示し、team-lead がレビュー・承認してから実行 |
 | `default` | フォアグラウンド Task（ユーザーが直接許可プロンプトに応答できる場合） |
 
+**チームメイトおよび Task ツールのモデル選択ルール**:
+
+- **デフォルト: Opus 4.6**。Task ツールの `model` パラメータは指定しない（親セッションから継承される）
+- カスタムエージェント（`.claude/agents/*.md`）は全て `model: claude-opus-4-6` で統一済み
+- `model: "sonnet"` や `model: "haiku"` の明示指定は**ユーザーが明示的にコスト削減・速度優先を指示した場合のみ**許可
+- 調査・探索目的の Task であっても、指示がない限り model パラメータを指定しないこと
+
 > **注意**: バックグラウンドエージェント（`run_in_background: true`）は許可プロンプトを届けられない。
 > バックグラウンドで使う場合は `bypassPermissions` を指定するか、`permissions.allow` でカバーすること。
 
@@ -311,3 +318,4 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 - 2026-02-25: facilitator エージェント新設・/retrospective SKILL 追加・navigator に改善観察セクション追加（自己改善フィードバックループの構築）
 - 2026-02-26: team-lead を委譲専門に特化。work initiation フロー（plan → facilitator レビュー → スポーン）を新設。facilitator の役割を振り返り専門から plan レビュー主担当に拡張。
 - 2026-02-26: PR #57 振り返り: work initiation フロー必須化を明記、navigator にリファクタリング時の設計意図確認を追加、facilitator の plan レビュー観点を拡充、/retrospective に全エージェントヒアリングを追加（前半の運用ルール違反と active_pad_hub() 誤削除の教訓）
+- 2026-02-26: モデル選択ルールを CLAUDE.md に明記。Task ツールの model パラメータはユーザー指示がない限り指定しない（Opus 4.6 を継承）
