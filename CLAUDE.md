@@ -151,6 +151,8 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 
 ユーザーから実装・変更を伴う作業依頼を受けたとき、team-lead は以下の手順で動く:
 
+> **前提条件**: ファイル変更を伴う作業では、必ず TeamCreate でチームを作成してから開始すること。Teams なしでの作業開始は禁止。
+
 1. **タスク分解**: タスクを分解し、担当エージェントを決める（plan = what + who）
 2. **plan レビュー**: facilitator に plan を Task 経由で提出し、承認を得る
 3. **エージェントスポーン**: 承認後、担当エージェントを一斉スポーンして委譲する
@@ -243,6 +245,7 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 | **コミット完了 → PRマージまで（ステップ3〜8）** | **guardian**（例外なし） | **コミット直後に必ずスポーン** |
 | コードレビュー（タイミング/ISR/品質） | critic | guardian と同時にスポーン |
 | 設計妥当性の確認 | navigator | 必要に応じて追加スポーン |
+| リファクタリング（削除・移動を含む） | implementer + navigator | 作業開始時。navigator は削除候補の設計意図確認を担当 |
 | 純粋な読み取り・説明のみ | team-lead（Teams 不要） | — |
 
 > **重要**: コミットが完了した時点で guardian のスポーンを行うこと。team-lead 自身が push・PR作成・CI確認・Copilotレビュー確認を行うことは原則禁止。
@@ -307,3 +310,4 @@ team-lead → critic    「既存の注意点を列挙」  ─┘
 - 2026-02-25: CopilotレビューのTeams中心の運用をルール化（CLAUDE.md/guardian.md/copilot-instructions.md に明記）
 - 2026-02-25: facilitator エージェント新設・/retrospective SKILL 追加・navigator に改善観察セクション追加（自己改善フィードバックループの構築）
 - 2026-02-26: team-lead を委譲専門に特化。work initiation フロー（plan → facilitator レビュー → スポーン）を新設。facilitator の役割を振り返り専門から plan レビュー主担当に拡張。
+- 2026-02-26: PR #57 振り返り: work initiation フロー必須化を明記、navigator にリファクタリング時の設計意図確認を追加、facilitator の plan レビュー観点を拡充、/retrospective に全エージェントヒアリングを追加（前半の運用ルール違反と active_pad_hub() 誤削除の教訓）
