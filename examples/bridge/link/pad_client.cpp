@@ -160,6 +160,8 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     case State::Ready: {
         if (pending_console_reset_()) {
             // もし本体からResetが来ていたらリセット待ちに入る
+            load_origin_epoch_();
+            load_recalibrate_epoch_();
             enter_state_(State::Resetting);
             break;
         }
