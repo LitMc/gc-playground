@@ -151,11 +151,13 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 
 ユーザーから実装・変更を伴う作業依頼を受けたとき、team-lead は以下の手順で動く:
 
-> **前提条件**: タスク規模に応じてスポーン方針を選択する。小規模（ドキュメント修正・タイポ等）は maker のみ（Teams 不要）、中規模以上は TeamCreate でチームを作成して開始すること。詳細は [`.claude/AGENT_TEAMS.md`](.claude/AGENT_TEAMS.md) の「タスク規模に応じたスポーン方針」を参照。
+> **前提条件**: 小規模（タイポ修正・設定変更等、明らかに軽微な作業）は maker のみ（Teams 不要）。それ以外は常にフル 3 体（maker + reviewer + steward）で TeamCreate して開始する。詳細は [`.claude/AGENT_TEAMS.md`](.claude/AGENT_TEAMS.md) の「タスク規模に応じたスポーン方針」を参照。
 
-1. **タスク分解**: タスクを分解し、担当エージェントを決める（plan = what + who）
-2. **エージェントスポーン**: 規模に応じてエージェントをスポーンして委譲する（方針は [AGENT_TEAMS.md](.claude/AGENT_TEAMS.md) を参照）
-3. **plan レビュー**: steward が plan の妥当性を確認する（問題があれば team-lead に報告）
+1. **タスクコンテキスト整理**: タスクを分解し、コンテキスト（背景・目的・制約）を整理する
+2. **エージェントスポーン + plan 提案依頼（コンペ方式）**: 3体を一括スポーンし、コンテキストと共に plan 提案を依頼する
+3. **討論ラウンド**: team-lead が全提案を共有し、エージェント間で批評・説得・改善を議論する
+4. **plan 統合**: team-lead が討論を踏まえて最終 plan を策定する
+5. **plan 簡易チェック**: steward が最終 plan のプロセス整合を確認する（問題があれば team-lead に報告）
 
 #### team-lead の禁止事項
 
@@ -169,7 +171,7 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 | CI 確認・Copilot レビュー確認 | steward |
 | コードレビュー・タイミング評価・設計妥当性の評価 | reviewer |
 
-**例外**: 純粋な読み取り・ユーザーへの説明・plan の作成は team-lead が行う。
+**例外**: 純粋な読み取り・ユーザーへの説明・plan の統合（コンペ方式での最終策定）は team-lead が行う。
 
 #### タスク種別とデフォルト担当
 
@@ -181,7 +183,8 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 | コードレビュー（タイミング/ISR/品質） | reviewer |
 | 設計妥当性・実験設計の評価 | reviewer |
 | CI 確認・Copilot レビュー確認・ドキュメント整合 | steward |
-| plan レビュー・振り返り・改善提案 | steward |
+| plan 提案（プロセス視点）・plan 簡易チェック・振り返り・改善提案 | steward |
+| plan 提案（各自の視点から独立に） | maker + reviewer + steward（コンペ方式） |
 | 純粋な読み取り・ユーザーへの説明 | team-lead |
 
 ### カスタムサブエージェント一覧（3体構成）
@@ -214,3 +217,4 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 - 2026-02-26: モデル選択ルールを CLAUDE.md に明記。Task ツールの model パラメータはユーザー指示がない限り指定しない（Opus 4.6 を継承）
 - 2026-02-27: エージェント体制を刷新: 5体構成(implementer/critic/guardian/navigator/facilitator)から3体構成(maker/reviewer/steward)に再編。ハンドオフ最小化・エージェント間対話・観察ログ・自己点検を導入（/retrospective で発見、ユーザー承認済み）
 - 2026-02-27: エージェント構造の軽量化: CLAUDE.md 詳細を .claude/AGENT_TEAMS.md に外部化、steward 振り返り手順を /retrospective 参照化、観察ログ SendMessage 一元化、shutdown テンプレ重複排除、規模別スポーン方針追加、ワークフロー3フェーズ化
+- 2026-02-27: スポーン方針を2段階に簡略化（中規模を廃止、trivial以外は常にフル3体）。Phase 1 にコンペ方式 plan を導入（3エージェントが独立に plan を提案→討論→team-lead が統合）
