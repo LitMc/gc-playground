@@ -54,6 +54,9 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
 
     // 本体からResetが来ていたらリセット待ちに入る
     if (pending_console_reset_() && state_ != State::Disconnected && state_ != State::Resetting) {
+        // Resetのboot sequenceでOrigin/Recalibrateも取得するため中継epochを消化
+        load_origin_epoch_();
+        load_recalibrate_epoch_();
         enter_state_(State::Resetting);
     }
 
@@ -161,6 +164,18 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
             break;
         }
 
+        // 本体からRecalibrate中継要求が来ていたらパッドへ中継
+        if (pending_console_recalibrate_()) {
+            enter_state_(State::RelayRecalibrate);
+            break;
+        }
+
+        // 本体からOrigin中継要求が来ていたらパッドへ中継
+        if (pending_console_origin_()) {
+            enter_state_(State::RelayOrigin);
+            break;
+        }
+
         if (waiting_response_()) {
             if (got(joybus::Command::Status)) {
                 next_status_due_us_ = now_us + kStatusPeriodUs;
@@ -182,6 +197,38 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
                 // 送信できなかったら次のtickで再試行
                 next_status_due_us_ = now_us + kRetryDelayUs;
             }
+        }
+        break;
+    }
+    // 本体からのOriginをパッドへ中継
+    case State::RelayOrigin: {
+        if (!waiting_response_()) {
+            send_request_(joybus::Origin, now_us, kBootTimeoutUs);
+            break;
+        }
+        if (got(joybus::Command::Origin)) {
+            enter_state_(State::Ready);
+            next_status_due_us_ = now_us + kStatusPeriodUs;
+        } else if (is_timeout_reached_(now_us, response_deadline_us_)) {
+            // タイムアウトしてもパッドは接続済みなのでReadyに戻る
+            enter_state_(State::Ready);
+            next_status_due_us_ = now_us + kRetryDelayUs;
+        }
+        break;
+    }
+    // 本体からのRecalibrateをパッドへ中継
+    case State::RelayRecalibrate: {
+        if (!waiting_response_()) {
+            send_request_(joybus::Recalibrate, now_us, kBootTimeoutUs);
+            break;
+        }
+        if (got(joybus::Command::Recalibrate)) {
+            enter_state_(State::Ready);
+            next_status_due_us_ = now_us + kStatusPeriodUs;
+        } else if (is_timeout_reached_(now_us, response_deadline_us_)) {
+            // タイムアウトしてもパッドは接続済みなのでReadyに戻る
+            enter_state_(State::Ready);
+            next_status_due_us_ = now_us + kRetryDelayUs;
         }
         break;
     }
