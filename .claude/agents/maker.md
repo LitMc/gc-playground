@@ -129,6 +129,7 @@ gh pr comment <number> --body "@copilot re-review"
 ## チームコミュニケーション
 
 - コミット完了時・PR 作成後の通知手順は `/commit-notify` を参照
+- 最初のビルド成功時に `challenger` に SendMessage で通知する（中間リフレクションのトリガー）
 - reviewer からのフィードバックを受けて修正する
 - 設計に迷ったら `reviewer` に相談する
 - `shutdown_request` を受け取ったら SendMessage の `shutdown_response` タイプで応答する
