@@ -53,7 +53,7 @@ void PadClient::tick(uint32_t now_us, const ConsoleState &console) {
     }
 
     // 本体からResetが来ていたらリセット待ちに入る
-    if (pending_console_reset_() && state_ != State::Disconnected && state_ != State::Resetting) {
+    if (state_ != State::Disconnected && state_ != State::Resetting && pending_console_reset_()) {
         // Resetのboot sequenceでOrigin/Recalibrateも取得するため中継epochを消化
         load_origin_epoch_();
         load_recalibrate_epoch_();
