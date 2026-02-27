@@ -2,23 +2,20 @@
 
 maker がコミット・push・PR 作成後にチームメイトに通知する定型手順。
 
+## ビルド成功時
+
+`challenger` に SendMessage でビルド成功を通知する（中間リフレクションのトリガー）:
+- 変更対象ファイル一覧を含める
+
 ## コミット完了時
 
-`reviewer` と `steward` に SendMessage で通知する。
-
-**reviewer 宛**: レビュー依頼
+`reviewer` に SendMessage でレビュー依頼を送る:
 - コミットハッシュと変更ファイル一覧を含める
 - diff の確認方法（`git show <hash>`）を添える
 
-**steward 宛**: ドキュメント整合確認依頼
-- 変更ファイル一覧を含める
-- CLAUDE.md に影響がある場合は明示する
-
 ## push + PR 作成後
 
-`steward` に SendMessage でプロセスチェック依頼を送る:
+`team-lead` に SendMessage で PR 作成完了を報告する:
 - PR 番号と URL を含める
-- CI・Copilot レビュー・マージ条件の確認を依頼する
-
-`team-lead` にも PR 作成完了を報告する:
-- PR URL とレビュー状況（reviewer LGTM 済み等）を含める
+- CI ステータスと Copilot レビュー状況を含める
+- マージ条件 3 点の充足状況を報告する
