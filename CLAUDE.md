@@ -22,10 +22,10 @@ GCコントローラ（Joybus）通信を RP2040（Raspberry Pi Pico）で解析
 4. **Copilot レビューへの対応**:
    - PR への push ごとに Copilot のレビューコメントを `gh api` で確認する
    - **2回目以降の push 後は `gh pr comment <number> --body "@copilot re-review"` でレビューを依頼する**（初回のみ自動、以降は手動）
-   - **指摘の採否は Teams で判断する**: reviewer が技術的妥当性を評価し、steward がプロセス整合を確認する
+   - **指摘の採否は Teams で判断する**: reviewer が技術的妥当性を評価し、maker がプロセス整合を確認する
      - 有効な指摘は本体 PR に反映し commit & push する
      - 無効・誤認識（例: 存在しないパスへの言及）は Teams 判断でスキップ可
-   - Copilot が**フィーチャーブランチに対して**提案 PR を作成した場合は **Teams がレビューしてマージまたはクローズ**する（steward 主担当、ユーザー承認不要）
+   - Copilot が**フィーチャーブランチに対して**提案 PR を作成した場合は **Teams がレビューしてマージまたはクローズ**する（maker 主担当、ユーザー承認不要）
      - 有用な変更があればマージし、リモートブランチを削除する
      - 変更が不要・空であればクローズし、リモートブランチを削除する
    - ※ Teams 自身が作成したフィーチャーブランチの PR のマージは、必ずユーザーの承認を得ること（ステップ6参照）
@@ -151,13 +151,12 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 
 ユーザーから実装・変更を伴う作業依頼を受けたとき、team-lead は以下の手順で動く:
 
-> **前提条件**: 小規模（タイポ修正・設定変更等、明らかに軽微な作業）は maker のみ（Teams 不要）。それ以外は常にフル 3 体（maker + reviewer + steward）で TeamCreate して開始する。詳細は [`.claude/AGENT_TEAMS.md`](.claude/AGENT_TEAMS.md) の「タスク規模に応じたスポーン方針」を参照。
+> **前提条件**: 小規模（タイポ修正・設定変更等、明らかに軽微な作業）は maker のみ（Teams 不要）。それ以外は常にフル 3 体（maker + reviewer + challenger）で TeamCreate して開始する。詳細は [`.claude/AGENT_TEAMS.md`](.claude/AGENT_TEAMS.md) の「タスク規模に応じたスポーン方針」を参照。
 
 1. **タスクコンテキスト整理**: タスクを分解し、コンテキスト（背景・目的・制約）を整理する
 2. **エージェントスポーン + plan 提案依頼（コンペ方式）**: 3体を一括スポーンし、コンテキストと共に plan 提案を依頼する
 3. **討論ラウンド**: team-lead が全提案を共有し、エージェント間で批評・説得・改善を議論する
 4. **plan 統合**: team-lead が討論を踏まえて最終 plan を策定する
-5. **plan 簡易チェック**: steward が最終 plan のプロセス整合を確認する（問題があれば team-lead に報告）
 
 #### team-lead の禁止事項
 
@@ -167,9 +166,9 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 |---------|--------|
 | ファイル作成・編集 | maker |
 | コミット | maker |
-| push・PR 作成 | maker |
-| CI 確認・Copilot レビュー確認 | steward |
+| push・PR 作成・CI 確認・Copilot レビュー確認 | maker |
 | コードレビュー・タイミング評価・設計妥当性の評価 | reviewer |
+| 影響範囲の自律探索・前提への問い | challenger |
 
 **例外**: 純粋な読み取り・ユーザーへの説明・plan の統合（コンペ方式での最終策定）は team-lead が行う。
 
@@ -179,12 +178,12 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 |-----------|---------------|
 | C++ / Python コード実装 | maker |
 | ファイル編集・コミット（ドキュメント含む） | maker |
-| push・PR 作成・マージ | maker |
+| push・PR 作成・マージ・CI 確認・Copilot レビュー確認 | maker |
 | コードレビュー（タイミング/ISR/品質） | reviewer |
-| 設計妥当性・実験設計の評価 | reviewer |
-| CI 確認・Copilot レビュー確認・ドキュメント整合 | steward |
-| plan 提案（プロセス視点）・plan 簡易チェック・振り返り・改善提案 | steward |
-| plan 提案（各自の視点から独立に） | maker + reviewer + steward（コンペ方式） |
+| 設計妥当性・実験設計の評価・Copilot 指摘の技術的採否 | reviewer |
+| 影響範囲の自律探索・前提への問い・代替案の軽量調査 | challenger |
+| plan 提案（各自の視点から独立に） | maker + reviewer + challenger（コンペ方式） |
+| 振り返り・改善提案 | team-lead |
 | 純粋な読み取り・ユーザーへの説明 | team-lead |
 
 ### カスタムサブエージェント一覧（3体構成）
@@ -193,9 +192,9 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 
 | エージェント | 機能 | 用途 |
 |------------|------|------|
-| `maker` | 「作る」 | ファイル編集・ビルド・コミット・push・PR 作成まで end-to-end で担当 |
-| `reviewer` | 「見る」 | コードレビュー・タイミング安全性・設計評価・アーキテクチャ助言（読み取り専用） |
-| `steward` | 「守り育てる」 | プロセス監視・ドキュメント整合・CI/Copilot 確認・振り返り・自己改善推進（常駐） |
+| `maker` | 「作る」 | ファイル編集・ビルド・コミット・push・PR 作成・CI/Copilot 確認まで end-to-end で担当 |
+| `reviewer` | 「見る」 | コードレビュー・タイミング安全性・設計評価・Copilot 指摘の技術的採否（読み取り専用） |
+| `challenger` | 「問う」 | 影響範囲の自律探索・前提への問い・代替案の軽量調査（読み取り専用） |
 
 定義ファイル: `.claude/agents/<name>.md`
 
@@ -218,3 +217,4 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 - 2026-02-27: エージェント体制を刷新: 5体構成(implementer/critic/guardian/navigator/facilitator)から3体構成(maker/reviewer/steward)に再編。ハンドオフ最小化・エージェント間対話・観察ログ・自己点検を導入（/retrospective で発見、ユーザー承認済み）
 - 2026-02-27: エージェント構造の軽量化: CLAUDE.md 詳細を .claude/AGENT_TEAMS.md に外部化、steward 振り返り手順を /retrospective 参照化、観察ログ SendMessage 一元化、shutdown テンプレ重複排除、規模別スポーン方針追加、ワークフロー3フェーズ化
 - 2026-02-27: スポーン方針を2段階に簡略化（中規模を廃止、trivial以外は常にフル3体）。Phase 1 にコンペ方式 plan を導入（3エージェントが独立に plan を提案→討論→team-lead が統合）
+- 2026-02-28: エージェント体制を改善: steward を廃止し challenger（問い手）を導入。CI/Copilot 確認を maker に統合、Copilot 指摘の技術的採否を reviewer に統合、振り返りを team-lead に移管。challenger は影響範囲の自律探索・前提への問い・中間リフレクションを担当（/retrospective で発見、ユーザー承認済み）

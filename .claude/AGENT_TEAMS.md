@@ -17,37 +17,38 @@ PR をレビューするために、セキュリティ・タイミング・コ�
 標準的な作業フロー:
 ```
 team-lead → タスクコンテキスト整理 → 3体を一括スポーン（コンテキスト + plan 提案依頼）
-① 提案ラウンド: maker / reviewer / steward が独立に plan 提案（並列）
+① 提案ラウンド: maker / reviewer / challenger が独立に plan 提案（並列）
 ② 討論ラウンド: 全提案を共有し、エージェント同士が批評・説得・改善を議論
-③ 統合: team-lead が討論を踏まえて最終 plan を策定 → steward が簡易チェック
-→ Phase 2（実装）: maker ←→ reviewer 対話 / steward 監視
-→ Phase 3（完了）: steward 振り返り → 全員シャットダウン
+③ 統合: team-lead が討論を踏まえて最終 plan を策定
+④ Phase 遷移シグナル: team-lead がタスク割当で「plan 確定・実装開始」を明示
+→ Phase 2（実装）: maker ←→ reviewer 対話 / challenger 自律探索・中間リフレクション
+→ Phase 3（完了）: team-lead 振り返り → 全員シャットダウン
 ```
 
 **並列のポイント**:
 - maker と reviewer は対話しながら並行作業
-- reviewer のレビューと steward のドキュメント確認は並列
-- CI 待ちの間に steward は Copilot レビューも確認
+- challenger は maker の実装と並行して影響範囲を自律探索
+- maker が CI/Copilot 確認も一気通貫で担当
 
 ### タスク規模に応じたスポーン方針
 
 | 規模 | 基準 | スポーン |
 |------|------|---------|
 | 小（trivial） | タイポ・設定変更・1行修正 | maker のみ（Teams 不要、Task ツールで直接） |
-| それ以外 | 上記に該当しない全てのタスク | maker + reviewer + steward（フル3体） |
+| それ以外 | 上記に該当しない全てのタスク | maker + reviewer + challenger（フル3体） |
 
-> **原則: 迷ったらフル3体**。reviewer 不在だと技術品質の視点が欠け、steward 不在だとプロセス整合の視点が欠ける。trivial と確信できる場合のみ maker 単体で進める。
+> **原則: 迷ったらフル3体**。reviewer 不在だと技術品質の視点が欠け、challenger 不在だと「これでよかったっけ？」の視点が欠ける。trivial と確信できる場合のみ maker 単体で進める。
 
 **チームメイトのスポーンタイミング**:
 
 | エージェント | スポーンタイミング | 備考 |
 |------------|-----------------|------|
-| steward | **作業開始時に最初にスポーン** | チーム終了まで常駐 |
-| maker | 作業開始時（steward と同時） | 実装〜PR 作成まで一貫して担当 |
-| reviewer | 作業開始時（steward と同時） | maker と対話しながらレビュー |
+| maker | 作業開始時に一括スポーン | 実装〜PR 作成・CI/Copilot 確認まで一貫して担当 |
+| reviewer | 作業開始時に一括スポーン | maker と対話しながらレビュー |
+| challenger | 作業開始時に一括スポーン | Phase 2 で自律探索・中間チェックポイント |
 | 純粋な読み取り・説明のみ | team-lead（Teams 不要） | — |
 
-> **重要**: 3体を一括スポーンし、イベント駆動で連携する。team-lead 自身がファイル編集・コミット・push・PR作成・CI確認を行うことは禁止。
+> **重要**: 3体を一括スポーンし、イベント駆動で連携する。team-lead 自身がファイル編集・コミット・push・PR作成を行うことは禁止。
 
 ### 作業フロー（3フェーズ）
 
@@ -56,23 +57,30 @@ team-lead → タスクコンテキスト整理 → 3体を一括スポーン（
 - **① 提案ラウンド**: 各エージェントが独立に plan を提案（並列、他の提案は見ない）
   - maker: 実装効率・実現可能性の視点
   - reviewer: 品質・安全性・設計一貫性の視点
-  - steward: プロセス遵守・ドキュメント整合・テスト方針の視点
+  - challenger: 前提の妥当性・代替案・未検討リスクの視点
 - **② 討論ラウンド**: team-lead が全提案を共有 → エージェント同士が批評・説得・改善を議論
+  - **差分確認ラウンドの短縮条件**: 提案内容が実質同一（アプローチ・ファイル・状態設計が一致）の場合、team-lead は差分の確認のみで討論を短縮できる。ただし**完全スキップは禁止**（最低限の差分確認は行う）
 - **③ 統合**: team-lead が討論を踏まえて最終 plan を策定
-- steward が最終 plan のプロセス整合を簡易チェック
+- **④ Phase 遷移シグナル**: team-lead がタスク割当で「plan 確定・実装開始」を明示的に宣言する。**このシグナルが出るまで maker は実装を開始しない**
 
 **Phase 2（実装〜PR）**:
 - maker が実装。reviewer と対話しながら品質を高める
-- maker がコミット → reviewer にレビュー依頼 + steward に通知
-- reviewer がレビュー → maker にフィードバック（steward にも共有）
-- steward がドキュメント整合を確認（reviewer と並列）
-- maker が push + PR 作成 → steward に通知
+- **challenger が自律探索**: 変更対象の影響範囲・下流影響・関連ドキュメントを並行して探索
+- **中間リフレクション**: maker の最初のビルド成功後に challenger の問いを全員で短く検討する
+  - challenger: 探索結果を「問い」の形で提示
+  - maker: 問いに対して「検討済み」「見落としていた」等を簡潔に回答
+  - reviewer: 必要に応じて技術的補足
+  - 大きな方向転換が不要ならそのまま続行
+- maker がコミット → reviewer にレビュー依頼
+- reviewer がレビュー → maker にフィードバック
+- maker が push + PR 作成 + CI/Copilot 確認
+- Copilot 指摘があれば reviewer に技術的採否判断を依頼
+- maker がマージ条件 3 点の充足を team-lead に報告
 
 **Phase 3（完了）**:
-- steward が CI・Copilot・マージ条件を確認 → team-lead に報告
 - team-lead がユーザーに承認確認 → maker にマージ指示
 - maker がマージ + ローカル反映
-- steward が振り返り実施 → 全員シャットダウン → チーム削除
+- team-lead が振り返りを主導（`/retrospective`）→ 全員シャットダウン → チーム削除
 
 ### コンペ方式 plan の詳細
 
@@ -127,17 +135,13 @@ Phase 1 で実施するコンペ方式 plan の具体的なルールを以下に
 
 小規模（trivial）タスクではコンペ方式は不要。maker のみをスポーンし、Teams を使わずに直接実行する。
 
-**観察ログの仕組み**:
-
-maker / reviewer は気づきを steward に SendMessage で共有する。steward が `~/.claude/teams/{team-name}/observations.md` に一元記録し、振り返り時に集約して改善提案にまとめる。
-
 **チームメイトをスポーンする際の mode 指針**:
 
 | mode | 用途 |
 |------|------|
-| `bypassPermissions` | 定型作業（maker, steward）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
+| `bypassPermissions` | 定型作業（maker, challenger）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
 | `plan` | 新規・不確かな作業。チームメイトが計画を提示し、team-lead がレビュー・承認してから実行 |
-| `default` | フォアグラウンド Task（ユーザーが直接許可プロンプトに応答できる場合） |
+| `default` | reviewer など read-only エージェント（フォアグラウンド Task でユーザーが直接許可プロンプトに応答できる場合） |
 
 **チームメイトおよび Task ツールのモデル選択ルール**:
 
@@ -171,10 +175,10 @@ maker / reviewer は気づきを steward に SendMessage で共有する。stewa
 - 変更内容・経緯は CLAUDE.md の「エージェント改善履歴」に日付と理由を記録する
 
 **自己改善のトリガータイミング**:
-- **PR マージ後（必須）**: steward が振り返りを実施する（Phase 3 の振り返りステップ）。observations.md を収集し、生きているエージェントにヒアリングする
+- **PR マージ後（必須）**: team-lead が振り返りを主導する（`/retrospective`）
 - セッション終了前: ユーザーまたは team-lead が `/retrospective` を呼ぶ
 
-**主担当**: steward（守り育てる）が振り返りと改善提案を担当する。
+**主担当**: team-lead が振り返りと改善提案を主導する。
 改善提案はいかなる場合も team-lead またはユーザーの承認後にのみ実施する。
 
 **SKILL 化の基準**:
