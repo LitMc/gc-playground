@@ -13,6 +13,8 @@ class PadClient {
     explicit PadClient(JoybusPioPort::Config host_to_pad_config, PadConsoleLink &link)
         : link_{link}, host_to_pad_(host_to_pad_config, &gcinput::PadClient::callback, this) {
         last_reset_epoch_ = link_.load_reset_epoch();
+        last_origin_epoch_ = link_.load_origin_epoch();
+        last_recalibrate_epoch_ = link_.load_recalibrate_epoch();
     };
 
     // mainループから呼ぶ（非ブロッキング）
@@ -28,12 +30,14 @@ class PadClient {
     // パッドの状態
     enum class State : uint8_t {
         Disconnected,
-        Resetting,       // 本体からのResetをコントローラに伝えて再初期化
-        BootId,          // 初回のID取得待ち
-        BootOrigin,      // 初回のOrigin取得待ち
-        BootRecalibrate, // 初回のRecalibrate取得待ち
-        WarmStatus,      // 初回のStatus取得待ち
-        Ready,           // Statusのポーリング開始済み
+        Resetting,          // 本体からのResetをコントローラに伝えて再初期化
+        BootId,             // 初回のID取得待ち
+        BootOrigin,         // 初回のOrigin取得待ち
+        BootRecalibrate,    // 初回のRecalibrate取得待ち
+        WarmStatus,         // 初回のStatus取得待ち
+        Ready,              // Statusのポーリング開始済み
+        RelayOrigin,        // 本体からのOriginをコントローラに中継
+        RelayRecalibrate,   // 本体からのRecalibrateをコントローラに中継
     };
 
   private:
@@ -70,6 +74,13 @@ class PadClient {
     // 本体からのReset要求エポックを更新
     void load_reset_epoch_();
 
+    // 本体からのOrigin中継要求エポックを更新
+    void load_origin_epoch_() { last_origin_epoch_ = link_.load_origin_epoch(); }
+    // 本体からのRecalibrate中継要求エポックを更新
+    void load_recalibrate_epoch_() {
+        last_recalibrate_epoch_ = link_.load_recalibrate_epoch();
+    }
+
     // 次の状態へ遷移
     void enter_state_(State next);
 
@@ -92,6 +103,8 @@ class PadClient {
     void publish_pad_state_to_link_() {
         switch (state_) {
         case State::Ready:
+        case State::RelayOrigin:
+        case State::RelayRecalibrate:
             link_.publish_pad_state_from_main(PadConsoleLink::PadConnectionState::Ready);
             break;
         case State::BootId:
@@ -134,9 +147,19 @@ class PadClient {
 
     // 本体からReset要求を受けた回数（いつのReset要求まで捌いたか判別用エポック）
     uint32_t last_reset_epoch_{0};
+    // 本体からOrigin中継要求を受けた回数
+    uint32_t last_origin_epoch_{0};
+    // 本体からRecalibrate中継要求を受けた回数
+    uint32_t last_recalibrate_epoch_{0};
 
     // 本体からのReset要求があればtrue、なければfalse
     bool pending_console_reset_() { return link_.consume_pad_reset_request(last_reset_epoch_); }
+    // 本体からのOrigin中継要求があればtrue、なければfalse
+    bool pending_console_origin_() { return link_.consume_pad_origin_request(last_origin_epoch_); }
+    // 本体からのRecalibrate中継要求があればtrue、なければfalse
+    bool pending_console_recalibrate_() {
+        return link_.consume_pad_recalibrate_request(last_recalibrate_epoch_);
+    }
 
     // Ready中のStatus送信間隔
     uint32_t next_status_due_us_{0};

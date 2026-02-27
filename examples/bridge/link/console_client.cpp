@@ -53,6 +53,9 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         break;
     }
     case joybus::Command::Origin: {
+        // パッドへOrigin中継を要求
+        self->link_.publish_pad_origin_request_from_isr();
+
         const domain::PadState original_state = original_snapshot.origin;
         original_reply = joybus::state::encode_origin(original_state);
         domain::PadState modified_state = original_state;
@@ -61,6 +64,9 @@ std::size_t ConsoleClient::callback(void *user, const uint8_t *rx, std::size_t r
         break;
     }
     case joybus::Command::Recalibrate: {
+        // パッドへRecalibrate中継を要求
+        self->link_.publish_pad_recalibrate_request_from_isr();
+
         const domain::PadState original_state = original_snapshot.origin;
         original_reply = joybus::state::encode_recalibrate(original_state);
         domain::PadState modified_state = original_state;
