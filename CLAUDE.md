@@ -206,6 +206,7 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 | `/agents-review` | エージェント構成を見直し、改善案を提案・適用する |
 | `/retrospective` | 作業後の振り返りを行い、SKILL化・エージェント更新の改善案を提案する |
 | `/commit-notify` | コミット・PR 作成後のチームメイト通知手順 |
+| `/ntfy` | ntfy リスナーの管理（起動・停止・状態確認） |
 
 > Agent Teams の詳細設定（使い方・作業フロー・mode 指針・モデル選択ルール・自己改善・ベストプラクティス等）は [`.claude/AGENT_TEAMS.md`](.claude/AGENT_TEAMS.md) を参照。
 
@@ -218,3 +219,4 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 - 2026-02-27: エージェント構造の軽量化: CLAUDE.md 詳細を .claude/AGENT_TEAMS.md に外部化、steward 振り返り手順を /retrospective 参照化、観察ログ SendMessage 一元化、shutdown テンプレ重複排除、規模別スポーン方針追加、ワークフロー3フェーズ化
 - 2026-02-27: スポーン方針を2段階に簡略化（中規模を廃止、trivial以外は常にフル3体）。Phase 1 にコンペ方式 plan を導入（3エージェントが独立に plan を提案→討論→team-lead が統合）
 - 2026-02-28: エージェント体制を改善: steward を廃止し challenger（問い手）を導入。CI/Copilot 確認を maker に統合、Copilot 指摘の技術的採否を reviewer に統合、振り返りを team-lead に移管。challenger は影響範囲の自律探索・前提への問い・中間リフレクションを担当（/retrospective で発見、ユーザー承認済み）
+- 2026-02-28: /retrospective の steward 参照を team-lead に修正、/ntfy SKILL を追加（セッション開始時のリスナー管理手順を SKILL 化）。リポジトリ外のエージェント基盤（hooks 等）を別リポジトリに分離する方向性を確認（次回宿題）（/retrospective で発見、ユーザー承認済み）
