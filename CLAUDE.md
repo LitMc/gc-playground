@@ -165,7 +165,7 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 | 禁止事項 | 委譲先 |
 |---------|--------|
 | ファイル作成・編集 | maker |
-| コミット | maker |
+| コミット | operator |
 | push・PR 作成・CI 確認・Copilot レビュー確認・マージ | operator |
 | plan の統合・策定・コンテキスト整理 | maker + operator + reviewer + challenger（コンペ方式） |
 | コードレビュー・タイミング評価・設計妥当性の評価 | reviewer |
@@ -178,7 +178,8 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 | タスク種別 | 担当エージェント |
 |-----------|---------------|
 | C++ / Python コード実装 | maker |
-| ファイル編集・コミット（ドキュメント含む） | maker |
+| ファイル編集（ドキュメント含む） | maker |
+| コミット・ステージング | operator |
 | push・PR 作成・マージ・CI 確認・Copilot レビュー確認 | operator |
 | plan 提案・討論（デリバリー視点） | operator |
 | ユーザー指示の中継・エージェント報告の集約 | team-lead |

@@ -54,7 +54,7 @@ git add <files>
 git commit -m "<日本語のコミットメッセージ>"
 ```
 
-### push・PR 作成
+### push・PR 作成・reviewer 通知
 
 ```bash
 # push
@@ -63,6 +63,8 @@ git push -u origin <branch-name>
 # PR 作成（タイトル・本文は日本語）
 gh pr create --title "<タイトル>" --body "<本文>"
 ```
+
+PR 作成後、reviewer に SendMessage で PR 番号を共有しレビューを依頼する。
 
 ### CI・Copilot 確認
 
