@@ -143,7 +143,7 @@ Phase 1 で実施するコンペ方式 plan の具体的なルールを以下に
 
 | mode | 用途 |
 |------|------|
-| `bypassPermissions` | 定型作業（maker, challenger）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
+| `bypassPermissions` | 定型作業（maker, operator, challenger）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
 | `plan` | 新規・不確かな作業。チームメイトが計画を提示し、team-lead がレビュー・承認してから実行 |
 | `default` | reviewer など read-only エージェント（フォアグラウンド Task でユーザーが直接許可プロンプトに応答できる場合） |
 

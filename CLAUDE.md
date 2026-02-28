@@ -22,10 +22,10 @@ GCコントローラ（Joybus）通信を RP2040（Raspberry Pi Pico）で解析
 4. **Copilot レビューへの対応**:
    - PR への push ごとに Copilot のレビューコメントを `gh api` で確認する
    - **2回目以降の push 後は `gh pr comment <number> --body "@copilot re-review"` でレビューを依頼する**（初回のみ自動、以降は手動）
-   - **指摘の採否は Teams で判断する**: reviewer が技術的妥当性を評価し、maker がプロセス整合を確認する
+   - **指摘の採否は Teams で判断する**: reviewer が技術的妥当性を評価し、operator が反映を調整する
      - 有効な指摘は本体 PR に反映し commit & push する
      - 無効・誤認識（例: 存在しないパスへの言及）は Teams 判断でスキップ可
-   - Copilot が**フィーチャーブランチに対して**提案 PR を作成した場合は **Teams がレビューしてマージまたはクローズ**する（maker 主担当、ユーザー承認不要）
+   - Copilot が**フィーチャーブランチに対して**提案 PR を作成した場合は **Teams がレビューしてマージまたはクローズ**する（operator 主担当、ユーザー承認不要）
      - 有用な変更があればマージし、リモートブランチを削除する
      - 変更が不要・空であればクローズし、リモートブランチを削除する
    - ※ Teams 自身が作成したフィーチャーブランチの PR のマージは、必ずユーザーの承認を得ること（ステップ6参照）
@@ -167,7 +167,7 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 | ファイル作成・編集 | maker |
 | コミット | operator |
 | push・PR 作成・CI 確認・Copilot レビュー確認・マージ | operator |
-| plan の統合・策定・コンテキスト整理 | maker + operator + reviewer + challenger（コンペ方式） |
+| plan の独立提案（各視点から並行して） | maker + operator + reviewer + challenger（コンペ方式） |
 | コードレビュー・タイミング評価・設計妥当性の評価 | reviewer |
 | 影響範囲の自律探索・前提への問い | challenger |
 
