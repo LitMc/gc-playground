@@ -69,9 +69,10 @@ team-lead → ユーザー指示をエージェントへ伝達 → 4体を一括
   - reviewer: 必要に応じて技術的補足
   - 大きな方向転換が不要ならそのまま続行
 - maker が実装完了を operator に通知（「実装完了・コミット可能」）
-- operator がコミット → reviewer にレビュー依頼
-- reviewer がレビュー → operator にフィードバック（operator 経由で push 内容の品質確認）
-- operator が push + PR 作成 + CI/Copilot 確認
+- operator がコミット + push（フィーチャーブランチ） + PR 作成
+- operator が reviewer に PR レビュー依頼（PR URL を共有）
+- reviewer が PR をレビュー → operator にフィードバック
+- operator が必要に応じて修正コミット + push を行い、CI/Copilot 確認
 - Copilot 指摘があれば reviewer に技術的採否判断を依頼
 - operator がマージ条件 3 点の充足を team-lead に報告
 
