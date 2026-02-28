@@ -24,10 +24,7 @@ bash ~/.claude/hooks/ntfy-listener.sh start
 
 ## トピック
 
-| トピック | 用途 |
-|---------|------|
-| `claude-code-7ea24dc1de0b4d898f32324d44e1466e` | 通知受信（スマホで購読） |
-| `...-reply` | テキスト指示送信（必要時のみ購読） |
+トピック名は `~/.claude/hooks/ntfy-config.env` の `NTFY_TOPIC` / `NTFY_REPLY_TOPIC` で定義されている。スマホの ntfy アプリで該当トピックを購読すること。
 
 ## 注意事項
 
