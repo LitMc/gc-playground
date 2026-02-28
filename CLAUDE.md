@@ -186,7 +186,7 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 | コードレビュー（タイミング/ISR/品質） | reviewer |
 | 設計妥当性・実験設計の評価・Copilot 指摘の技術的採否 | reviewer |
 | 影響範囲の自律探索・前提への問い・代替案の軽量調査 | challenger |
-| plan 提案（各自の視点から独立に） | maker + reviewer + challenger（コンペ方式） |
+| plan 提案（各自の視点から独立に） | maker + operator + reviewer + challenger（コンペ方式） |
 | 振り返り・改善提案 | team-lead |
 | 純粋な読み取り・ユーザーへの説明 | team-lead |
 
