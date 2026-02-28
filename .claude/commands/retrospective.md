@@ -73,8 +73,8 @@ reviewer が設計・品質の観点でパターンを補足報告する（オ�
 ### 5. ユーザーの承認を得てから実施
 
 - **承認なしでの変更は禁止**
-- SKILL 追加: maker が team-lead 承認後に `.claude/commands/<name>.md` を新規作成
-- エージェント更新: maker が team-lead 承認後に `.claude/agents/<name>.md` を修正
+- SKILL 追加: maker がユーザー承認後に `.claude/commands/<name>.md` を新規作成
+- エージェント更新: maker がユーザー承認後に `.claude/agents/<name>.md` を修正
 - CLAUDE.md 更新: maker が「エージェント改善履歴」に日付・理由を記録
 
 ### 6. 改善履歴に記録
@@ -82,7 +82,7 @@ reviewer が設計・品質の観点でパターンを補足報告する（オ�
 `CLAUDE.md` の「エージェント改善履歴」に以下の形式で追記:
 
 ```
-- YYYY-MM-DD: <変更内容の要約>（/retrospective で発見、team-lead 承認済み）
+- YYYY-MM-DD: <変更内容の要約>（/retrospective で発見、ユーザー承認済み）
 ```
 
 ## 呼び出し方
