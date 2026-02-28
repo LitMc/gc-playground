@@ -151,10 +151,10 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 
 ユーザーから実装・変更を伴う作業依頼を受けたとき、team-lead は以下の手順で動く:
 
-> **前提条件**: 小規模（タイポ修正・設定変更等、明らかに軽微な作業）は maker のみ（Teams 不要）。それ以外は常にフル 3 体（maker + reviewer + challenger）で TeamCreate して開始する。詳細は [`.claude/AGENT_TEAMS.md`](.claude/AGENT_TEAMS.md) の「タスク規模に応じたスポーン方針」を参照。
+> **前提条件**: 規模を問わず、常にフル 4 体（maker + operator + reviewer + challenger）で TeamCreate して開始する。trivial 判断は廃止。詳細は [`.claude/AGENT_TEAMS.md`](.claude/AGENT_TEAMS.md) の「スポーン方針」を参照。
 
-1. **タスクコンテキスト整理**: タスクを分解し、コンテキスト（背景・目的・制約）を整理する
-2. **エージェントスポーン + plan 提案依頼（コンペ方式）**: 3体を一括スポーンし、コンテキストと共に plan 提案を依頼する
+1. **タスクコンテキスト伝達**: ユーザーから受けた指示をエージェントへ伝達する
+2. **エージェントスポーン + plan 提案依頼（コンペ方式）**: 4体を一括スポーンし、コンテキストと共に plan 提案を依頼する
 3. **討論ラウンド**: team-lead が全提案を共有し、エージェント間で批評・説得・改善を議論する
 4. **plan 統合**: team-lead が討論を踏まえて最終 plan を策定する
 
@@ -166,7 +166,8 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 |---------|--------|
 | ファイル作成・編集 | maker |
 | コミット | maker |
-| push・PR 作成・CI 確認・Copilot レビュー確認 | maker |
+| push・PR 作成・CI 確認・Copilot レビュー確認・マージ | operator |
+| plan の統合・策定・コンテキスト整理 | maker + operator + reviewer + challenger（コンペ方式） |
 | コードレビュー・タイミング評価・設計妥当性の評価 | reviewer |
 | 影響範囲の自律探索・前提への問い | challenger |
 
@@ -178,7 +179,9 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 |-----------|---------------|
 | C++ / Python コード実装 | maker |
 | ファイル編集・コミット（ドキュメント含む） | maker |
-| push・PR 作成・マージ・CI 確認・Copilot レビュー確認 | maker |
+| push・PR 作成・マージ・CI 確認・Copilot レビュー確認 | operator |
+| plan 提案・討論（デリバリー視点） | operator |
+| ユーザー指示の中継・エージェント報告の集約 | team-lead |
 | コードレビュー（タイミング/ISR/品質） | reviewer |
 | 設計妥当性・実験設計の評価・Copilot 指摘の技術的採否 | reviewer |
 | 影響範囲の自律探索・前提への問い・代替案の軽量調査 | challenger |
@@ -186,13 +189,14 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 | 振り返り・改善提案 | team-lead |
 | 純粋な読み取り・ユーザーへの説明 | team-lead |
 
-### カスタムサブエージェント一覧（3体構成）
+### カスタムサブエージェント一覧（4体構成）
 
 機能ベースで再編し、ハンドオフを最小化する設計。エージェント間で直接対話しながら品質を高める。
 
 | エージェント | 機能 | 用途 |
 |------------|------|------|
-| `maker` | 「作る」 | ファイル編集・ビルド・コミット・push・PR 作成・CI/Copilot 確認まで end-to-end で担当 |
+| `maker` | 「作る」 | ファイル編集・ビルドに専念。コミット以降は operator に委譲 |
+| `operator` | 「届ける」 | コミット・push・PR 作成・CI/Copilot 確認・マージを end-to-end で担当 |
 | `reviewer` | 「見る」 | コードレビュー・タイミング安全性・設計評価・Copilot 指摘の技術的採否（読み取り専用） |
 | `challenger` | 「問う」 | 影響範囲の自律探索・前提への問い・代替案の軽量調査（読み取り専用） |
 
@@ -220,3 +224,4 @@ Claude Code の複数エージェント機能を活用して、並行・協調�
 - 2026-02-27: スポーン方針を2段階に簡略化（中規模を廃止、trivial以外は常にフル3体）。Phase 1 にコンペ方式 plan を導入（3エージェントが独立に plan を提案→討論→team-lead が統合）
 - 2026-02-28: エージェント体制を改善: steward を廃止し challenger（問い手）を導入。CI/Copilot 確認を maker に統合、Copilot 指摘の技術的採否を reviewer に統合、振り返りを team-lead に移管。challenger は影響範囲の自律探索・前提への問い・中間リフレクションを担当（/retrospective で発見、ユーザー承認済み）
 - 2026-02-28: /retrospective の steward 参照を team-lead に修正、/ntfy SKILL を追加（セッション開始時のリスナー管理手順を SKILL 化）。リポジトリ外のエージェント基盤（hooks 等）を別リポジトリに分離する方向性を確認（次回宿題）（/retrospective で発見、ユーザー承認済み）
+- 2026-02-28: 4体構成へ拡張: operator 新設・maker をコード専門に縮小・team-lead を純粋コーディネーター化（Planner 役も廃止）。trivial 判断廃止・常時フル4体スポーン・シャットダウン制御・即時振り返り必須化（/retrospective で発見、ユーザー承認済み）

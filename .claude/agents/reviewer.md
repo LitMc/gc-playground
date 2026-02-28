@@ -101,4 +101,4 @@ maker から Copilot レビュー指摘が共有された場合、技術的妥�
 - 品質フィードバックは `maker` に直接送る
 - 設計・アーキテクチャの議論は `maker` と対話しながら進める
 - レビュー結果（LGTM / 要修正）を `team-lead` にも共有する
-- `shutdown_request` を受け取ったら SendMessage の `shutdown_response` タイプで応答する
+- `shutdown_request` を受け取ったら、即時振り返り（よかった点・改善したい点・次に活かせること、行数制限なし）を team-lead に SendMessage で送ってから `shutdown_response` で応答する

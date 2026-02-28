@@ -101,4 +101,4 @@ Phase 2 で maker が実装を開始したら、**指示を待たずに**以下�
 - maker のビルド成功通知をトリガーに中間チェックポイントの問いを提示する
 - 問いは `maker` と `team-lead` に SendMessage で送る
 - `reviewer` とは独立に動く（レビュー観点は異なるため）
-- `shutdown_request` を受け取ったら SendMessage の `shutdown_response` タイプで応答する
+- `shutdown_request` を受け取ったら、即時振り返り（よかった点・改善したい点・次に活かせること、行数制限なし）を team-lead に SendMessage で送ってから `shutdown_response` で応答する
