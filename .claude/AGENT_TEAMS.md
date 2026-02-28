@@ -16,46 +16,43 @@ PR をレビューするために、セキュリティ・タイミング・コ�
 
 標準的な作業フロー:
 ```
-team-lead → タスクコンテキスト整理 → 3体を一括スポーン（コンテキスト + plan 提案依頼）
-① 提案ラウンド: maker / reviewer / challenger が独立に plan 提案（並列）
+team-lead → ユーザー指示をエージェントへ伝達 → 4体を一括スポーン（コンテキスト + plan 提案依頼）
+① 提案ラウンド: maker / operator / reviewer / challenger が独立に plan 提案（並列）
 ② 討論ラウンド: 全提案を共有し、エージェント同士が批評・説得・改善を議論
 ③ 統合: team-lead が討論を踏まえて最終 plan を策定
 ④ Phase 遷移シグナル: team-lead がタスク割当で「plan 確定・実装開始」を明示
 → Phase 2（実装）: maker ←→ reviewer 対話 / challenger 自律探索・中間リフレクション
-→ Phase 3（完了）: team-lead 振り返り → 全員シャットダウン
+→ Phase 3（完了）: 振り返り → ユーザー許可後シャットダウン
 ```
 
 **並列のポイント**:
 - maker と reviewer は対話しながら並行作業
 - challenger は maker の実装と並行して影響範囲を自律探索
-- maker が CI/Copilot 確認も一気通貫で担当
+- operator がコミット・CI/Copilot 確認・マージを一気通貫で担当
 
-### タスク規模に応じたスポーン方針
+### スポーン方針
 
-| 規模 | 基準 | スポーン |
-|------|------|---------|
-| 小（trivial） | タイポ・設定変更・1行修正 | maker のみ（Teams 不要、Task ツールで直接） |
-| それ以外 | 上記に該当しない全てのタスク | maker + reviewer + challenger（フル3体） |
-
-> **原則: 迷ったらフル3体**。reviewer 不在だと技術品質の視点が欠け、challenger 不在だと「これでよかったっけ？」の視点が欠ける。trivial と確信できる場合のみ maker 単体で進める。
+> **原則: 常にフル4体スポーン**。規模を問わず、作業依頼を受けたら maker + operator + reviewer + challenger の4体を一括スポーンする。
+> trivial 判断は廃止。「これくらいならいいか」という判断が team-lead の単独実装につながるため。
 
 **チームメイトのスポーンタイミング**:
 
 | エージェント | スポーンタイミング | 備考 |
 |------------|-----------------|------|
-| maker | 作業開始時に一括スポーン | 実装〜PR 作成・CI/Copilot 確認まで一貫して担当 |
+| maker | 作業開始時に一括スポーン | 実装・ビルドに専念 |
+| operator | 作業開始時に一括スポーン | maker の実装完了通知を受けてデリバリー開始 |
 | reviewer | 作業開始時に一括スポーン | maker と対話しながらレビュー |
 | challenger | 作業開始時に一括スポーン | Phase 2 で自律探索・中間チェックポイント |
-| 純粋な読み取り・説明のみ | team-lead（Teams 不要） | — |
 
-> **重要**: 3体を一括スポーンし、イベント駆動で連携する。team-lead 自身がファイル編集・コミット・push・PR作成を行うことは禁止。
+> **重要**: 4体を一括スポーンし、イベント駆動で連携する。team-lead 自身がファイル編集・コミット・push・PR作成を行うことは禁止。
 
 ### 作業フロー（3フェーズ）
 
 **Phase 1（準備 — コンペ方式 plan）**:
-- team-lead がタスクコンテキストを整理し、3体を一括スポーン（コンテキスト + plan 提案依頼）
+- team-lead がタスクコンテキストをユーザーから受け取り、4体を一括スポーン（コンテキスト + plan 提案依頼）
 - **① 提案ラウンド**: 各エージェントが独立に plan を提案（並列、他の提案は見ない）
   - maker: 実装効率・実現可能性の視点
+  - operator: デリバリー効率・CI リスク・マージ条件の視点
   - reviewer: 品質・安全性・設計一貫性の視点
   - challenger: 前提の妥当性・代替案・未検討リスクの視点
 - **② 討論ラウンド**: team-lead が全提案を共有 → エージェント同士が批評・説得・改善を議論
@@ -71,16 +68,27 @@ team-lead → タスクコンテキスト整理 → 3体を一括スポーン（
   - maker: 問いに対して「検討済み」「見落としていた」等を簡潔に回答
   - reviewer: 必要に応じて技術的補足
   - 大きな方向転換が不要ならそのまま続行
-- maker がコミット → reviewer にレビュー依頼
-- reviewer がレビュー → maker にフィードバック
-- maker が push + PR 作成 + CI/Copilot 確認
+- maker が実装完了を operator に通知（「実装完了・コミット可能」）
+- operator がコミット → reviewer にレビュー依頼
+- reviewer がレビュー → operator にフィードバック（operator 経由で push 内容の品質確認）
+- operator が push + PR 作成 + CI/Copilot 確認
 - Copilot 指摘があれば reviewer に技術的採否判断を依頼
-- maker がマージ条件 3 点の充足を team-lead に報告
+- operator がマージ条件 3 点の充足を team-lead に報告
 
 **Phase 3（完了）**:
-- team-lead がユーザーに承認確認 → maker にマージ指示
-- maker がマージ + ローカル反映
-- team-lead が振り返りを主導（`/retrospective`）→ 全員シャットダウン → チーム削除
+- team-lead がユーザーに承認確認 → operator にマージ指示
+- operator がマージ + ローカル反映
+- team-lead が全エージェントに振り返り（自由記述、行数制限なし）を SendMessage で求める
+- team-lead がユーザーへ集約して報告する
+- **ユーザーが「解散してよい」と言うまで shutdown_request を送ってはならない**
+- ユーザーの許可後: team-lead が全員に shutdown_request → 全員シャットダウン → チーム削除
+
+### シャットダウン制御
+
+- **team-lead はユーザーの明示的な許可なしに shutdown_request を送ってはならない**
+- 「解散してよい」「終了してよい」等のユーザー発言がトリガー
+- エージェントが idle になっても、ユーザー許可前に shutdown_request は送らない
+- 作業完了報告とシャットダウンは別のアクション。完了を報告した後はユーザーの反応を待つ
 
 ### コンペ方式 plan の詳細
 
@@ -111,7 +119,7 @@ Phase 1 で実施するコンペ方式 plan の具体的なルールを以下に
 提案ラウンド完了後、team-lead が全提案を各エージェントに共有し、討論ラウンドを開始する。
 
 **討論の進め方:**
-1. team-lead が3つの提案を全エージェントに broadcast する
+1. team-lead が4つの提案を全エージェントに broadcast する
 2. 各エージェントが他の提案について批評・質問・改善案を SendMessage で発信する
    - 強みの承認（「maker のこのアプローチは効率的」）
    - 弱みの指摘（「この方法だと ISR タイミングに影響する」）
@@ -131,15 +139,11 @@ Phase 1 で実施するコンペ方式 plan の具体的なルールを以下に
 - 競合する意見がある場合は、討論での議論を踏まえて判断し、理由を明記する
 - 必要に応じて討論中に追加の論点を提示し、議論を促進する
 
-#### 小規模タスクとの関係
-
-小規模（trivial）タスクではコンペ方式は不要。maker のみをスポーンし、Teams を使わずに直接実行する。
-
 **チームメイトをスポーンする際の mode 指針**:
 
 | mode | 用途 |
 |------|------|
-| `bypassPermissions` | 定型作業（maker, challenger）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
+| `bypassPermissions` | 定型作業（maker, operator, challenger）。`~/.claude/settings.json` の許可リスト（git/gh/cmake/uv）と組み合わせて使用 |
 | `plan` | 新規・不確かな作業。チームメイトが計画を提示し、team-lead がレビュー・承認してから実行 |
 | `default` | reviewer など read-only エージェント（フォアグラウンド Task でユーザーが直接許可プロンプトに応答できる場合） |
 

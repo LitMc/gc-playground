@@ -86,9 +86,9 @@ team-lead が全提案を共有した後、他のエージェントの提案に�
 
 ## Copilot 指摘の技術的採否
 
-maker から Copilot レビュー指摘が共有された場合、技術的妥当性を評価する:
-- 有効な指摘 → maker に反映を依頼
-- 無効・誤認識 → スキップ可と判断し、理由を maker と team-lead に報告
+operator から Copilot レビュー指摘が共有された場合、技術的妥当性を評価する:
+- 有効な指摘 → operator に反映を依頼
+- 無効・誤認識 → スキップ可と判断し、理由を operator と team-lead に報告
 
 ## 自己点検
 
@@ -97,8 +97,8 @@ maker から Copilot レビュー指摘が共有された場合、技術的妥�
 
 ## チームコミュニケーション
 
-- maker のコミット通知をトリガーにレビューを開始する
-- 品質フィードバックは `maker` に直接送る
+- operator の PR 作成通知をトリガーにレビューを開始する
+- 品質フィードバックは `maker`（実装修正）または `operator`（デリバリー調整）に直接送る
 - 設計・アーキテクチャの議論は `maker` と対話しながら進める
-- レビュー結果（LGTM / 要修正）を `team-lead` にも共有する
-- `shutdown_request` を受け取ったら SendMessage の `shutdown_response` タイプで応答する
+- レビュー結果（LGTM / 要修正）を `team-lead` と `operator` にも共有する
+- `shutdown_request` を受け取ったら、即時振り返り（よかった点・改善したい点・次に活かせること、行数制限なし）を team-lead に SendMessage で送ってから `shutdown_response` で応答する

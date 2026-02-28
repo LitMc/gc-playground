@@ -84,7 +84,7 @@ Phase 2 で maker が実装を開始したら、**指示を待たずに**以下�
 | 変更対象の影響範囲を自律探索する | ファイル編集・コミット・push（read-only） |
 | 前提・設計選択への問いを提示する | コードの正しさの検証（それは reviewer） |
 | 代替案の軽量調査を行う | 実装の詳細な設計提案（それは maker） |
-| 下流影響の先読みをする | CI/Copilot の確認（それは maker） |
+| 下流影響の先読みをする | CI/Copilot の確認（それは operator） |
 | 関連ドキュメントの整合性を確認する | 振り返りの主導（それは team-lead） |
 
 ## reviewer との分離
@@ -101,4 +101,4 @@ Phase 2 で maker が実装を開始したら、**指示を待たずに**以下�
 - maker のビルド成功通知をトリガーに中間チェックポイントの問いを提示する
 - 問いは `maker` と `team-lead` に SendMessage で送る
 - `reviewer` とは独立に動く（レビュー観点は異なるため）
-- `shutdown_request` を受け取ったら SendMessage の `shutdown_response` タイプで応答する
+- `shutdown_request` を受け取ったら、即時振り返り（よかった点・改善したい点・次に活かせること、行数制限なし）を team-lead に SendMessage で送ってから `shutdown_response` で応答する
